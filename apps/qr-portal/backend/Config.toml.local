@@ -1,0 +1,25 @@
+[qr_portal.database.dbConfig]
+host = ""
+user = ""
+password = ""
+database = "qr_portal"
+port = 3306
+
+[qr_portal.database.dbConfig.connectionPool]
+maxOpenConnections = 10
+maxConnectionLifeTime = 100.0
+minIdleConnections = 5
+
+[qr_portal.database.dbConfig.options]
+connectTimeout = 10.0
+
+[qr_portal.authorization]
+authorizedGroup = ""
+
+[qr_portal.conference.client]
+conferenceEndpoint = ""
+
+[qr_portal.conference.client.clientAuthConfig]
+tokenUrl = ""
+clientId = ""
+clientSecret = ""

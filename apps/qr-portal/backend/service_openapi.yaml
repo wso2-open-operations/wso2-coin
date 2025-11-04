@@ -1,0 +1,262 @@
+openapi: 3.0.1
+info:
+  title: /
+  version: 1.0.0
+servers:
+- url: "{server}:{port}/"
+  variables:
+    server:
+      default: http://localhost
+    port:
+      default: "9090"
+paths:
+  /qr:
+    post:
+      summary: Create a new QR code.
+      operationId: postQr
+      requestBody:
+        description: Payload containing the QR details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQRPayload'
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConferenceQR'
+        "400":
+          description: BadRequest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorPayload'
+        "500":
+          description: InternalServerError
+  /qr/{qrId}:
+    get:
+      summary: Fetch a specific QR by ID.
+      operationId: getQrQrid
+      parameters:
+      - name: qrId
+        in: path
+        description: UUID of the QR code
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConferenceQR'
+        "500":
+          description: InternalServerError
+        "404":
+          description: NotFound
+        "400":
+          description: BadRequest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorPayload'
+    delete:
+      summary: Delete a QR code.
+      operationId: deleteQrQrid
+      parameters:
+      - name: qrId
+        in: path
+        description: UUID of the QR code to delete
+        required: true
+        schema:
+          type: string
+      responses:
+        "500":
+          description: InternalServerError
+        "204":
+          description: NoContent
+        "403":
+          description: Forbidden
+        "404":
+          description: NotFound
+        "400":
+          description: BadRequest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorPayload'
+  /qrs:
+    get:
+      summary: Fetch all QRs with optional filters.
+      operationId: getQrs
+      parameters:
+      - name: createdBy
+        in: query
+        description: Optional filter by creator email (must match user's email)
+        schema:
+          type: string
+          nullable: true
+      - name: limit
+        in: query
+        description: Optional limit for pagination
+        schema:
+          type: integer
+          format: int64
+          nullable: true
+      - name: offset
+        in: query
+        description: Optional offset for pagination
+        schema:
+          type: integer
+          format: int64
+          nullable: true
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConferenceQRsResponse'
+        "500":
+          description: InternalServerError
+        "403":
+          description: Forbidden
+        "400":
+          description: BadRequest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorPayload'
+components:
+  schemas:
+    AuditFields:
+      required:
+      - createdBy
+      - createdOn
+      type: object
+      properties:
+        createdBy:
+          type: string
+          description: Who created the QR
+        createdOn:
+          type: string
+          description: When the QR was created
+      additionalProperties: false
+      description: Database audit fields.
+    ConferenceQR:
+      type: object
+      description: Database row shape for `conference_qr` table.
+      allOf:
+      - $ref: '#/components/schemas/AuditFields'
+      - required:
+        - info
+        - qrId
+        type: object
+        properties:
+          qrId:
+            type: string
+            description: UUID string
+          info:
+            $ref: '#/components/schemas/QRInfo'
+          description:
+            type: string
+            description: Optional description/note about the QR code
+            nullable: true
+        additionalProperties: false
+    ConferenceQRsResponse:
+      required:
+      - qrs
+      - totalCount
+      type: object
+      properties:
+        totalCount:
+          type: integer
+          description: The total count of QR codes
+          format: int64
+        qrs:
+          type: array
+          description: Array of QR codes
+          items:
+            $ref: '#/components/schemas/ConferenceQR'
+      additionalProperties: false
+      description: Response record for list of QRs.
+    CreateQRPayload:
+      required:
+      - info
+      type: object
+      properties:
+        info:
+          $ref: '#/components/schemas/QRInfo'
+        description:
+          type: string
+          description: Optional description/note about the QR code
+          nullable: true
+      additionalProperties: false
+      description: Payload for creating a new QR code.
+    ErrorPayload:
+      required:
+      - message
+      - method
+      - path
+      - reason
+      - status
+      - timestamp
+      type: object
+      properties:
+        timestamp:
+          type: string
+        status:
+          type: integer
+          format: int64
+        reason:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        method:
+          type: string
+    QRInfo:
+      type: array
+      description: The `info` field is a JSON array consisting of session or o2bar
+        entries.
+      items:
+        oneOf:
+        - $ref: '#/components/schemas/QRInfoSession'
+        - $ref: '#/components/schemas/QRInfoO2Bar'
+    QRInfoO2Bar:
+      required:
+      - email
+      - eventType
+      type: object
+      properties:
+        eventType:
+          $ref: '#/components/schemas/QRType'
+        email:
+          type: string
+          description: Contact email when `eventType` is O2BAR
+      additionalProperties: false
+      description: Info entry for an O2 bar QR item.
+    QRInfoSession:
+      required:
+      - eventType
+      - sessionId
+      type: object
+      properties:
+        eventType:
+          $ref: '#/components/schemas/QRType'
+        sessionId:
+          type: string
+          description: Session identifier when `eventType` is SESSION
+      additionalProperties: false
+      description: Info entry for a speech session QR item.
+    QRType:
+      type: string
+      description: QR info types.
+      enum:
+      - O2BAR
+      - SESSION
