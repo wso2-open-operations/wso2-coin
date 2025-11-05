@@ -16,8 +16,8 @@
 
 public const DEFAULT_LIMIT = 100;
 
-# Non-empty printable string regex (for validation).
-public final string:RegExp NONE_EMPTY_PRINTABLE_STRING_REGEX = re `^(?:.*\S)[ -~]+$`;
+# Non-empty printable string regex.
+public final string:RegExp NONE_EMPTY_PRINTABLE_STRING_REGEX = re `^[ -~]*\S[ -~]*$`;
 
 # Email validation regex.
 public final string:RegExp EMAIL_REGEX = re `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`;
