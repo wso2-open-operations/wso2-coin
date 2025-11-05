@@ -25,13 +25,13 @@ public isolated service class JwtInterceptor {
     *http:RequestInterceptor;
 
     isolated resource function default [string... path](http:RequestContext ctx, http:Request req)
-        returns http:NextService|http:Forbidden|http:InternalServerError|error? {
+        returns http:NextService|http:Forbidden|http:Unauthorized|error? {
         
         string|error idToken = req.getHeader(JWT_ASSERTION_HEADER);
         if idToken is error {
             string errorMsg = "Missing invoker info header!";
             log:printError(errorMsg, idToken);
-            return <http:InternalServerError>{
+            return <http:Unauthorized>{
                 body: {
                     message: errorMsg
                 }
@@ -42,7 +42,7 @@ public isolated service class JwtInterceptor {
         if result is jwt:Error {
             string errorMsg = "Error while reading the Invoker info!";
             log:printError(errorMsg, result);
-            return <http:InternalServerError>{
+            return <http:Unauthorized>{
                 body: {
                     message: errorMsg
                 }
@@ -53,7 +53,7 @@ public isolated service class JwtInterceptor {
         if userInfo is error {
             string errorMsg = "Malformed Invoker info object!";
             log:printError(errorMsg, userInfo);
-            return <http:InternalServerError>{
+            return <http:Unauthorized>{
                 body: {
                     message: errorMsg
                 }
