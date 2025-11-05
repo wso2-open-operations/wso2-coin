@@ -15,7 +15,7 @@
 -- under the License.
 
 CREATE TABLE `conference_qr` (
-  `qr_id` char(36) NOT NULL DEFAULT (uuid()),
+  `qr_id` char(36) NOT NULL,
   `info` json NOT NULL,
   `description` varchar(500) DEFAULT NULL,
   `created_by` varchar(60) NOT NULL,
