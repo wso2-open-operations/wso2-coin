@@ -10,6 +10,21 @@ servers:
     port:
       default: "9090"
 paths:
+  /sessions:
+    get:
+      summary: Fetch all active sessions from the conference backend.
+      operationId: getSessions
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Session'
+        "500":
+          description: InternalServerError
   /qr:
     post:
       summary: Create a new QR code.
@@ -149,7 +164,7 @@ components:
       description: Database audit fields.
     ConferenceQR:
       type: object
-      description: Database row shape for `conference_qr` table.
+      description: "[Database] ConferenceQR record."
       allOf:
       - $ref: '#/components/schemas/AuditFields'
       - required:
@@ -240,7 +255,7 @@ components:
           type: string
           description: Contact email when `eventType` is O2BAR
       additionalProperties: false
-      description: Info entry for an O2 bar QR item.
+      description: "[Database] Info entry for an O2 bar QR item."
     QRInfoSession:
       required:
       - eventType
@@ -253,10 +268,28 @@ components:
           type: string
           description: Session identifier when `eventType` is SESSION
       additionalProperties: false
-      description: Info entry for a speech session QR item.
+      description: "[Database] Info entry for a speech session QR item."
     QRType:
       type: string
       description: QR info types.
       enum:
       - O2BAR
       - SESSION
+    Session:
+      required:
+      - id
+      - name
+      - presenter
+      type: object
+      properties:
+        id:
+          type: string
+          description: Session ID
+        name:
+          type: string
+          description: Session name/title
+        presenter:
+          type: string
+          description: Presenter name
+      additionalProperties: false
+      description: Session information from conference backend.

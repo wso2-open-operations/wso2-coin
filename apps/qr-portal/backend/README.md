@@ -9,7 +9,39 @@
 
 ## Endpoints
 
-### 1. Create a New QR Code
+### 1. Get Active Sessions
+
+**GET** `/sessions`
+
+**Summary:** Fetch all active sessions from the conference backend.
+
+**Responses:**
+
+| Status | Description         | Schema              |
+| ------ | ------------------- | ------------------- |
+| 200    | OK                  | Array of [Session](#session) |
+| 500    | InternalServerError | -                   |
+
+**Sample Response (200):**
+
+```json
+[
+  {
+    "id": "1",
+    "name": "Opening Keynote: The Future of Technology",
+    "presenter": "Dr. Jane Smith"
+  },
+  {
+    "id": "2",
+    "name": "Workshop: Building Scalable Systems",
+    "presenter": "John Doe"
+  }
+]
+```
+
+---
+
+### 2. Create a New QR Code
 
 **POST** `/qr`
 
@@ -70,7 +102,7 @@
 
 ---
 
-### 2. Get QR Code by ID
+### 3. Get QR Code by ID
 
 **GET** `/qr/{qrId}`
 
@@ -109,7 +141,7 @@
 
 ---
 
-### 3. Get All QR Codes
+### 4. Get All QR Codes
 
 **GET** `/qrs?createdBy={email}&limit={n}&offset={n}`
 
@@ -166,7 +198,7 @@
 
 ---
 
-### 4. Delete QR Code
+### 5. Delete QR Code
 
 **DELETE** `/qr/{qrId}`
 
@@ -194,6 +226,23 @@
 ---
 
 ## Schemas
+
+### Session
+
+```json
+{
+  "id": "1",
+  "name": "Opening Keynote: The Future of Technology",
+  "presenter": "Dr. Jane Smith"
+}
+```
+
+**Fields:**
+- `id`: Session identifier (string)
+- `name`: Session title/name (string)
+- `presenter`: Name of the presenter(s) (string)
+
+---
 
 ### CreateQRPayload
 
