@@ -23,3 +23,13 @@ public type ClientAuthConfig record {|
     # Client Secret
     string clientSecret;
 |};
+
+# Session information from conference backend.
+public type Session record {|
+    # Session ID
+    string id;
+    # Session name/title
+    string name;
+    # Presenter name
+    string presenter;
+|};

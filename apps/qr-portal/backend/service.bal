@@ -15,6 +15,7 @@
 // under the License.
 import qr_portal.authorization;
 import qr_portal.database;
+import qr_portal.conference;
 
 import ballerina/http;
 import ballerina/log;
@@ -33,6 +34,36 @@ service http:InterceptableService / on new http:Listener(9090) {
     public function createInterceptors() returns http:Interceptor[] =>
         [new authorization:JwtInterceptor(), new BadRequestInterceptor()];
 
+    # Fetch all active sessions from the conference backend.
+    #
+    # + return - Array of active sessions or error
+    resource function get sessions(http:RequestContext ctx)
+        returns conference:Session[]|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        conference:Session[]|error sessions = conference:fetchActiveSessions();
+        if sessions is error {
+            string customError = "Error occurred while fetching active sessions!";
+            log:printError(customError, sessions);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return sessions;
+    }
+
     # Create a new QR code.
     #
     # + payload - Payload containing the QR details
@@ -48,6 +79,23 @@ service http:InterceptableService / on new http:Listener(9090) {
                     message: USER_INFO_HEADER_NOT_FOUND_ERROR
                 }
             };
+        }
+
+        foreach database:QRInfoSession|database:QRInfoO2Bar item in payload.info {
+            if item is database:QRInfoSession && item.eventType != database:SESSION {
+                return <http:BadRequest>{
+                    body: {
+                        message: "Invalid eventType. Use 'SESSION' when providing sessionId."
+                    }
+                };
+            }
+            if item is database:QRInfoO2Bar && item.eventType != database:O2BAR {
+                return <http:BadRequest>{
+                    body: {
+                        message: "Invalid eventType. Use 'O2BAR' when providing email."
+                    }
+                };
+            }
         }
 
         string qrId = uuid:createType4AsString();
@@ -125,7 +173,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Any authorized user can view any QR by ID
+        // All authorized users can view any QR by ID
         return qr;
     }
 

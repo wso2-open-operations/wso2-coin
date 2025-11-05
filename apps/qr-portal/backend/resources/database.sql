@@ -13,11 +13,6 @@
 -- KIND, either express or implied.  See the License for the
 -- specific language governing permissions and limitations
 -- under the License.
-CREATE SCHEMA `qr_portal`;
-
-USE `qr_portal`;
-
-DROP TABLE IF EXISTS `conference_qr`;
 
 CREATE TABLE `conference_qr` (
   `qr_id` char(36) NOT NULL DEFAULT (uuid()),

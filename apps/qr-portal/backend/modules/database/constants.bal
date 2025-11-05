@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-public const DEFAULT_LIMIT = 500;
+public const DEFAULT_LIMIT = 100;
 
 # Non-empty printable string regex (for validation).
 public final string:RegExp NONE_EMPTY_PRINTABLE_STRING_REGEX = re `^(?:.*\S)[ -~]+$`;
