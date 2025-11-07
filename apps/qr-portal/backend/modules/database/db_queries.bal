@@ -21,7 +21,7 @@ import ballerina/sql;
 # + payload - Payload containing the QR details
 # + createdBy - Person who is creating the QR
 # + return - sql:ParameterizedQuery - Insert query for the new QR
-isolated function addConferenceQRQuery(string qrId, AddConferenceQRPayload payload, string createdBy) returns sql:ParameterizedQuery
+isolated function addConferenceQrCodeQuery(string qrId, AddConferenceQrCodePayload payload, string createdBy) returns sql:ParameterizedQuery
     => `
         INSERT INTO conference_qr
         (
@@ -43,7 +43,7 @@ isolated function addConferenceQRQuery(string qrId, AddConferenceQRPayload paylo
 #
 # + qrId - UUID of the QR code
 # + return - sql:ParameterizedQuery - Select query for the QR based on the UUID
-isolated function fetchConferenceQRQuery(string qrId) returns sql:ParameterizedQuery => `
+isolated function fetchConferenceQrCodeQuery(string qrId) returns sql:ParameterizedQuery => `
         SELECT
             qr_id AS qrId,
             info,
@@ -60,7 +60,7 @@ isolated function fetchConferenceQRQuery(string qrId) returns sql:ParameterizedQ
 #
 # + filters - Filters for fetching QRs
 # + return - sql:ParameterizedQuery - Select query for QRs based on the provided filters and pagination
-isolated function fetchConferenceQRsQuery(ConferenceQRFilters filters) returns sql:ParameterizedQuery {
+isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery mainQuery = `
         SELECT 
@@ -105,7 +105,7 @@ isolated function fetchConferenceQRsQuery(ConferenceQRFilters filters) returns s
 #
 # + qrId - UUID of the QR code to delete
 # + return - sql:ParameterizedQuery - Delete query for the QR
-isolated function deleteConferenceQRQuery(string qrId) returns sql:ParameterizedQuery => `
+isolated function deleteConferenceQrCodeQuery(string qrId) returns sql:ParameterizedQuery => `
         DELETE FROM conference_qr
         WHERE qr_id = ${qrId};
     `;

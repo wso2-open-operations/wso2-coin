@@ -15,7 +15,7 @@
 // under the License. 
 
 # QR info types.
-public enum QRType {
+public enum QrCodeType {
     SESSION,
     O2BAR
 };

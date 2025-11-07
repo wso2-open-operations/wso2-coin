@@ -21,16 +21,16 @@ import ballerina/sql;
 # + payload - Payload containing the QR details  
 # + createdBy - Person who is creating the QR
 # + return - Error if the insertion failed
-public isolated function addConferenceQR(string qrId, AddConferenceQRPayload payload, string createdBy) returns error? {
-    _ = check databaseClient->execute(addConferenceQRQuery(qrId, payload, createdBy));
+public isolated function addConferenceQrCode(string qrId, AddConferenceQrCodePayload payload, string createdBy) returns error? {
+    _ = check databaseClient->execute(addConferenceQrCodeQuery(qrId, payload, createdBy));
 }
 
 # Fetch QR by ID.
 #
 # + qrId - UUID of the QR code
 # + return - ConferenceQR object or error
-public isolated function fetchConferenceQR(string qrId) returns ConferenceQR|error? {
-    ConferenceQRRecord|error qr = databaseClient->queryRow(fetchConferenceQRQuery(qrId));
+public isolated function fetchConferenceQrCode(string qrId) returns ConferenceQrCode|error? {
+    ConferenceQrCodeRecord|error qr = databaseClient->queryRow(fetchConferenceQrCodeQuery(qrId));
     if qr is error {
         return qr is sql:NoRowsError ? () : qr;
     }
@@ -48,12 +48,12 @@ public isolated function fetchConferenceQR(string qrId) returns ConferenceQR|err
 #
 # + filters - Filters for fetching QRs
 # + return - ConferenceQRsResponse object or error
-public isolated function fetchConferenceQRs(ConferenceQRFilters filters) returns ConferenceQRsResponse|error {
-    stream<ConferenceQRRecord, sql:Error?> resultStream = databaseClient->query(fetchConferenceQRsQuery(filters));
+public isolated function fetchConferenceQrCodes(ConferenceQrCodeFilters filters) returns ConferenceQrCodesResponse|error {
+    stream<ConferenceQrCodeRecord, sql:Error?> resultStream = databaseClient->query(fetchConferenceQrCodesQuery(filters));
 
     int totalCount = 0;
-    ConferenceQR[] qrs = [];
-    check from ConferenceQRRecord qr in resultStream
+    ConferenceQrCode[] qrs = [];
+    check from ConferenceQrCodeRecord qr in resultStream
         do {
             totalCount = qr.totalCount;
             qrs.push({
@@ -72,10 +72,6 @@ public isolated function fetchConferenceQRs(ConferenceQRFilters filters) returns
 #
 # + qrId - UUID of the QR code to delete
 # + return - Error if the deletion failed or no rows were affected
-public isolated function deleteConferenceQR(string qrId) returns error? {
-    sql:ExecutionResult executionResult = check databaseClient->execute(deleteConferenceQRQuery(qrId));
-
-    if executionResult.affectedRowCount < 1 {
-        return error("No QR code found with the given ID!");
-    }
+public isolated function deleteConferenceQrCode(string qrId) returns error? {
+    _ = check databaseClient->execute(deleteConferenceQrCodeQuery(qrId));
 }

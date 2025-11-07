@@ -44,9 +44,9 @@ public type AuditFields record {|
 |};
 
 # [Database] Info entry for a speech session QR item.
-public type QRInfoSession record {|
+public type QrCodeInfoSession record {|
     # Event type discriminator
-    QRType eventType;
+    QrCodeType eventType;
     # Session identifier when `eventType` is SESSION
     @constraint:String { 
         pattern: { 
@@ -58,9 +58,9 @@ public type QRInfoSession record {|
 |};
 
 # [Database] Info entry for an O2 bar QR item.
-public type QRInfoO2Bar record {|
+public type QrCodeInfoO2Bar record {|
     # Event type discriminator
-    QRType eventType;
+    QrCodeType eventType;
     # Contact email when `eventType` is O2BAR
     @constraint:String { 
         pattern: { 
@@ -71,11 +71,11 @@ public type QRInfoO2Bar record {|
     string email;
 |};
 
-# The `info` field is a JSON array consisting of session or o2bar entries.
-public type QRInfo (QRInfoSession|QRInfoO2Bar)[];
+# The `info` field is a session or o2bar entry.
+public type QrCodeInfo QrCodeInfoSession|QrCodeInfoO2Bar;
 
 # [Database] ConferenceQR record.
-public type ConferenceQR record {|
+public type ConferenceQrCode record {|
     # UUID string
     @constraint:String { 
         pattern: { 
@@ -85,14 +85,14 @@ public type ConferenceQR record {|
     }
     string qrId;
     # Parsed JSON array as strongly typed entries
-    QRInfo info;
+    QrCodeInfo info;
     # Optional description/note about the QR code
     string? description = ();
     *AuditFields;
 |};
 
 # [Database] ConferenceQR record (matches DB column names).
-type ConferenceQRRecord record {|
+type ConferenceQrCodeRecord record {|
     # UUID of the QR code
     string qrId;
     # JSON array as string from database
@@ -108,9 +108,9 @@ type ConferenceQRRecord record {|
 |};
 
 # [Database] Insert record for conference QR.
-public type AddConferenceQRPayload record {|
-    # Array containing session or O2BAR entries
-    QRInfo info;
+public type AddConferenceQrCodePayload record {|
+    # Session or O2BAR entry
+    QrCodeInfo info;
     # Optional description/note about the QR code
     string? description = ();
     # Who created the QR
@@ -124,15 +124,15 @@ public type AddConferenceQRPayload record {|
 |};
 
 # Response record for list of QRs.
-public type ConferenceQRsResponse record {|
+public type ConferenceQrCodesResponse record {|
     # The total count of QR codes
     int totalCount;
     # Array of QR codes
-    ConferenceQR[] qrs;
+    ConferenceQrCode[] qrs;
 |};
 
 # Filters for fetching QR codes.
-public type ConferenceQRFilters record {|
+public type ConferenceQrCodeFilters record {|
     # Email of the creator
     string? createdBy = ();
     # Limit number of QRs to fetch

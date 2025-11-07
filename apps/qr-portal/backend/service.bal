@@ -30,16 +30,16 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
     #
-    # + return - authorization:JwtInterceptor, BadRequestInterceptor
+    # + return - authorization:JwtInterceptor
     public function createInterceptors() returns http:Interceptor[] =>
-        [new authorization:JwtInterceptor(), new BadRequestInterceptor()];
+        [new authorization:JwtInterceptor()];
 
     # Fetch all active sessions from the conference backend.
     #
     # + return - Array of active sessions or error
     resource function get sessions(http:RequestContext ctx)
         returns conference:Session[]|http:InternalServerError {
-
+        
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
             log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
@@ -67,9 +67,9 @@ service http:InterceptableService / on new http:Listener(9090) {
     # Create a new QR code.
     #
     # + payload - Payload containing the QR details
-    # + return - Created QR or error
-    resource function post qr(http:RequestContext ctx, CreateQRPayload payload)
-        returns database:ConferenceQR|http:InternalServerError|http:BadRequest {
+    # + return - Created QR ID or error
+    resource function post qr\-code(http:RequestContext ctx, CreateQrCodePayload payload)
+        returns http:Created|http:InternalServerError|http:BadRequest {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
@@ -81,32 +81,30 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        foreach database:QRInfoSession|database:QRInfoO2Bar item in payload.info {
-            if item is database:QRInfoSession && item.eventType != database:SESSION {
-                return <http:BadRequest>{
-                    body: {
-                        message: "Invalid eventType. Use 'SESSION' when providing sessionId."
-                    }
-                };
-            }
-            if item is database:QRInfoO2Bar && item.eventType != database:O2BAR {
-                return <http:BadRequest>{
-                    body: {
-                        message: "Invalid eventType. Use 'O2BAR' when providing email."
-                    }
-                };
-            }
+        if payload.info is database:QrCodeInfoSession && payload.info.eventType != database:SESSION {
+            return <http:BadRequest>{
+                body: {
+                    message: "Invalid event type. Use 'SESSION' when providing session id."
+                }
+            };
+        }
+        if payload.info is database:QrCodeInfoO2Bar && payload.info.eventType != database:O2BAR {
+            return <http:BadRequest>{
+                body: {
+                    message: "Invalid event type. Use 'O2BAR' when providing email."
+                }
+            };
         }
 
         string qrId = uuid:createType4AsString();
         
-        database:AddConferenceQRPayload dbPayload = {
+        database:AddConferenceQrCodePayload dbPayload = {
             info: payload.info,
             description: payload.description,
             createdBy: invokerInfo.email
         };
-
-        error? qrError = database:addConferenceQR(qrId, dbPayload, invokerInfo.email);
+        
+        error? qrError = database:addConferenceQrCode(qrId, dbPayload, invokerInfo.email);
         if qrError is error {
             string customError = "Error occurred while creating QR code!";
             log:printError(customError, qrError);
@@ -117,33 +115,19 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:ConferenceQR|error? createdQR = database:fetchConferenceQR(qrId);
-        if createdQR is error {
-            string customError = "QR created but error occurred while fetching it!";
-            log:printError(customError, createdQR);
-            return <http:InternalServerError>{
-                body: {
-                    message: customError
-                }
-            };
-        }
-        if createdQR is () {
-            return <http:InternalServerError>{
-                body: {
-                    message: "QR created but not found!"
-                }
-            };
-        }
-
-        return createdQR;
+        return <http:Created>{
+            body: {
+                qrId: qrId
+            }
+        };
     }
 
     # Fetch a specific QR by ID.
     #
-    # + qrId - UUID of the QR code
+    # + id - UUID of the QR code
     # + return - QR details or error
-    resource function get qr/[string qrId](http:RequestContext ctx)
-        returns database:ConferenceQR|http:InternalServerError|http:NotFound {
+    resource function get qr\-code/[string id](http:RequestContext ctx)
+        returns database:ConferenceQrCode|http:InternalServerError|http:NotFound {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
@@ -155,7 +139,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:ConferenceQR|error? qr = database:fetchConferenceQR(qrId);
+        database:ConferenceQrCode|error? qr = database:fetchConferenceQrCode(id);
         if qr is error {
             string customError = "Error occurred while fetching QR code!";
             log:printError(customError, qr);
@@ -180,12 +164,11 @@ service http:InterceptableService / on new http:Listener(9090) {
     # Fetch all QRs with optional filters.
     #
     # + ctx - Request context
-    # + createdBy - Optional filter by creator email (must match user's email)
     # + 'limit - Optional limit for pagination
     # + offset - Optional offset for pagination
     # + return - List of QRs or error
-    resource function get qrs(http:RequestContext ctx, string? createdBy = (), int? 'limit = (), int? offset = ())
-        returns database:ConferenceQRsResponse|http:InternalServerError|http:Forbidden {
+    resource function get qr\-codes(http:RequestContext ctx, int? 'limit = (), int? offset = ())
+        returns database:ConferenceQrCodesResponse|http:InternalServerError {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
@@ -197,25 +180,13 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        string? filterCreatedBy = createdBy;
-        if filterCreatedBy is string && filterCreatedBy != invokerInfo.email {
-            return <http:Forbidden>{
-                body: {
-                    message: "You can only view your own QR codes!"
-                }
-            };
-        }
-        if filterCreatedBy is () {
-            filterCreatedBy = invokerInfo.email;
-        }
-
-        database:ConferenceQRFilters filters = {
-            createdBy: filterCreatedBy,
+        database:ConferenceQrCodeFilters filters = {
+            createdBy: invokerInfo.email,
             'limit: 'limit,
             offset: offset
         };
 
-        database:ConferenceQRsResponse|error qrsResponse = database:fetchConferenceQRs(filters);
+        database:ConferenceQrCodesResponse|error qrsResponse = database:fetchConferenceQrCodes(filters);
         if qrsResponse is error {
             string customError = "Error occurred while fetching QR codes!";
             log:printError(customError, qrsResponse);
@@ -231,9 +202,9 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Delete a QR code.
     #
-    # + qrId - UUID of the QR code to delete
+    # + id - UUID of the QR code to delete
     # + return - Success or error
-    resource function delete qr/[string qrId](http:RequestContext ctx)
+    resource function delete qr\-code/[string id](http:RequestContext ctx)
         returns http:NoContent|http:InternalServerError|http:NotFound|http:Forbidden {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -246,7 +217,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:ConferenceQR|error? qr = database:fetchConferenceQR(qrId);
+        database:ConferenceQrCode|error? qr = database:fetchConferenceQrCode(id);
         if qr is error {
             string customError = "Error occurred while fetching QR code!";
             log:printError(customError, qr);
@@ -257,22 +228,26 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         if qr is () {
+            string customError = "QR code not found!";
+            log:printWarn(customError);
             return <http:NotFound>{
                 body: {
-                    message: "QR code not found!"
+                    message: customError
                 }
             };
         }
 
         if qr.createdBy != invokerInfo.email {
+            string customError = "You don't have permission to delete this QR code!";
+            log:printWarn(customError);
             return <http:Forbidden>{
                 body: {
-                    message: "You don't have permission to delete this QR code!"
+                    message: customError
                 }
             };
         }
 
-        error? deleteError = database:deleteConferenceQR(qrId);
+        error? deleteError = database:deleteConferenceQrCode(qr.qrId);
         if deleteError is error {
             string customError = "Error occurred while deleting QR code!";
             log:printError(customError, deleteError);
@@ -283,6 +258,6 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        return <http:NoContent>{};
+        return http:NO_CONTENT;
     }
 }

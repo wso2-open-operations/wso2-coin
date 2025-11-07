@@ -16,9 +16,9 @@
 import qr_portal.database;
 
 # Payload for creating a new QR code.
-public type CreateQRPayload record {|
-    # Array containing session or O2BAR entries
-    database:QRInfo info;
+public type CreateQrCodePayload record {|
+    # Session or O2BAR entry
+    database:QrCodeInfo info;
     # Optional description/note about the QR code
     string? description = ();
 |};
