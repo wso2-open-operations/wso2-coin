@@ -14,39 +14,19 @@
 // specific language governing permissions and limitations
 // under the License.
 import ballerina/http;
-import ballerina/log;
 
 # Fetch active sessions from the conference backend.
 #
 # + return - Array of active sessions or error
 public isolated function fetchActiveSessions() returns Session[]|error {
-    http:Response|http:ClientError response = conferenceClient->get("/sessions/active");
-    
-    if response is http:ClientError {
-        string customError = "Error occurred while fetching active sessions from conference backend!";
-        log:printError(customError, response);
-        return error(customError);
-    }
+    http:Response response = check conferenceClient->get("/sessions/active");
     
     if response.statusCode != http:STATUS_OK {
-        string customError = string `Conference backend returned status ${response.statusCode}`;
-        log:printError(customError);
-        return error(customError);
+        return error(string `Conference backend returned status ${response.statusCode}`);
     }
     
-    json|error payload = response.getJsonPayload();
-    if payload is error {
-        string customError = "Error occurred while parsing conference backend response!";
-        log:printError(customError, payload);
-        return error(customError);
-    }
-    
-    Session[]|error sessions = payload.fromJsonWithType();
-    if sessions is error {
-        string customError = "Error occurred while deserializing active sessions!";
-        log:printError(customError, sessions);
-        return error(customError);
-    }
+    json payload = check response.getJsonPayload();
+    Session[] sessions = check payload.fromJsonWithType();
     
     return sessions;
 }
