@@ -43,21 +43,35 @@
 
 ### 2. Create a New QR Code
 
-**POST** `/qr`
+**POST** `/qr-code`
 
 **Summary:** Create a new QR code with session or O2 bar information.
 
-**Request Body Example:**
+**Authorization:**
+- **Session QR**: Requires Session Admin role
+- **O2 Bar QR**: Requires O2 Bar Admin or Employee role (employees can only create for their own email)
+
+**Request Body Example (Session):**
 
 ```json
 {
-  "info": [
-    {
-      "eventType": "SESSION",
-      "sessionId": "1"
-    }
-  ],
+  "info": {
+    "eventType": "SESSION",
+    "sessionId": "1"
+  },
   "description": "Keynote Session QR"
+}
+```
+
+**Request Body Example (O2 Bar):**
+
+```json
+{
+  "info": {
+    "eventType": "O2BAR",
+    "email": "contact@example.com"
+  },
+  "description": "O2 Bar Networking QR"
 }
 ```
 
@@ -65,38 +79,16 @@
 
 | Status | Description         | Schema                        |
 | ------ | ------------------- | ----------------------------- |
-| 200    | OK                  | [ConferenceQR](#conferenceqr) |
-| 400    | BadRequest          | -                             |
+| 201    | Created             | `{ "qrId": "uuid" }`          |
+| 400    | BadRequest          | Duplicate QR or validation error |
+| 403    | Forbidden           | Insufficient permissions      |
 | 500    | InternalServerError | -                             |
 
-**Sample Response (200):**
+**Sample Response (201):**
 
 ```json
 {
-  "qrId": "550e8400-e29b-41d4-a716-446655440000",
-  "info": [
-    {
-      "eventType": "SESSION",
-      "sessionId": "1"
-    }
-  ],
-  "description": "Keynote Session QR",
-  "createdBy": "user@example.com",
-  "createdOn": "2025-01-15T10:00:00"
-}
-```
-
-**Alternative Request Body (O2 Bar):**
-
-```json
-{
-  "info": [
-    {
-      "eventType": "O2BAR",
-      "email": "contact@example.com"
-    }
-  ],
-  "description": "O2 Bar Networking QR"
+  "qrId": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -104,7 +96,7 @@
 
 ### 3. Get QR Code by ID
 
-**GET** `/qr/{qrId}`
+**GET** `/qr-code/{id}`
 
 **Summary:** Fetch a specific QR code by its UUID.
 
@@ -112,7 +104,7 @@
 
 | Name | In   | Description            | Required | Type   |
 | ---- | ---- | ---------------------- | -------- | ------ |
-| qrId | path | UUID of the QR code    | true     | string |
+| id   | path | UUID of the QR code    | true     | string |
 
 **Responses:**
 
@@ -127,12 +119,10 @@
 ```json
 {
   "qrId": "550e8400-e29b-41d4-a716-446655440000",
-  "info": [
-    {
-      "eventType": "SESSION",
-      "sessionId": "1"
-    }
-  ],
+  "info": {
+    "eventType": "SESSION",
+    "sessionId": "1"
+  },
   "description": "Keynote Session QR",
   "createdBy": "user@example.com",
   "createdOn": "2025-01-15T10:00:00"
@@ -143,17 +133,21 @@
 
 ### 4. Get All QR Codes
 
-**GET** `/qrs?createdBy={email}&limit={n}&offset={n}`
+**GET** `/qr-codes?limit={n}&offset={n}`
 
-**Summary:** Fetch all QR codes with optional filtering and pagination.
+**Summary:** Fetch QR codes based on user role with pagination.
+
+**Authorization & Filtering:**
+- **O2 Bar Admin**: Sees all O2 Bar QR codes
+- **Session Admin**: Sees all Session QR codes
+- **Employee**: Sees only their own O2 Bar QR code
 
 **Query Parameters:**
 
-| Name      | In    | Description                  | Required | Type   |
-| --------- | ----- | ---------------------------- | -------- | ------ |
-| createdBy | query | Filter by creator email      | false    | string |
-| limit     | query | Number of records to fetch    | false    | int    |
-| offset    | query | Offset for pagination        | false    | int    |
+| Name   | In    | Description                 | Required | Type |
+| ------ | ----- | --------------------------- | -------- | ---- |
+| limit  | query | Number of records to fetch  | false    | int  |
+| offset | query | Offset for pagination       | false    | int  |
 
 **Responses:**
 
@@ -170,26 +164,22 @@
   "qrs": [
     {
       "qrId": "550e8400-e29b-41d4-a716-446655440000",
-      "info": [
-        {
-          "eventType": "SESSION",
-          "sessionId": "1"
-        }
-      ],
+      "info": {
+        "eventType": "SESSION",
+        "sessionId": "1"
+      },
       "description": "Keynote Session QR",
-      "createdBy": "user@example.com",
+      "createdBy": "admin@example.com",
       "createdOn": "2025-01-15T10:00:00"
     },
     {
       "qrId": "660e8400-e29b-41d4-a716-446655440001",
-      "info": [
-        {
-          "eventType": "O2BAR",
-          "email": "contact@example.com"
-        }
-      ],
+      "info": {
+        "eventType": "O2BAR",
+        "email": "contact@example.com"
+      },
       "description": "O2 Bar Networking QR",
-      "createdBy": "user@example.com",
+      "createdBy": "admin@example.com",
       "createdOn": "2025-01-15T11:00:00"
     }
   ]
@@ -200,23 +190,24 @@
 
 ### 5. Delete QR Code
 
-**DELETE** `/qr/{qrId}`
+**DELETE** `/qr-code/{id}`
 
-**Summary:** Delete a QR code by its UUID.
+**Summary:** Delete a QR code by its UUID. Users can only delete QR codes they created.
 
 **Parameters:**
 
 | Name | In   | Description            | Required | Type   |
 | ---- | ---- | ---------------------- | -------- | ------ |
-| qrId | path | UUID of the QR code    | true     | string |
+| id   | path | UUID of the QR code    | true     | string |
 
 **Responses:**
 
-| Status | Description         | Schema |
-| ------ | ------------------- | ------ |
-| 204    | NoContent           | -      |
-| 404    | NotFound            | -      |
-| 500    | InternalServerError | -      |
+| Status | Description                           | Schema |
+| ------ | ------------------------------------- | ------ |
+| 204    | NoContent                             | -      |
+| 403    | Forbidden (not the creator)           | -      |
+| 404    | NotFound                              | -      |
+| 500    | InternalServerError                   | -      |
 
 **Sample Response (204):**
 
@@ -244,21 +235,19 @@
 
 ---
 
-### CreateQRPayload
+### CreateQrCodePayload
 
 ```json
 {
-  "info": [
-    {
-      "eventType": "SESSION",
-      "sessionId": "1"
-    }
-  ],
+  "info": {
+    "eventType": "SESSION",
+    "sessionId": "1"
+  },
   "description": "Optional description of the QR code"
 }
 ```
 
-### QRInfoSession
+### QrCodeInfoSession
 
 ```json
 {
@@ -267,7 +256,7 @@
 }
 ```
 
-### QRInfoO2Bar
+### QrCodeInfoO2Bar
 
 ```json
 {
@@ -276,24 +265,22 @@
 }
 ```
 
-### ConferenceQR
+### ConferenceQrCode
 
 ```json
 {
   "qrId": "550e8400-e29b-41d4-a716-446655440000",
-  "info": [
-    {
-      "eventType": "SESSION",
-      "sessionId": "1"
-    }
-  ],
+  "info": {
+    "eventType": "SESSION",
+    "sessionId": "1"
+  },
   "description": "Keynote Session QR",
   "createdBy": "user@example.com",
   "createdOn": "2025-01-15T10:00:00"
 }
 ```
 
-### ConferenceQRsResponse
+### ConferenceQrCodesResponse
 
 ```json
 {
@@ -301,12 +288,10 @@
   "qrs": [
     {
       "qrId": "550e8400-e29b-41d4-a716-446655440000",
-      "info": [
-        {
-          "eventType": "SESSION",
-          "sessionId": "1"
-        }
-      ],
+      "info": {
+        "eventType": "SESSION",
+        "sessionId": "1"
+      },
       "description": "Keynote Session QR",
       "createdBy": "user@example.com",
       "createdOn": "2025-01-15T10:00:00"
@@ -315,9 +300,9 @@
 }
 ```
 
-### QRInfo
+### QrCodeInfo
 
-The `info` field is an array that can contain either `QRInfoSession` or `QRInfoO2Bar` objects:
+The `info` field is a single object (not an array) that can be either `QrCodeInfoSession` or `QrCodeInfoO2Bar`:
 
 **For Session Type:**
 - `eventType`: Must be `"SESSION"`
@@ -332,3 +317,4 @@ The `info` field is an array that can contain either `QRInfoSession` or `QRInfoO
 - The `description` field is optional
 - The `createdBy` field is automatically set from the authenticated user's email
 - The `createdOn` field is automatically set by the database
+- Duplicate QR codes are prevented (one QR per email for O2 Bar, one QR per session for Sessions)

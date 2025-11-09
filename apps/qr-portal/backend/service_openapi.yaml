@@ -25,24 +25,33 @@ paths:
                   $ref: '#/components/schemas/Session'
         "500":
           description: InternalServerError
-  /qr:
+  /user-info:
+    get:
+      summary: Fetch logged-in user's details with privileges.
+      operationId: getUserInfo
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        "500":
+          description: InternalServerError
+  /qr-code:
     post:
       summary: Create a new QR code.
-      operationId: postQr
+      operationId: postQrCode
       requestBody:
         description: Payload containing the QR details
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateQRPayload'
+              $ref: '#/components/schemas/CreateQrCodePayload'
         required: true
       responses:
         "201":
           description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ConferenceQR'
         "400":
           description: BadRequest
           content:
@@ -51,12 +60,14 @@ paths:
                 $ref: '#/components/schemas/ErrorPayload'
         "500":
           description: InternalServerError
-  /qr/{qrId}:
+        "403":
+          description: Forbidden
+  /qr-code/{id}:
     get:
       summary: Fetch a specific QR by ID.
-      operationId: getQrQrid
+      operationId: getQrCodeId
       parameters:
-      - name: qrId
+      - name: id
         in: path
         description: UUID of the QR code
         required: true
@@ -68,7 +79,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ConferenceQR'
+                $ref: '#/components/schemas/ConferenceQrCode'
         "500":
           description: InternalServerError
         "404":
@@ -81,9 +92,9 @@ paths:
                 $ref: '#/components/schemas/ErrorPayload'
     delete:
       summary: Delete a QR code.
-      operationId: deleteQrQrid
+      operationId: deleteQrCodeId
       parameters:
-      - name: qrId
+      - name: id
         in: path
         description: UUID of the QR code to delete
         required: true
@@ -104,17 +115,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorPayload'
-  /qrs:
+  /qr-codes:
     get:
       summary: Fetch all QRs with optional filters.
-      operationId: getQrs
+      operationId: getQrCodes
       parameters:
-      - name: createdBy
-        in: query
-        description: Optional filter by creator email (must match user's email)
-        schema:
-          type: string
-          nullable: true
       - name: limit
         in: query
         description: Optional limit for pagination
@@ -135,11 +140,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ConferenceQRsResponse'
+                $ref: '#/components/schemas/ConferenceQrCodesResponse'
         "500":
           description: InternalServerError
-        "403":
-          description: Forbidden
         "400":
           description: BadRequest
           content:
@@ -162,7 +165,7 @@ components:
           description: When the QR was created
       additionalProperties: false
       description: Database audit fields.
-    ConferenceQR:
+    ConferenceQrCode:
       type: object
       description: "[Database] ConferenceQR record."
       allOf:
@@ -176,13 +179,13 @@ components:
             type: string
             description: UUID string
           info:
-            $ref: '#/components/schemas/QRInfo'
+            $ref: '#/components/schemas/QrCodeInfo'
           description:
             type: string
             description: Optional description/note about the QR code
             nullable: true
         additionalProperties: false
-    ConferenceQRsResponse:
+    ConferenceQrCodesResponse:
       required:
       - qrs
       - totalCount
@@ -196,16 +199,16 @@ components:
           type: array
           description: Array of QR codes
           items:
-            $ref: '#/components/schemas/ConferenceQR'
+            $ref: '#/components/schemas/ConferenceQrCode'
       additionalProperties: false
       description: Response record for list of QRs.
-    CreateQRPayload:
+    CreateQrCodePayload:
       required:
       - info
       type: object
       properties:
         info:
-          $ref: '#/components/schemas/QRInfo'
+          $ref: '#/components/schemas/QrCodeInfo'
         description:
           type: string
           description: Optional description/note about the QR code
@@ -235,41 +238,38 @@ components:
           type: string
         method:
           type: string
-    QRInfo:
-      type: array
-      description: The `info` field is a JSON array consisting of session or o2bar
-        entries.
-      items:
-        oneOf:
-        - $ref: '#/components/schemas/QRInfoSession'
-        - $ref: '#/components/schemas/QRInfoO2Bar'
-    QRInfoO2Bar:
+    QrCodeInfo:
+      description: The `info` field is a session or o2bar entry.
+      oneOf:
+      - $ref: '#/components/schemas/QrCodeInfoSession'
+      - $ref: '#/components/schemas/QrCodeInfoO2Bar'
+    QrCodeInfoO2Bar:
       required:
       - email
       - eventType
       type: object
       properties:
         eventType:
-          $ref: '#/components/schemas/QRType'
+          $ref: '#/components/schemas/QrCodeType'
         email:
           type: string
           description: Contact email when `eventType` is O2BAR
       additionalProperties: false
       description: "[Database] Info entry for an O2 bar QR item."
-    QRInfoSession:
+    QrCodeInfoSession:
       required:
       - eventType
       - sessionId
       type: object
       properties:
         eventType:
-          $ref: '#/components/schemas/QRType'
+          $ref: '#/components/schemas/QrCodeType'
         sessionId:
           type: string
           description: Session identifier when `eventType` is SESSION
       additionalProperties: false
       description: "[Database] Info entry for a speech session QR item."
-    QRType:
+    QrCodeType:
       type: string
       description: QR info types.
       enum:
@@ -293,3 +293,20 @@ components:
           description: Presenter name
       additionalProperties: false
       description: Session information from conference backend.
+    UserInfo:
+      required:
+      - email
+      - privileges
+      type: object
+      properties:
+        email:
+          type: string
+          description: User email
+        privileges:
+          type: array
+          description: Array of privileges assigned to the user
+          items:
+            type: integer
+            format: int64
+      additionalProperties: false
+      description: Response for fetching user information.
