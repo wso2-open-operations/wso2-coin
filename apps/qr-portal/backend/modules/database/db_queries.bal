@@ -45,11 +45,11 @@ isolated function addConferenceQrCodeQuery(string qrId, AddConferenceQrCodePaylo
 # + return - sql:ParameterizedQuery - Select query for the QR based on the UUID
 isolated function fetchConferenceQrCodeQuery(string qrId) returns sql:ParameterizedQuery => `
         SELECT
-            qr_id AS qrId,
+            qr_id,
             info,
             description,
-            created_by AS createdBy,
-            created_on AS createdOn
+            created_by,
+            created_on
         FROM 
             conference_qr
         WHERE 
@@ -64,11 +64,11 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
 
     sql:ParameterizedQuery mainQuery = `
         SELECT 
-            qr_id AS qrId,
+            qr_id,
             info,
             description,
-            created_by AS createdBy,
-            created_on AS createdOn,
+            created_by,
+            created_on,
             COUNT(*) OVER() AS totalCount
         FROM 
             conference_qr
@@ -78,6 +78,9 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
     sql:ParameterizedQuery[] filterQueries = [];
     if filters.createdBy is string {
         filterQueries.push(` created_by = ${filters.createdBy}`);
+    }
+    if filters.eventType is QrCodeType {
+        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${filters.eventType}`);
     }
 
     // Build main query with the filters.
@@ -99,6 +102,23 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
     }
 
     return mainQuery;
+}
+
+# Build query to check if QR exists.
+#
+# + qrInfo - QR info to check (Session or O2Bar)
+# + return - sql:ParameterizedQuery - Select query to check for existing QR
+isolated function checkQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:ParameterizedQuery {
+    sql:ParameterizedQuery mainQuery = `
+        SELECT 1 AS count
+        FROM conference_qr
+        WHERE `;
+    
+    sql:ParameterizedQuery whereClause = qrInfo is QrCodeInfoO2Bar
+        ? `JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${qrInfo.email}`
+        : `JSON_UNQUOTE(JSON_EXTRACT(info, '$.sessionId')) = ${qrInfo.sessionId}`;
+    
+    return sql:queryConcat(mainQuery, whereClause, ` LIMIT 1`);
 }
 
 # Build query to delete a QR by ID.

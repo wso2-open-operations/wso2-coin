@@ -15,6 +15,14 @@
 // under the License. 
 import qr_portal.database;
 
+# Response for fetching user information.
+public type UserInfo record {|
+    # User email
+    string email;
+    # Array of privileges assigned to the user
+    int[] privileges;
+|};
+
 # Payload for creating a new QR code.
 public type CreateQrCodePayload record {|
     # Session or O2BAR entry

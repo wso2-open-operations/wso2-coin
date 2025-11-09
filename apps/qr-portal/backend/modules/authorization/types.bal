@@ -21,3 +21,13 @@ public type CustomJwtPayload record {
     # User groups
     string[] groups;
 };
+
+# Application specific role mapping.
+public type AppRoles record {|
+    # Role for the O2 bar admin
+    string O2_BAR_ADMIN_ROLE;
+    # Role for the session admin
+    string SESSION_ADMIN_ROLE;
+    # Role for the employee
+    string EMPLOYEE_ROLE;
+|};

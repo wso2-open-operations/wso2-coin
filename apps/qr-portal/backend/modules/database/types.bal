@@ -94,17 +94,29 @@ public type ConferenceQrCode record {|
 # [Database] ConferenceQR record (matches DB column names).
 type ConferenceQrCodeRecord record {|
     # UUID of the QR code
+    @sql:Column { name: "qr_id" }
     string qrId;
-    # JSON array as string from database
+    # JSON object as string from database
+    @sql:Column { name: "info" }
     string info;
     # Optional description/note
+    @sql:Column { name: "description" }
     string? description = ();
     # Creator email
+    @sql:Column { name: "created_by" }
     string createdBy;
     # Creation timestamp
+    @sql:Column { name: "created_on" }
     string createdOn;
     # Total count for pagination
-    int totalCount;
+    @sql:Column { name: "totalCount" }
+    int totalCount = 0;
+|};
+
+# [Database] Count record for existence checks.
+type CountRecord record {|
+    # Count value
+    int count;
 |};
 
 # [Database] Insert record for conference QR.
@@ -135,6 +147,8 @@ public type ConferenceQrCodesResponse record {|
 public type ConferenceQrCodeFilters record {|
     # Email of the creator
     string? createdBy = ();
+    # Filter by event type (SESSION or O2BAR)
+    QrCodeType? eventType = ();
     # Limit number of QRs to fetch
     int? 'limit = DEFAULT_LIMIT;
     # Offset for pagination

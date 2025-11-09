@@ -20,5 +20,7 @@ CREATE TABLE `conference_qr` (
   `description` varchar(500) DEFAULT NULL,
   `created_by` varchar(60) NOT NULL,
   `created_on` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  PRIMARY KEY (`qr_id`)
+  PRIMARY KEY (`qr_id`),
+  CONSTRAINT `chk_info_is_object` CHECK (JSON_TYPE(`info`) = 'OBJECT'),
+  CONSTRAINT `chk_info_has_eventType` CHECK (JSON_EXTRACT(`info`, '$.eventType') IS NOT NULL)
 );

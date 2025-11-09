@@ -68,6 +68,20 @@ public isolated function fetchConferenceQrCodes(ConferenceQrCodeFilters filters)
     return {totalCount, qrs};
 }
 
+# Check if QR code already exists.
+#
+# + qrInfo - QR info to check
+# + return - true if exists, false otherwise
+public isolated function qrCodeExists(QrCodeInfo qrInfo) returns boolean|error {
+    CountRecord|error result = databaseClient->queryRow(checkQrCodeExistsQuery(qrInfo));
+    
+    if result is error {
+        return result is sql:NoRowsError ? false : result;
+    }
+    
+    return true;
+}
+
 # Delete QR by ID.
 #
 # + qrId - UUID of the QR code to delete

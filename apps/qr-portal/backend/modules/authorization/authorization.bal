@@ -17,7 +17,7 @@ import ballerina/http;
 import ballerina/jwt;
 import ballerina/log;
 
-public configurable string authorizedGroup = ?;
+public configurable AppRoles authorizedRoles = ?;
 
 # To handle authorization for each resource function invocation.
 public isolated service class JwtInterceptor {
@@ -60,13 +60,15 @@ public isolated service class JwtInterceptor {
             };
         }
 
-        if userInfo.groups.some(group => group == authorizedGroup) {
-            ctx.set(HEADER_USER_INFO, userInfo);
-            return ctx.next();
+        foreach anydata role in authorizedRoles.toArray() {
+            if userInfo.groups.some(r => r === role) {
+                ctx.set(HEADER_USER_INFO, userInfo);
+                return ctx.next();
+            }
         }
 
         log:printError(
-                string `${userInfo.email} is missing required group (${authorizedGroup}), only has groups: ${userInfo.groups.toBalString()}`);
+                string `${userInfo.email} is missing required permissions, only has ${userInfo.groups.toBalString()}`);
 
         return <http:Forbidden>{
             body: {

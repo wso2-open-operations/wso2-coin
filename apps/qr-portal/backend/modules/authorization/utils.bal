@@ -14,11 +14,16 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-# Authorization Constants.
-public const HEADER_USER_INFO = "user-info";
-public const JWT_ASSERTION_HEADER = "x-jwt-assertion";
+# Check permissions.
+#
+# + requiredRoles - Required Role list
+# + userRoles - Roles list, The user has
+# + return - Allow or not
+public isolated function checkPermissions(string[] requiredRoles, string[] userRoles) returns boolean {
+    if userRoles.length() == 0 && requiredRoles.length() > 0 {
+        return false;
+    }
 
-# Privileges.
-public const O2_BAR_ADMIN_PRIVILEGE = 191;
-public const SESSION_ADMIN_PRIVILEGE = 181;
-public const EMPLOYEE_PRIVILEGE = 171;
+    final string[] & readonly userRolesReadOnly = userRoles.cloneReadOnly();
+    return requiredRoles.every(role => userRolesReadOnly.indexOf(role) !is ());
+}

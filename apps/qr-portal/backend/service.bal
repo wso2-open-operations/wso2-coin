@@ -64,12 +64,44 @@ service http:InterceptableService / on new http:Listener(9090) {
         return sessions;
     }
 
+    # Fetch logged-in user's details with privileges.
+    #
+    # + ctx - Request context
+    # + return - User information or error
+    resource function get user\-info(http:RequestContext ctx) returns UserInfo|http:InternalServerError {
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        int[] privileges = [];
+        if authorization:checkPermissions([authorization:authorizedRoles.O2_BAR_ADMIN_ROLE], invokerInfo.groups) {
+            privileges.push(authorization:O2_BAR_ADMIN_PRIVILEGE);
+        }
+        if authorization:checkPermissions([authorization:authorizedRoles.SESSION_ADMIN_ROLE], invokerInfo.groups) {
+            privileges.push(authorization:SESSION_ADMIN_PRIVILEGE);
+        }
+        if authorization:checkPermissions([authorization:authorizedRoles.EMPLOYEE_ROLE], invokerInfo.groups) {
+            privileges.push(authorization:EMPLOYEE_PRIVILEGE);
+        }
+
+        return {
+            email: invokerInfo.email,
+            privileges: privileges
+        };
+    }
+
     # Create a new QR code.
     #
     # + payload - Payload containing the QR details
     # + return - Created QR ID or error
     resource function post qr\-code(http:RequestContext ctx, CreateQrCodePayload payload)
-        returns http:Created|http:InternalServerError|http:BadRequest {
+        returns http:Created|http:InternalServerError|http:BadRequest|http:Forbidden {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
@@ -92,6 +124,64 @@ service http:InterceptableService / on new http:Listener(9090) {
             return <http:BadRequest>{
                 body: {
                     message: "Invalid event type. Use 'O2BAR' when providing email."
+                }
+            };
+        }
+
+        boolean isO2BarAdmin = authorization:checkPermissions([authorization:authorizedRoles.O2_BAR_ADMIN_ROLE], invokerInfo.groups);
+        boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.SESSION_ADMIN_ROLE], invokerInfo.groups);
+        boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.EMPLOYEE_ROLE], invokerInfo.groups);
+
+        // Handle O2 Bar QR creation
+        if payload.info is database:QrCodeInfoO2Bar {
+            database:QrCodeInfoO2Bar o2BarInfo = <database:QrCodeInfoO2Bar>payload.info;
+            
+            if !isO2BarAdmin && !isEmployee {
+                return <http:Forbidden>{
+                    body: {
+                        message: "You don't have permission to create O2 Bar QR codes!"
+                    }
+                };
+            }
+
+            if isEmployee && !isO2BarAdmin && o2BarInfo.email != invokerInfo.email {
+                return <http:Forbidden>{
+                    body: {
+                        message: "Employees can only create QR codes for their own email!"
+                    }
+                };
+            }
+        }
+
+        // Handle Session QR creation
+        if payload.info is database:QrCodeInfoSession {
+            if !isSessionAdmin {
+                return <http:Forbidden>{
+                    body: {
+                        message: "You don't have permission to create Session QR codes!"
+                    }
+                };
+            }
+        }
+
+        // Check if QR already exists
+        boolean|error qrExists = database:qrCodeExists(payload.info);
+        if qrExists is error {
+            string customError = "Error occurred while checking for existing QR code!";
+            log:printError(customError, qrExists);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        if qrExists {
+            string identifier = payload.info is database:QrCodeInfoO2Bar 
+                ? (<database:QrCodeInfoO2Bar>payload.info).email 
+                : (<database:QrCodeInfoSession>payload.info).sessionId;
+            return <http:BadRequest>{
+                body: {
+                    message: string `QR code already exists for: ${identifier}`
                 }
             };
         }
@@ -166,13 +256,13 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request context
     # + 'limit - Optional limit for pagination
     # + offset - Optional offset for pagination
-    # + return - List of QRs or error
+    # + return - List of QRs based on user role, or error
     resource function get qr\-codes(http:RequestContext ctx, int? 'limit = (), int? offset = ())
         returns database:ConferenceQrCodesResponse|http:InternalServerError {
 
-        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
-        if invokerInfo is error {
-            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, userInfo);
             return <http:InternalServerError>{
                 body: {
                     message: USER_INFO_HEADER_NOT_FOUND_ERROR
@@ -180,11 +270,25 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        // Build filters based on role
         database:ConferenceQrCodeFilters filters = {
-            createdBy: invokerInfo.email,
             'limit: 'limit,
             offset: offset
         };
+
+        if authorization:checkPermissions([authorization:authorizedRoles.O2_BAR_ADMIN_ROLE], userInfo.groups) {
+            filters.eventType = database:O2BAR;
+        }
+        else if authorization:checkPermissions([authorization:authorizedRoles.SESSION_ADMIN_ROLE], userInfo.groups) {
+            filters.eventType = database:SESSION;
+        }
+        else if authorization:checkPermissions([authorization:authorizedRoles.EMPLOYEE_ROLE], userInfo.groups) {
+            filters.createdBy = userInfo.email;
+            filters.eventType = database:O2BAR;
+        }
+        else {
+            filters.createdBy = userInfo.email;
+        }
 
         database:ConferenceQrCodesResponse|error qrsResponse = database:fetchConferenceQrCodes(filters);
         if qrsResponse is error {
