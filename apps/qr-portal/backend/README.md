@@ -9,7 +9,35 @@
 
 ## Endpoints
 
-### 1. Get Active Sessions
+### 1. Get User Information
+
+**GET** `/user-info`
+
+**Summary:** Fetch logged-in user's details with privileges.
+
+**Responses:**
+
+| Status | Description         | Schema                        |
+| ------ | ------------------- | ----------------------------- |
+| 200    | OK                  | [UserInfo](#userinfo)         |
+| 500    | InternalServerError | -                             |
+
+**Sample Response (200):**
+
+```json
+{
+  "email": "user@example.com",
+  "privileges": [101, 102]
+}
+```
+
+**Privilege Codes:**
+- `101` - O2 Bar Admin
+- `102` - Session Admin
+
+---
+
+### 2. Get Active Sessions
 
 **GET** `/sessions`
 
@@ -41,7 +69,7 @@
 
 ---
 
-### 2. Create a New QR Code
+### 3. Create a New QR Code
 
 **POST** `/qr-code`
 
@@ -94,7 +122,7 @@
 
 ---
 
-### 3. Get QR Code by ID
+### 4. Get QR Code by ID
 
 **GET** `/qr-code/{id}`
 
@@ -110,7 +138,7 @@
 
 | Status | Description         | Schema                        |
 | ------ | ------------------- | ----------------------------- |
-| 200    | OK                  | [ConferenceQR](#conferenceqr) |
+| 200    | OK                  | [ConferenceQrCode](#conferenceqrcode) |
 | 404    | NotFound            | -                             |
 | 500    | InternalServerError | -                             |
 
@@ -131,7 +159,7 @@
 
 ---
 
-### 4. Get All QR Codes
+### 5. Get All QR Codes
 
 **GET** `/qr-codes?limit={n}&offset={n}`
 
@@ -153,7 +181,7 @@
 
 | Status | Description         | Schema                              |
 | ------ | ------------------- | ----------------------------------- |
-| 200    | OK                  | [ConferenceQRsResponse](#conferenceqrsresponse) |
+| 200    | OK                  | [ConferenceQrCodesResponse](#conferenceqrcodesresponse) |
 | 500    | InternalServerError | -                                   |
 
 **Sample Response (200):**
@@ -188,7 +216,7 @@
 
 ---
 
-### 5. Delete QR Code
+### 6. Delete QR Code
 
 **DELETE** `/qr-code/{id}`
 
@@ -232,6 +260,23 @@
 - `id`: Session identifier (string)
 - `name`: Session title/name (string)
 - `presenter`: Name of the presenter(s) (string)
+
+---
+
+### UserInfo
+
+```json
+{
+  "email": "user@example.com",
+  "privileges": [101, 102]
+}
+```
+
+**Fields:**
+- `email`: User's email address (string)
+- `privileges`: Array of privilege codes (integer array)
+  - `101` = O2 Bar Admin privilege
+  - `102` = Session Admin privilege
 
 ---
 

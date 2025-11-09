@@ -10,6 +10,19 @@ servers:
     port:
       default: "9090"
 paths:
+  /user-info:
+    get:
+      summary: Fetch logged-in user's details with privileges.
+      operationId: getUserInfo
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        "500":
+          description: InternalServerError
   /sessions:
     get:
       summary: Fetch all active sessions from the conference backend.
@@ -23,19 +36,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Session'
-        "500":
-          description: InternalServerError
-  /user-info:
-    get:
-      summary: Fetch logged-in user's details with privileges.
-      operationId: getUserInfo
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserInfo'
         "500":
           description: InternalServerError
   /qr-code:

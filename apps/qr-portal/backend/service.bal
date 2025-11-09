@@ -34,36 +34,6 @@ service http:InterceptableService / on new http:Listener(9090) {
     public function createInterceptors() returns http:Interceptor[] =>
         [new authorization:JwtInterceptor()];
 
-    # Fetch all active sessions from the conference backend.
-    #
-    # + return - Array of active sessions or error
-    resource function get sessions(http:RequestContext ctx)
-        returns conference:Session[]|http:InternalServerError {
-        
-        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
-        if invokerInfo is error {
-            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
-            return <http:InternalServerError>{
-                body: {
-                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
-                }
-            };
-        }
-
-        conference:Session[]|error sessions = conference:fetchActiveSessions();
-        if sessions is error {
-            string customError = "Error occurred while fetching active sessions!";
-            log:printError(customError, sessions);
-            return <http:InternalServerError>{
-                body: {
-                    message: customError
-                }
-            };
-        }
-
-        return sessions;
-    }
-
     # Fetch logged-in user's details with privileges.
     #
     # + ctx - Request context
@@ -94,6 +64,36 @@ service http:InterceptableService / on new http:Listener(9090) {
             email: invokerInfo.email,
             privileges: privileges
         };
+    }
+
+    # Fetch all active sessions from the conference backend.
+    #
+    # + return - Array of active sessions or error
+    resource function get sessions(http:RequestContext ctx)
+        returns conference:Session[]|http:InternalServerError {
+        
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        conference:Session[]|error sessions = conference:fetchActiveSessions();
+        if sessions is error {
+            string customError = "Error occurred while fetching active sessions!";
+            log:printError(customError, sessions);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return sessions;
     }
 
     # Create a new QR code.
