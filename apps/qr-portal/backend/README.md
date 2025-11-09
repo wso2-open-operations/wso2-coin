@@ -128,6 +128,8 @@
 
 **Summary:** Fetch a specific QR code by its UUID.
 
+**Authorization:** None required (public endpoint)
+
 **Parameters:**
 
 | Name | In   | Description            | Required | Type   |

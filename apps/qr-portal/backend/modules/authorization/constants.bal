@@ -18,6 +18,9 @@
 public const HEADER_USER_INFO = "user-info";
 public const JWT_ASSERTION_HEADER = "x-jwt-assertion";
 
+# Public endpoint paths.
+public const QR_CODE = "qr-code";
+
 # Privileges.
 public const O2_BAR_ADMIN_PRIVILEGE = 191;
 public const SESSION_ADMIN_PRIVILEGE = 181;

@@ -219,16 +219,6 @@ service http:InterceptableService / on new http:Listener(9090) {
     resource function get qr\-code/[string id](http:RequestContext ctx)
         returns database:ConferenceQrCode|http:InternalServerError|http:NotFound {
 
-        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
-        if invokerInfo is error {
-            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
-            return <http:InternalServerError>{
-                body: {
-                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
-                }
-            };
-        }
-
         database:ConferenceQrCode|error? qr = database:fetchConferenceQrCode(id);
         if qr is error {
             string customError = "Error occurred while fetching QR code!";
@@ -247,7 +237,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // All authorized users can view any QR by ID
+        // Public endpoint - no authentication required
         return qr;
     }
 
