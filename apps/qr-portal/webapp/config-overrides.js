@@ -3,7 +3,8 @@ module.exports = function override(config) {
   config.resolve = {
     ...config.resolve,
     alias: {
-      ...config.alias,
+      ...(config.resolve?.alias || {}),
+      "@src": path.resolve(__dirname, "src"),
       "@config": path.resolve(__dirname, "src/config"),
       "@component": path.resolve(__dirname, "src/component"),
       "@app": path.resolve(__dirname, "src/app"),
