@@ -136,20 +136,24 @@ service http:InterceptableService / on new http:Listener(9090) {
         if payload.info is database:QrCodeInfoO2Bar {
             database:QrCodeInfoO2Bar o2BarInfo = <database:QrCodeInfoO2Bar>payload.info;
             
-            if !isO2BarAdmin && !isEmployee {
-                return <http:Forbidden>{
-                    body: {
-                        message: "You don't have permission to create O2 Bar QR codes!"
-                    }
-                };
-            }
-
-            if isEmployee && !isO2BarAdmin && o2BarInfo.email != invokerInfo.email {
-                return <http:Forbidden>{
-                    body: {
-                        message: "Employees can only create QR codes for their own email!"
-                    }
-                };
+            // for own email, allow if user has any role
+            if o2BarInfo.email == invokerInfo.email {
+                if !isO2BarAdmin && !isSessionAdmin && !isEmployee {
+                    return <http:Forbidden>{
+                        body: {
+                            message: "You don't have permission to create O2 Bar QR codes!"
+                        }
+                    };
+                }
+            } else {
+                // for other email, only O2 Bar Admins are allowed
+                if !isO2BarAdmin {
+                    return <http:Forbidden>{
+                        body: {
+                            message: "Only O2 Bar Admins can create QR codes for other emails!"
+                        }
+                    };
+                }
             }
         }
 
@@ -270,7 +274,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             filters.eventType = database:O2BAR;
         }
         else if authorization:checkPermissions([authorization:authorizedRoles.SESSION_ADMIN_ROLE], userInfo.groups) {
-            filters.eventType = database:SESSION;
+            filters.createdBy = userInfo.email;
         }
         else if authorization:checkPermissions([authorization:authorizedRoles.EMPLOYEE_ROLE], userInfo.groups) {
             filters.createdBy = userInfo.email;
