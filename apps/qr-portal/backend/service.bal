@@ -31,8 +31,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # Request interceptor.
     #
     # + return - authorization:JwtInterceptor
-    public function createInterceptors() returns http:Interceptor[] =>
-        [new authorization:JwtInterceptor()];
+    public function createInterceptors() returns http:Interceptor[] => [new authorization:JwtInterceptor()];
 
     # Fetch logged-in user's details with privileges.
     #
@@ -62,15 +61,14 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         return {
             email: invokerInfo.email,
-            privileges: privileges
+            privileges
         };
     }
 
     # Fetch all active sessions from the conference backend.
     #
     # + return - Array of active sessions or error
-    resource function get sessions(http:RequestContext ctx)
-        returns conference:Session[]|http:InternalServerError {
+    resource function get sessions(http:RequestContext ctx) returns conference:Session[]|http:InternalServerError {
         
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
@@ -103,27 +101,27 @@ service http:InterceptableService / on new http:Listener(9090) {
     resource function post qr\-codes(http:RequestContext ctx, CreateQrCodePayload payload)
         returns http:Created|http:InternalServerError|http:BadRequest|http:Forbidden {
 
-        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
-        if invokerInfo is error {
-            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
-            return <http:InternalServerError>{
-                body: {
-                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
-                }
-            };
-        }
-
         if payload.info is database:QrCodeInfoSession && payload.info.eventType != database:SESSION {
             return <http:BadRequest>{
                 body: {
-                    message: "Invalid event type. Use 'SESSION' when providing session id."
+                    message: string `Invalid event type. Use ${database:SESSION} when providing session id.`
                 }
             };
         }
         if payload.info is database:QrCodeInfoO2Bar && payload.info.eventType != database:O2BAR {
             return <http:BadRequest>{
                 body: {
-                    message: "Invalid event type. Use 'O2BAR' when providing email."
+                    message: string `Invalid event type. Use ${database:O2BAR} when providing email.`
+                }
+            };
+        }
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
                 }
             };
         }

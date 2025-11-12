@@ -25,7 +25,7 @@ public type UserInfo record {|
 
 # Payload for creating a new QR code.
 public type CreateQrCodePayload record {|
-    # Session or O2BAR entry
+    # Session or O2Bar entry
     database:QrCodeInfo info;
     # Optional description/note about the QR code
     string? description = ();
