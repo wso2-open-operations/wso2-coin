@@ -144,27 +144,24 @@ service http:InterceptableService / on new http:Listener(9090) {
                         }
                     };
                 }
-            } else {
+            } else if !isO2BarAdmin {
                 // for other email, only O2 Bar Admins are allowed
-                if !isO2BarAdmin {
-                    return <http:Forbidden>{
-                        body: {
-                            message: "Only O2 Bar Admins can create QR codes for other emails!"
-                        }
-                    };
-                }
+                return <http:Forbidden>{
+                    body: {
+                        message: "Only O2 Bar Admins can create QR codes for other emails!"
+                    }
+                };
             }
         }
 
         // Handle Session QR creation
-        if payload.info is database:QrCodeInfoSession {
-            if !isSessionAdmin {
-                return <http:Forbidden>{
-                    body: {
-                        message: "You don't have permission to create Session QR codes!"
-                    }
-                };
-            }
+        boolean isSessionQr = payload.info is database:QrCodeInfoSession;
+        if isSessionQr && !isSessionAdmin {
+            return <http:Forbidden>{
+                body: {
+                    message: "You don't have permission to create Session QR codes!"
+                }
+            };
         }
 
         // Check if QR already exists
@@ -210,7 +207,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         return <http:Created>{
             body: {
-                qrId: qrId
+                qrId
             }
         };
     }
