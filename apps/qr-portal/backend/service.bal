@@ -133,7 +133,14 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         // Handle O2 Bar QR creation
         if payload.info is database:QrCodeInfoO2Bar {
-            database:QrCodeInfoO2Bar o2BarInfo = <database:QrCodeInfoO2Bar>payload.info;
+            database:QrCodeInfoO2Bar|error o2BarInfo = payload.info.fromJsonWithType();
+            if o2BarInfo is error {
+                return <http:BadRequest>{
+                    body: {
+                        message: "Malformed O2 Bar QR info!"
+                    }
+                };
+            }
             
             // for own email, allow if user has any role
             if o2BarInfo.email == invokerInfo.email {
