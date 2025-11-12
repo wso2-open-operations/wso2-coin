@@ -50,13 +50,13 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         int[] privileges = [];
-        if authorization:checkPermissions([authorization:authorizedRoles.O2_BAR_ADMIN_ROLE], invokerInfo.groups) {
+        if authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], invokerInfo.groups) {
             privileges.push(authorization:O2_BAR_ADMIN_PRIVILEGE);
         }
-        if authorization:checkPermissions([authorization:authorizedRoles.SESSION_ADMIN_ROLE], invokerInfo.groups) {
+        if authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], invokerInfo.groups) {
             privileges.push(authorization:SESSION_ADMIN_PRIVILEGE);
         }
-        if authorization:checkPermissions([authorization:authorizedRoles.EMPLOYEE_ROLE], invokerInfo.groups) {
+        if authorization:checkPermissions([authorization:authorizedRoles.employeeRole], invokerInfo.groups) {
             privileges.push(authorization:EMPLOYEE_PRIVILEGE);
         }
 
@@ -100,7 +100,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + payload - Payload containing the QR details
     # + return - Created QR ID or error
-    resource function post qr\-code(http:RequestContext ctx, CreateQrCodePayload payload)
+    resource function post qr\-codes(http:RequestContext ctx, CreateQrCodePayload payload)
         returns http:Created|http:InternalServerError|http:BadRequest|http:Forbidden {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -128,9 +128,10 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isO2BarAdmin = authorization:checkPermissions([authorization:authorizedRoles.O2_BAR_ADMIN_ROLE], invokerInfo.groups);
-        boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.SESSION_ADMIN_ROLE], invokerInfo.groups);
-        boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.EMPLOYEE_ROLE], invokerInfo.groups);
+        boolean isO2BarAdmin = authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], invokerInfo.groups);
+        boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], invokerInfo.groups);
+        boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], invokerInfo.groups);
+        boolean hasAnyRole = isO2BarAdmin || isSessionAdmin || isEmployee;
 
         // Handle O2 Bar QR creation
         if payload.info is database:QrCodeInfoO2Bar {
@@ -138,7 +139,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             
             // for own email, allow if user has any role
             if o2BarInfo.email == invokerInfo.email {
-                if !isO2BarAdmin && !isSessionAdmin && !isEmployee {
+                if !hasAnyRole {
                     return <http:Forbidden>{
                         body: {
                             message: "You don't have permission to create O2 Bar QR codes!"
@@ -169,17 +170,17 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         // Check if QR already exists
-        boolean|error qrExists = database:qrCodeExists(payload.info);
-        if qrExists is error {
+        boolean|error isQrExists = database:isQrCodeExists(payload.info);
+        if isQrExists is error {
             string customError = "Error occurred while checking for existing QR code!";
-            log:printError(customError, qrExists);
+            log:printError(customError, isQrExists);
             return <http:InternalServerError>{
                 body: {
                     message: customError
                 }
             };
         }
-        if qrExists {
+        if isQrExists {
             string identifier = payload.info is database:QrCodeInfoO2Bar 
                 ? (<database:QrCodeInfoO2Bar>payload.info).email 
                 : (<database:QrCodeInfoSession>payload.info).sessionId;
@@ -220,7 +221,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + id - UUID of the QR code
     # + return - QR details or error
-    resource function get qr\-code/[string id](http:RequestContext ctx)
+    resource function get qr\-codes/[string id]()
         returns database:ConferenceQrCode|http:InternalServerError|http:NotFound {
 
         database:ConferenceQrCode|error? qr = database:fetchConferenceQrCode(id);
@@ -270,13 +271,13 @@ service http:InterceptableService / on new http:Listener(9090) {
             offset: offset
         };
 
-        if authorization:checkPermissions([authorization:authorizedRoles.O2_BAR_ADMIN_ROLE], userInfo.groups) {
+        if authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], userInfo.groups) {
             filters.eventType = database:O2BAR;
         }
-        else if authorization:checkPermissions([authorization:authorizedRoles.SESSION_ADMIN_ROLE], userInfo.groups) {
+        else if authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], userInfo.groups) {
             filters.createdBy = userInfo.email;
         }
-        else if authorization:checkPermissions([authorization:authorizedRoles.EMPLOYEE_ROLE], userInfo.groups) {
+        else if authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups) {            
             filters.createdBy = userInfo.email;
             filters.eventType = database:O2BAR;
         }
@@ -302,7 +303,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + id - UUID of the QR code to delete
     # + return - Success or error
-    resource function delete qr\-code/[string id](http:RequestContext ctx)
+    resource function delete qr\-codes/[string id](http:RequestContext ctx)
         returns http:NoContent|http:InternalServerError|http:NotFound|http:Forbidden {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);

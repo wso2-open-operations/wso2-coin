@@ -72,8 +72,8 @@ public isolated function fetchConferenceQrCodes(ConferenceQrCodeFilters filters)
 #
 # + qrInfo - QR info to check
 # + return - true if exists, false otherwise
-public isolated function qrCodeExists(QrCodeInfo qrInfo) returns boolean|error {
-    CountRecord|error result = databaseClient->queryRow(checkQrCodeExistsQuery(qrInfo));
+public isolated function isQrCodeExists(QrCodeInfo qrInfo) returns boolean|error {
+    CountRecord|error result = databaseClient->queryRow(checkIsQrCodeExistsQuery(qrInfo));
     
     if result is error {
         return result is sql:NoRowsError ? false : result;

@@ -71,7 +71,7 @@
 
 ### 3. Create a New QR Code
 
-**POST** `/qr-code`
+**POST** `/qr-codes`
 
 **Summary:** Create a new QR code with session or O2 bar information.
 
@@ -124,7 +124,7 @@
 
 ### 4. Get QR Code by ID
 
-**GET** `/qr-code/{id}`
+**GET** `/qr-codes/{id}`
 
 **Summary:** Fetch a specific QR code by its UUID.
 
@@ -220,7 +220,7 @@
 
 ### 6. Delete QR Code
 
-**DELETE** `/qr-code/{id}`
+**DELETE** `/qr-codes/{id}`
 
 **Summary:** Delete a QR code by its UUID. Users can only delete QR codes they created.
 

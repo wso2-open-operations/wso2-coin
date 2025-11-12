@@ -26,7 +26,6 @@ public isolated function fetchActiveSessions() returns Session[]|error {
     }
     
     json payload = check response.getJsonPayload();
-    Session[] sessions = check payload.fromJsonWithType();
     
-    return sessions;
+    return payload.fromJsonWithType();
 }

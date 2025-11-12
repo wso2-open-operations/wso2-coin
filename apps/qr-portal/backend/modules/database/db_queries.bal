@@ -108,7 +108,7 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
 #
 # + qrInfo - QR info to check (Session or O2Bar)
 # + return - sql:ParameterizedQuery - Select query to check for existing QR
-isolated function checkQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:ParameterizedQuery {
+isolated function checkIsQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
         SELECT 1 AS count
         FROM conference_qr

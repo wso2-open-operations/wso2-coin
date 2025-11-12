@@ -27,8 +27,8 @@ public isolated service class JwtInterceptor {
     isolated resource function default [string... path](http:RequestContext ctx, http:Request req)
         returns http:NextService|http:Forbidden|http:Unauthorized|error? {
         
-        // For public endpoints that bypass authorization: GET /qr-code/{id}
-        if path.length() == 2 && path[0] == QR_CODE && req.method == http:GET {
+        // For public endpoints that bypass authorization: GET /qr-codes/{id}
+        if path.length() == 2 && path[0] == PATH_QR_CODES && req.method == http:GET {
             return ctx.next();
         }
         
@@ -72,8 +72,8 @@ public isolated service class JwtInterceptor {
             }
         }
 
-        log:printError(
-                string `${userInfo.email} is missing required permissions, only has ${userInfo.groups.toBalString()}`);
+        log:printError(string `${userInfo.email} is missing required permissions, only has 
+            ${userInfo.groups.toBalString()}`);
 
         return <http:Forbidden>{
             body: {

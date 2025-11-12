@@ -14,9 +14,9 @@ minIdleConnections = 5
 connectTimeout = 10.0
 
 [qr_portal.authorization.authorizedRoles]
-O2_BAR_ADMIN_ROLE = ""
-SESSION_ADMIN_ROLE = ""
-EMPLOYEE_ROLE = ""
+o2BarAdminRole = ""
+sessionAdminRole = ""
+employeeRole = ""
 
 [qr_portal.conference.client]
 conferenceEndpoint = ""
