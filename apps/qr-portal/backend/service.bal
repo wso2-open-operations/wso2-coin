@@ -101,21 +101,6 @@ service http:InterceptableService / on new http:Listener(9090) {
     resource function post qr\-codes(http:RequestContext ctx, CreateQrCodePayload payload)
         returns http:Created|http:InternalServerError|http:BadRequest|http:Forbidden {
 
-        if payload.info is database:QrCodeInfoSession && payload.info.eventType != database:SESSION {
-            return <http:BadRequest>{
-                body: {
-                    message: string `Invalid event type. Use ${database:SESSION} when providing session id.`
-                }
-            };
-        }
-        if payload.info is database:QrCodeInfoO2Bar && payload.info.eventType != database:O2BAR {
-            return <http:BadRequest>{
-                body: {
-                    message: string `Invalid event type. Use ${database:O2BAR} when providing email.`
-                }
-            };
-        }
-
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
             log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
@@ -130,6 +115,22 @@ service http:InterceptableService / on new http:Listener(9090) {
         boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], invokerInfo.groups);
         boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], invokerInfo.groups);
         boolean hasAnyRole = isO2BarAdmin || isSessionAdmin || isEmployee;
+
+
+        if payload.info is database:QrCodeInfoSession && payload.info.eventType != database:SESSION {
+            return <http:BadRequest>{
+                body: {
+                    message: string `Invalid event type. Use ${database:SESSION} when providing session id.`
+                }
+            };
+        }
+        if payload.info is database:QrCodeInfoO2Bar && payload.info.eventType != database:O2BAR {
+            return <http:BadRequest>{
+                body: {
+                    message: string `Invalid event type. Use ${database:O2BAR} when providing email.`
+                }
+            };
+        }
 
         // Handle O2 Bar QR creation
         if payload.info is database:QrCodeInfoO2Bar {
