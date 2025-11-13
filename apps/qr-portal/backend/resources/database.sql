@@ -90,7 +90,7 @@ BEGIN
     OLD.`description`,
     OLD.`created_by`,
     OLD.`created_on`,
-    OLD.`created_by`,
+    @deleted_by,
     'DELETE'
   );
 END$$

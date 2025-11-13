@@ -85,7 +85,10 @@ public isolated function isQrCodeExists(QrCodeInfo qrInfo) returns boolean|error
 # Delete QR by ID.
 #
 # + qrId - UUID of the QR code to delete
+# + deletedBy - Email of the user performing the deletion
 # + return - Error if the deletion failed or no rows were affected
-public isolated function deleteConferenceQrCode(string qrId) returns error? {
+public isolated function deleteConferenceQrCode(string qrId, string deletedBy) returns error? {
+    _ = check databaseClient->execute(setDeletedBySessionVariableQuery(deletedBy));
     _ = check databaseClient->execute(deleteConferenceQrCodeQuery(qrId));
+    _ = check databaseClient->execute(clearDeletedBySessionVariableQuery());
 }

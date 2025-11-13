@@ -349,7 +349,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        error? deleteError = database:deleteConferenceQrCode(qr.qrId);
+        error? deleteError = database:deleteConferenceQrCode(qr.qrId, invokerInfo.email);
         if deleteError is error {
             string customError = "Error occurred while deleting QR code!";
             log:printError(customError, deleteError);

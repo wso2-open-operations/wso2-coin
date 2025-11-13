@@ -121,6 +121,21 @@ isolated function checkIsQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:Parame
     return sql:queryConcat(mainQuery, whereClause, ` LIMIT 1`);
 }
 
+# Build query to set deleted_by session variable.
+#
+# + deletedBy - Email of the user performing the deletion
+# + return - sql:ParameterizedQuery - SET query for session variable
+isolated function setDeletedBySessionVariableQuery(string deletedBy) returns sql:ParameterizedQuery => `
+        SET @deleted_by = ${deletedBy}
+    `;
+
+# Build query to clear deleted_by session variable.
+#
+# + return - sql:ParameterizedQuery - SET query to clear session variable
+isolated function clearDeletedBySessionVariableQuery() returns sql:ParameterizedQuery => `
+        SET @deleted_by = NULL
+    `;
+
 # Build query to delete a QR by ID.
 #
 # + qrId - UUID of the QR code to delete
