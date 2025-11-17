@@ -149,6 +149,8 @@ public type ConferenceQrCodeFilters record {|
     string? createdBy = ();
     # Filter by event type (SESSION or O2BAR)
     QrCodeType? eventType = ();
+    # Include own O2Bar QRs when filtering by SESSION
+    boolean? includeOwnO2Bar = ();
     # Limit number of QRs to fetch
     int? 'limit = DEFAULT_LIMIT;
     # Offset for pagination

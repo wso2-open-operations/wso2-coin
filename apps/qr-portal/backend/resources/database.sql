@@ -65,24 +65,52 @@ BEGIN
   );
 END$$
 
--- Trigger to audit QR code deletion
-CREATE TRIGGER `conference_qr_before_delete`
-BEFORE DELETE ON `conference_qr`
-FOR EACH ROW
+-- Stored procedure to delete a QR code with audit logging
+CREATE PROCEDURE `delete_qr_code_with_audit`(
+    IN p_qr_id CHAR(36),
+    IN p_deleted_by VARCHAR(100)
+)
 BEGIN
+  DECLARE v_info JSON;
+  DECLARE v_description VARCHAR(500);
+
+  DECLARE exit handler FOR sqlexception
+  BEGIN
+      ROLLBACK;
+      RESIGNAL;
+  END;
+
+  DECLARE exit handler FOR sqlstate '02000'
+  BEGIN
+      ROLLBACK;
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'QR code not found';
+  END;
+
+  START TRANSACTION;
+
+  SELECT `info`, `description` INTO v_info, v_description
+  FROM `conference_qr`
+  WHERE `qr_id` = p_qr_id
+  FOR UPDATE;
+
   INSERT INTO `conference_qr_audit` (
-    `qr_id`,
-    `info`,
-    `description`,
-    `action_by`,
-    `action_type`
+      `qr_id`,
+      `info`,
+      `description`,
+      `action_by`,
+      `action_type`
   ) VALUES (
-    OLD.`qr_id`,
-    OLD.`info`,
-    OLD.`description`,
-    @deleted_by,
-    'DELETE'
+      p_qr_id,
+      v_info,
+      v_description,
+      p_deleted_by,
+      'DELETE'
   );
+
+  DELETE FROM `conference_qr`
+  WHERE `qr_id` = p_qr_id;
+
+  COMMIT;
 END$$
 
 DELIMITER ;

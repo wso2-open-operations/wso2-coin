@@ -75,17 +75,28 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
     `;
 
     // Setting the filters based on the inputs.
-    sql:ParameterizedQuery[] filterQueries = [];
-    if filters.createdBy is string {
-        filterQueries.push(` created_by = ${filters.createdBy}`);
-    }
-    if filters.eventType is QrCodeType {
-        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${filters.eventType}`);
-    }
+    // Session Admin - show all SESSION QRs OR own O2BAR QRs
+    if filters.includeOwnO2Bar == true && filters.createdBy is string {
+        sql:ParameterizedQuery whereClause = `
+                WHERE (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = 'SESSION') 
+                OR (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = 'O2BAR' 
+                AND created_by = ${filters.createdBy})
+            `;
+        mainQuery = sql:queryConcat(mainQuery, whereClause);
+    } else {
+        // Standard filtering
+        sql:ParameterizedQuery[] filterQueries = [];
+        if filters.createdBy is string {
+            filterQueries.push(` created_by = ${filters.createdBy}`);
+        }
+        if filters.eventType is QrCodeType {
+            filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${filters.eventType}`);
+        }
 
-    // Build main query with the filters.
-    if filterQueries.length() > 0 {
-        mainQuery = buildSqlSelectQuery(mainQuery, filterQueries);
+        // Build main query with the filters.
+        if filterQueries.length() > 0 {
+            mainQuery = buildSqlSelectQuery(mainQuery, filterQueries);
+        }
     }
 
     // Sorting the result by created_on.
@@ -121,26 +132,11 @@ isolated function checkIsQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:Parame
     return sql:queryConcat(mainQuery, whereClause, ` LIMIT 1`);
 }
 
-# Build query to set deleted_by session variable.
-#
-# + deletedBy - Email of the user performing the deletion
-# + return - sql:ParameterizedQuery - SET query for session variable
-isolated function setDeletedBySessionVariableQuery(string deletedBy) returns sql:ParameterizedQuery => `
-        SET @deleted_by = ${deletedBy}
-    `;
-
-# Build query to clear deleted_by session variable.
-#
-# + return - sql:ParameterizedQuery - SET query to clear session variable
-isolated function clearDeletedBySessionVariableQuery() returns sql:ParameterizedQuery => `
-        SET @deleted_by = NULL
-    `;
-
 # Build query to delete a QR by ID.
 #
 # + qrId - UUID of the QR code to delete
-# + return - sql:ParameterizedQuery - Delete query for the QR
-isolated function deleteConferenceQrCodeQuery(string qrId) returns sql:ParameterizedQuery => `
-        DELETE FROM conference_qr
-        WHERE qr_id = ${qrId};
+# + deletedBy - Email of the user performing the deletion
+# + return - sql:ParameterizedQuery - Call query for the stored procedure
+isolated function deleteConferenceQrCodeQuery(string qrId, string deletedBy) returns sql:ParameterizedQuery => `
+        CALL delete_qr_code_with_audit(${qrId}, ${deletedBy})
     `;

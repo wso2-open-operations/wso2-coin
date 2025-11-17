@@ -88,7 +88,8 @@ public isolated function isQrCodeExists(QrCodeInfo qrInfo) returns boolean|error
 # + deletedBy - Email of the user performing the deletion
 # + return - Error if the deletion failed or no rows were affected
 public isolated function deleteConferenceQrCode(string qrId, string deletedBy) returns error? {
-    _ = check databaseClient->execute(setDeletedBySessionVariableQuery(deletedBy));
-    _ = check databaseClient->execute(deleteConferenceQrCodeQuery(qrId));
-    _ = check databaseClient->execute(clearDeletedBySessionVariableQuery());
+    sql:ExecutionResult|sql:Error deleteResult = databaseClient->execute(deleteConferenceQrCodeQuery(qrId, deletedBy));
+    if deleteResult is sql:Error {
+        return deleteResult;
+    }
 }

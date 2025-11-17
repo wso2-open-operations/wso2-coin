@@ -278,6 +278,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             filters.eventType = database:O2BAR;
         }
         else if authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], userInfo.groups) {
+            filters.includeOwnO2Bar = true;
+            filters.eventType = database:SESSION;
             filters.createdBy = userInfo.email;
         }
         else if authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups) {            
