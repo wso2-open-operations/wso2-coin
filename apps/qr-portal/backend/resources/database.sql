@@ -33,8 +33,6 @@ CREATE TABLE `conference_qr_audit` (
   `qr_id` char(36) NOT NULL,
   `info` json DEFAULT NULL,
   `description` varchar(500) DEFAULT NULL,
-  `created_by` varchar(100) DEFAULT NULL,
-  `created_on` timestamp(6) DEFAULT NULL,
   `action_on` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `action_by` varchar(100) DEFAULT NULL,
   `action_type` enum('INSERT', 'DELETE') NOT NULL,
@@ -56,16 +54,12 @@ BEGIN
     `qr_id`,
     `info`,
     `description`,
-    `created_by`,
-    `created_on`,
     `action_by`,
     `action_type`
   ) VALUES (
     NEW.`qr_id`,
     NEW.`info`,
     NEW.`description`,
-    NEW.`created_by`,
-    NEW.`created_on`,
     NEW.`created_by`,
     'INSERT'
   );
@@ -80,16 +74,12 @@ BEGIN
     `qr_id`,
     `info`,
     `description`,
-    `created_by`,
-    `created_on`,
     `action_by`,
     `action_type`
   ) VALUES (
     OLD.`qr_id`,
     OLD.`info`,
     OLD.`description`,
-    OLD.`created_by`,
-    OLD.`created_on`,
     @deleted_by,
     'DELETE'
   );
