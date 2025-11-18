@@ -116,7 +116,6 @@ service http:InterceptableService / on new http:Listener(9090) {
         boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], invokerInfo.groups);
         boolean hasAnyRole = isO2BarAdmin || isSessionAdmin || isEmployee;
 
-
         if payload.info is database:QrCodeInfoSession && payload.info.eventType != database:SESSION {
             return <http:BadRequest>{
                 body: {
