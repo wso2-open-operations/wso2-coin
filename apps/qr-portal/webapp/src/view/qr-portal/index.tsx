@@ -104,6 +104,13 @@ export default function QrPortal() {
   };
 
   useEffect(() => {
+    // Ensure list view is not accessible on mobile
+    if (isMobile && viewMode !== "grid") {
+      setViewMode("grid");
+    }
+  }, [isMobile, viewMode]);
+
+  useEffect(() => {
     // Generate QR code images for all QR codes
     const generateQrImages = async () => {
       const images: Record<string, string> = {};
@@ -283,7 +290,15 @@ export default function QrPortal() {
       },
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
-        return dayjs(qr.createdOn).format("MMM DD, YYYY");
+        const formattedDate = dayjs(qr.createdOn).format("MMM DD, YYYY");
+        const tooltipLabel = "Created at";
+        return (
+          <Tooltip title={tooltipLabel} arrow enterDelay={300}>
+            <Typography variant="body2" component="span">
+              {formattedDate}
+            </Typography>
+          </Tooltip>
+        );
       },
     },
     {
@@ -319,6 +334,8 @@ export default function QrPortal() {
     },
   ];
 
+  const effectiveViewMode: ViewMode = isMobile ? "grid" : viewMode;
+
   return (
     <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 } }}>
       <Box
@@ -335,28 +352,30 @@ export default function QrPortal() {
           Conference QR Codes
         </Typography>
         <Box sx={{ display: "flex", gap: 2, alignItems: "center", width: { xs: "100%", sm: "auto" } }}>
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={(_, newView) => {
-              if (newView !== null) {
-                setViewMode(newView);
-              }
-            }}
-            size="small"
-            aria-label="view mode"
-          >
-            <Tooltip title="Grid View" arrow enterDelay={300}>
-              <ToggleButton value="grid" aria-label="grid view">
-                <GridViewIcon />
-              </ToggleButton>
-            </Tooltip>
-            <Tooltip title="List View" arrow enterDelay={300}>
-              <ToggleButton value="list" aria-label="list view">
-                <ListViewIcon />
-              </ToggleButton>
-            </Tooltip>
-          </ToggleButtonGroup>
+          {!isMobile && (
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={(_, newView) => {
+                if (newView !== null) {
+                  setViewMode(newView);
+                }
+              }}
+              size="small"
+              aria-label="view mode"
+            >
+              <Tooltip title="Grid View" arrow enterDelay={300}>
+                <ToggleButton value="grid" aria-label="grid view">
+                  <GridViewIcon />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="List View" arrow enterDelay={300}>
+                <ToggleButton value="list" aria-label="list view">
+                  <ListViewIcon />
+                </ToggleButton>
+              </Tooltip>
+            </ToggleButtonGroup>
+          )}
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -424,7 +443,7 @@ export default function QrPortal() {
             />
           </CardContent>
         </Card>
-      ) : viewMode === "grid" ? (
+      ) : effectiveViewMode === "grid" ? (
         <>
           <Grid container spacing={{ xs: 2, sm: 3 }}>
             {filteredQrCodes.map((qr) => {
@@ -453,7 +472,7 @@ export default function QrPortal() {
                         <Chip
                           icon={isSession ? <EventIcon /> : <EmailIcon />}
                           label={isSession ? "Session" : "O2 Bar"}
-                          color={isSession ? "primary" : "secondary"}
+                          color="primary"
                           size="small"
                           sx={{ fontWeight: 600 }}
                         />
@@ -539,25 +558,42 @@ export default function QrPortal() {
                             }}
                           />
                         ) : (
-                          <CircularProgress size={isMobile ? 120 : 150} />
+                          <CircularProgress size={150} />
                         )}
                       </Box>
 
                       {/* Metadata Footer */}
                       <Box sx={{ mt: "auto" }}>
                         <Divider sx={{ mb: 1.5 }} />
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          alignItems="center"
-                          spacing={1}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 1,
+                          }}
                         >
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flex: 1 }}>
-                            <CalendarIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-                            <Typography variant="caption" color="text.secondary">
-                              {dayjs(qr.createdOn).format("MMM DD, YYYY")}
-                            </Typography>
-                          </Box>
+                          <Tooltip title="Created at" arrow enterDelay={300}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                              <CalendarIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                              <Typography variant="caption" color="text.secondary">
+                                {dayjs(qr.createdOn).format("MMM DD, YYYY")}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
+                          <Chip
+                            label={`Created by ${qr.createdBy || "Unknown"}`}
+                            size="small"
+                            color="default"
+                            sx={{
+                              fontWeight: 600,
+                              bgcolor: (theme) =>
+                                theme.palette.mode === "dark"
+                                  ? alpha(theme.palette.common.white, 0.08)
+                                  : alpha(theme.palette.common.black, 0.04),
+                            }}
+                          />
                           <Tooltip title="Download QR Code" arrow enterDelay={300}>
                             <IconButton
                               size="small"
@@ -579,7 +615,7 @@ export default function QrPortal() {
                               <DownloadIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                        </Stack>
+                        </Box>
                       </Box>
                     </CardContent>
                   </Card>

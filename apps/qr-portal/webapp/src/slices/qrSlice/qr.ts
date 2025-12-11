@@ -77,7 +77,7 @@ export const createQrCode = createAsyncThunk(
   async (payload: CreateQrCodePayload, { dispatch, rejectWithValue }) => {
     try {
       const response = await APIService.getInstance().post<{ qrId: string }>(
-        AppConfig.serviceUrls.qrCode,
+        AppConfig.serviceUrls.qrCodes,
         payload
       );
       dispatch(
@@ -107,7 +107,7 @@ export const deleteQrCode = createAsyncThunk(
   "qr/deleteQrCode",
   async (qrId: string, { dispatch, rejectWithValue }) => {
     try {
-      await APIService.getInstance().delete(`${AppConfig.serviceUrls.qrCode}/${qrId}`);
+      await APIService.getInstance().delete(`${AppConfig.serviceUrls.qrCodes}/${qrId}`);
       dispatch(
         enqueueSnackbarMessage({
           message: SnackMessage.success.qrCodeDeleted,

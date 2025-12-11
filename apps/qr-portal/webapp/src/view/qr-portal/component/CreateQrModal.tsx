@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -69,6 +69,23 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onSuccess,
 
   const isO2BarAdmin = roles.includes(Role.O2_BAR_ADMIN);
   const isSessionAdmin = roles.includes(Role.SESSION_ADMIN);
+
+  const eventTypeOptions = useMemo(
+    () => {
+      const options: { value: QrCodeEventType; label: string }[] = [
+        { value: QrCodeEventType.O2BAR, label: "O2 Bar" },
+      ];
+
+      if (isSessionAdmin) {
+        options.push({ value: QrCodeEventType.SESSION, label: "Session" });
+      }
+
+      return options;
+    },
+    [isSessionAdmin]
+  );
+
+  const eventTypeSelectDisabled = eventTypeOptions.length === 1;
 
   // Determine default event type based on role
   const getDefaultEventType = (): QrCodeEventType => {
@@ -143,7 +160,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onSuccess,
   };
 
   const initialValues = {
-    eventType: getDefaultEventType(),
+    eventType: eventTypeOptions[0]?.value ?? getDefaultEventType(),
     email: userInfo ? userInfo.email : "", // Pre-fill with user's email for everyone
     sessionId: "",
     description: "",
@@ -268,14 +285,21 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onSuccess,
                       onChange={handleEventTypeChange}
                       onBlur={handleBlur}
                       error={touched.eventType && !!errors.eventType}
-                      helperText={touched.eventType && errors.eventType}
-                      disabled={!isSessionAdmin} // Only Session Admins can switch between types
+                      helperText={
+                        touched.eventType && errors.eventType
+                          ? errors.eventType
+                          : eventTypeSelectDisabled
+                          ? `Only ${eventTypeOptions[0]?.label ?? "this"} events are available for your role`
+                          : undefined
+                      }
+                      disabled={eventTypeSelectDisabled}
                       sx={{ mb: 2, mt: 1 }}
                     >
-                    <MenuItem value={QrCodeEventType.O2BAR}>O2 Bar</MenuItem>
-                    {isSessionAdmin && (
-                      <MenuItem value={QrCodeEventType.SESSION}>Session</MenuItem>
-                    )}
+                    {eventTypeOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
                   </TextField>
 
                   {values.eventType === QrCodeEventType.O2BAR && (

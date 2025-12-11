@@ -46,6 +46,5 @@ export const AppConfig = {
     userInfo: ServiceBaseUrl + "/user-info",
     sessions: ServiceBaseUrl + "/sessions",
     qrCodes: ServiceBaseUrl + "/qr-codes",
-    qrCode: ServiceBaseUrl + "/qr-code",
   },
 };

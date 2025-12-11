@@ -15,6 +15,7 @@
 // under the License.
 
 import { styled, Theme, CSSObject, alpha, useTheme } from "@mui/material/styles";
+import { useEffect, useState } from "react";
 import { useMediaQuery } from "@mui/material";
 import { MUIStyledCommonProps } from "@mui/system";
 import MuiDrawer from "@mui/material/Drawer";
@@ -29,7 +30,7 @@ import { getActiveRouteDetails } from "./../../route";
 import { SIDEBAR_WIDTH } from "@config/ui";
 import { useLocation, matchPath, useMatches } from "react-router-dom";
 import { ColorModeContext } from "../../App";
-import { Stack, Typography } from "@mui/material";
+import { Stack, Typography, Tooltip } from "@mui/material";
 
 interface SidebarProps {
   open: boolean;
@@ -105,45 +106,53 @@ const Sidebar = (props: SidebarProps) => {
             ))}
           </List>
           <DrawerSpace />
-          <DrawerFooter>
-            <Stack flexDirection={"column"} gap={3}>
-              <IconButton
-                onClick={colorMode.toggleColorMode}
-                color="inherit"
-                sx={{
-                  color: "white",
-                  "&:hover": {
-                    background: alpha(props.theme.palette.common.white, 0.05),
-                    ...(!props.open && {
-                      "& .menu-tooltip": {
-                        opacity: 1,
-                        visibility: "visible",
-                      },
-                    }),
-                  },
-                }}
+          <DrawerFooter open={props.open}>
+            <Stack
+              flexDirection={"column"}
+              gap={3}
+              alignItems={props.open ? "flex-start" : "center"}
+              sx={{ width: "100%" }}
+            >
+              <Tooltip
+                title={`Switch to ${props.theme.palette.mode === "dark" ? "light" : "dark"} mode`}
+                arrow
+                enterDelay={300}
+                placement="right"
               >
-                {props.theme.palette.mode === "dark" ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
-                <span className="menu-tooltip">
-                  <Typography variant="h6">
-                    {"Switch to " + (props.theme.palette.mode === "dark" ? "light" : "dark") + " mode"}
-                  </Typography>
-                </span>
-              </IconButton>
-              <IconButton
-                onClick={props.handleDrawer}
-                sx={{
-                  "&:hover": {
-                    background: alpha(props.theme.palette.common.white, 0.05),
-                  },
-                }}
+                <IconButton
+                  onClick={colorMode.toggleColorMode}
+                  color="inherit"
+                  sx={{
+                    color: "white",
+                    "&:hover": {
+                      background: alpha(props.theme.palette.common.white, 0.05),
+                    },
+                  }}
+                >
+                  {props.theme.palette.mode === "dark" ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
+                </IconButton>
+              </Tooltip>
+              <Tooltip
+                title={props.open ? "Collapse sidebar" : "Expand sidebar"}
+                arrow
+                enterDelay={300}
+                placement="right"
               >
-                {!props.open ? (
-                  <ChevronRightIcon sx={{ color: "white" }} />
-                ) : (
-                  <ChevronLeftIcon sx={{ color: "white" }} />
-                )}
-              </IconButton>
+                <IconButton
+                  onClick={props.handleDrawer}
+                  sx={{
+                    "&:hover": {
+                      background: alpha(props.theme.palette.common.white, 0.05),
+                    },
+                  }}
+                >
+                  {!props.open ? (
+                    <ChevronRightIcon sx={{ color: "white" }} />
+                  ) : (
+                    <ChevronLeftIcon sx={{ color: "white" }} />
+                  )}
+                </IconButton>
+              </Tooltip>
             </Stack>
           </DrawerFooter>
         </Drawer>
@@ -163,12 +172,20 @@ const DrawerSpace = styled("div")(({ theme }) => ({
   ...theme.mixins.toolbar,
 }));
 
-export const DrawerFooter = styled("div")(({ theme }) => ({
+interface DrawerFooterProps extends MUIStyledCommonProps {
+  open: boolean;
+}
+
+export const DrawerFooter = styled("div", {
+  shouldForwardProp: (prop) => prop !== "open",
+})<DrawerFooterProps>(({ theme, open }) => ({
   position: "relative",
   bottom: 0,
   display: "flex",
   alignItems: "center",
-  justifyContent: "flex-end",
+  justifyContent: open ? "flex-start" : "center",
+  width: "100%",
+  padding: theme.spacing(0.5),
   ...theme.mixins.toolbar,
 }));
 

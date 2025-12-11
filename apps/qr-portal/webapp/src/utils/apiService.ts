@@ -81,8 +81,7 @@ export class APIService {
   private static updateRequestInterceptor() {
     APIService._instance.interceptors.request.use(
       (config) => {
-        // Backend expects token in x-jwt-assertion header (not Authorization)
-        config.headers.set("x-jwt-assertion", APIService._idToken);
+        config.headers.set("Authorization", "Bearer " + APIService._idToken);
 
         const endpoint = config.url || "";
 
