@@ -24,6 +24,16 @@ public type ClientAuthConfig record {|
     string clientSecret;
 |};
 
+# Session presenters record from conference backend.
+public type SessionPresenters record {|
+    # Session ID
+    string id;
+    # Session name/title
+    string name;
+    # Presenter names
+    string[] presenters;
+|};
+
 # Session information from conference backend.
 public type Session record {|
     # Session ID

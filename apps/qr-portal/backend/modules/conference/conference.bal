@@ -19,7 +19,7 @@ import ballerina/http;
 #
 # + return - Array of active sessions or error
 public isolated function fetchActiveSessions() returns Session[]|error {
-    http:Response response = check conferenceClient->get("/sessions/active");
+    http:Response response = check conferenceClient->get("/sessions/current");
     
     if response.statusCode != http:STATUS_OK {
         return error(string `Conference backend returned status ${response.statusCode}`);
@@ -27,5 +27,22 @@ public isolated function fetchActiveSessions() returns Session[]|error {
     
     json payload = check response.getJsonPayload();
     
-    return payload.fromJsonWithType();
+    SessionPresenters[] sessionPresenters = check payload.fromJsonWithType();
+    
+    // Only take the first presenter for each session
+    Session[] sessions = [];
+    foreach SessionPresenters sessionWithPresenters in sessionPresenters {
+        string presenter = "";
+        if sessionWithPresenters.presenters.length() > 0 {
+            presenter = sessionWithPresenters.presenters[0];
+        }
+        
+        sessions.push({
+            id: sessionWithPresenters.id,
+            name: sessionWithPresenters.name,
+            presenter
+        });
+    }
+    
+    return sessions;
 }
