@@ -27,22 +27,7 @@ public isolated function fetchActiveSessions() returns Session[]|error {
     
     json payload = check response.getJsonPayload();
     
-    SessionPresenters[] sessionPresenters = check payload.fromJsonWithType();
-    
-    // Only take the first presenter for each session
-    Session[] sessions = [];
-    foreach SessionPresenters sessionWithPresenters in sessionPresenters {
-        string presenter = "";
-        if sessionWithPresenters.presenters.length() > 0 {
-            presenter = sessionWithPresenters.presenters[0];
-        }
-        
-        sessions.push({
-            id: sessionWithPresenters.id,
-            name: sessionWithPresenters.name,
-            presenter
-        });
-    }
+    Session[] sessions = check payload.fromJsonWithType();
     
     return sessions;
 }

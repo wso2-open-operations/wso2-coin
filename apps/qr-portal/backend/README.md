@@ -57,12 +57,12 @@
   {
     "id": "1",
     "name": "Opening Keynote: The Future of Technology",
-    "presenter": "Dr. Jane Smith"
+    "presenters": ["Dr. Jane Smith", "Dr. John Doe"]
   },
   {
     "id": "2",
     "name": "Workshop: Building Scalable Systems",
-    "presenter": "John Doe"
+    "presenters": ["John Doe"]
   }
 ]
 ```
