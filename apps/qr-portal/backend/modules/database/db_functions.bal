@@ -92,4 +92,8 @@ public isolated function deleteConferenceQrCode(string qrId, string deletedBy) r
     if deleteResult is sql:Error {
         return deleteResult;
     }
+
+    if deleteResult.affectedRowCount <= 0 {
+        return error("QR code not found or already deleted");
+    }
 }
