@@ -84,9 +84,13 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
     // Session Admin - show all SESSION QRs OR own O2BAR QRs
     if filters.includeOwnO2Bar == true && filters.createdBy is string {
         filterQueries.push(`
-                (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = 'SESSION') 
-                OR (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = 'O2BAR' 
-                AND created_by = ${filters.createdBy})
+                (
+                    JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = 'SESSION' 
+                    OR (
+                        JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = 'O2BAR' 
+                        AND created_by = ${filters.createdBy}
+                    )
+                )
             `);
     } else {
         // Standard filtering
