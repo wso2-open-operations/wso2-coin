@@ -74,6 +74,9 @@ BEFORE UPDATE ON `conference_qr`
 FOR EACH ROW
 BEGIN
   IF OLD.`status` = 'ACTIVE' AND NEW.`status` = 'DELETED' THEN
+    IF NEW.`deleted_by` IS NULL THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'deleted_by cannot be NULL when marking QR as DELETED';
+    END IF;
     INSERT INTO `conference_qr_audit` (
       `qr_id`,
       `info`,
