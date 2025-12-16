@@ -55,7 +55,7 @@ isolated function fetchConferenceQrCodeQuery(string qrId) returns sql:Parameteri
             conference_qr
         WHERE 
             qr_id = ${qrId}
-            AND status = 'ACTIVE';
+            AND status = ${QrCodeStatus.ACTIVE};
     `;
 
 # Build query to fetch QRs with optional filters and pagination.
@@ -78,16 +78,16 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
     `;
 
     sql:ParameterizedQuery[] filterQueries = [];
-    filterQueries.push(` status = 'ACTIVE'`);
+    filterQueries.push(` status = ${QrCodeStatus.ACTIVE}`);
 
     // Setting the filters based on the inputs.
     // Session Admin - show all SESSION QRs OR own O2BAR QRs
     if filters.includeOwnO2Bar == true && filters.createdBy is string {
         filterQueries.push(`
                 (
-                    JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = 'SESSION' 
+                    JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${QrCodeType.SESSION} 
                     OR (
-                        JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = 'O2BAR' 
+                        JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${QrCodeType.O2BAR} 
                         AND created_by = ${filters.createdBy}
                     )
                 )
@@ -136,7 +136,7 @@ isolated function checkIsQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:Parame
         ? `JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${qrInfo.email}`
         : `JSON_UNQUOTE(JSON_EXTRACT(info, '$.sessionId')) = ${qrInfo.sessionId}`;
     
-    return sql:queryConcat(mainQuery, whereClause, ` AND status = 'ACTIVE' LIMIT 1`);
+    return sql:queryConcat(mainQuery, whereClause, ` AND status = ${QrCodeStatus.ACTIVE} LIMIT 1`);
 }
 
 # Build query to delete a QR by ID.
@@ -146,9 +146,9 @@ isolated function checkIsQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:Parame
 # + return - sql:ParameterizedQuery - Update query to set status to DELETED
 isolated function deleteConferenceQrCodeQuery(string qrId, string deletedBy) returns sql:ParameterizedQuery => `
         UPDATE conference_qr
-        SET status = 'DELETED',
+        SET status = ${QrCodeStatus.DELETED},
             updated_by = ${deletedBy},
             updated_on = CURRENT_TIMESTAMP(6)
         WHERE qr_id = ${qrId}
-            AND status = 'ACTIVE'
+            AND status = ${QrCodeStatus.ACTIVE}
     `;
