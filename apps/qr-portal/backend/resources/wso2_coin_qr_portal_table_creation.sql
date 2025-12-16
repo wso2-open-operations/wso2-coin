@@ -22,7 +22,8 @@ CREATE TABLE `conference_qr` (
   `created_by` varchar(100) NOT NULL,
   `created_on` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `status` enum('ACTIVE', 'DELETED') NOT NULL DEFAULT 'ACTIVE',
-  `deleted_by` varchar(100) DEFAULT NULL,
+  `updated_by` varchar(100) DEFAULT NULL,
+  `updated_on` timestamp(6) DEFAULT NULL,
   PRIMARY KEY (`qr_id`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_created_on` (`created_on`),
@@ -74,8 +75,8 @@ BEFORE UPDATE ON `conference_qr`
 FOR EACH ROW
 BEGIN
   IF OLD.`status` = 'ACTIVE' AND NEW.`status` = 'DELETED' THEN
-    IF NEW.`deleted_by` IS NULL THEN
-      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'deleted_by cannot be NULL when marking QR as DELETED';
+    IF NEW.`updated_by` IS NULL THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'updated_by cannot be NULL when marking QR as DELETED';
     END IF;
     INSERT INTO `conference_qr_audit` (
       `qr_id`,
@@ -87,7 +88,7 @@ BEGIN
       OLD.`qr_id`,
       OLD.`info`,
       OLD.`description`,
-      NEW.`deleted_by`,
+      NEW.`updated_by`,
       'DELETE'
     );
   END IF;

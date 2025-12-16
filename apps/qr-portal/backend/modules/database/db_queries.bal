@@ -147,7 +147,8 @@ isolated function checkIsQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:Parame
 isolated function deleteConferenceQrCodeQuery(string qrId, string deletedBy) returns sql:ParameterizedQuery => `
         UPDATE conference_qr
         SET status = 'DELETED',
-            deleted_by = ${deletedBy}
+            updated_by = ${deletedBy},
+            updated_on = CURRENT_TIMESTAMP(6)
         WHERE qr_id = ${qrId}
             AND status = 'ACTIVE'
     `;

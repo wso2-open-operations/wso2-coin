@@ -22,10 +22,14 @@ AFTER `created_on`;
 ALTER TABLE `conference_qr`
 ADD KEY `idx_status` (`status`);
 
--- Add deleted_by column to track who deleted the QR code
+-- Add updated_by and updated_on columns to track who updated the QR code and when
 ALTER TABLE `conference_qr`
-ADD COLUMN `deleted_by` varchar(100) DEFAULT NULL
+ADD COLUMN `updated_by` varchar(100) DEFAULT NULL
 AFTER `status`;
+
+ALTER TABLE `conference_qr`
+ADD COLUMN `updated_on` timestamp(6) DEFAULT NULL
+AFTER `updated_by`;
 
 -- Drop old stored procedure
 DROP PROCEDURE IF EXISTS `delete_qr_code_with_audit`;
@@ -38,8 +42,8 @@ BEFORE UPDATE ON `conference_qr`
 FOR EACH ROW
 BEGIN
   IF OLD.`status` = 'ACTIVE' AND NEW.`status` = 'DELETED' THEN
-    IF NEW.`deleted_by` IS NULL THEN
-      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'deleted_by cannot be NULL when marking QR as DELETED';
+    IF NEW.`updated_by` IS NULL THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'updated_by cannot be NULL when marking QR as DELETED';
     END IF;
     INSERT INTO `conference_qr_audit` (
       `qr_id`,
@@ -51,7 +55,7 @@ BEGIN
       OLD.`qr_id`,
       OLD.`info`,
       OLD.`description`,
-      NEW.`deleted_by`,
+      NEW.`updated_by`,
       'DELETE'
     );
   END IF;
