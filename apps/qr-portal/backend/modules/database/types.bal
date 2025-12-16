@@ -108,8 +108,11 @@ type ConferenceQrCodeRecord record {|
     # Creation timestamp
     @sql:Column { name: "created_on" }
     string createdOn;
+    # Status of the QR code (ACTIVE or DELETED)
+    @sql:Column { name: "status" }
+    string status;
     # Total count for pagination
-    @sql:Column { name: "totalCount" }
+    @sql:Column { name: "total_count" }
     int totalCount = 0;
 |};
 

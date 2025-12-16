@@ -19,3 +19,9 @@ public enum QrCodeType {
     SESSION,
     O2BAR
 };
+
+# QR code status types.
+public enum QrCodeStatus {
+    ACTIVE,
+    DELETED
+};

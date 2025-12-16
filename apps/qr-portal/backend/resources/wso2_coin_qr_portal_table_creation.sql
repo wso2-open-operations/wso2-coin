@@ -21,9 +21,13 @@ CREATE TABLE `conference_qr` (
   `description` varchar(500) DEFAULT NULL,
   `created_by` varchar(100) NOT NULL,
   `created_on` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `status` enum('ACTIVE', 'DELETED') NOT NULL DEFAULT 'ACTIVE',
+  `updated_by` varchar(100) DEFAULT NULL,
+  `updated_on` timestamp(6) DEFAULT NULL,
   PRIMARY KEY (`qr_id`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_created_on` (`created_on`),
+  KEY `idx_status` (`status`),
   CONSTRAINT `chk_info_is_object` CHECK (JSON_TYPE(`info`) = 'OBJECT'),
   CONSTRAINT `chk_info_has_eventType` CHECK (JSON_EXTRACT(`info`, '$.eventType') IS NOT NULL)
 );
@@ -65,52 +69,29 @@ BEGIN
   );
 END$$
 
--- Stored procedure to delete a QR code with audit logging
-CREATE PROCEDURE `delete_qr_code_with_audit`(
-    IN p_qr_id CHAR(36),
-    IN p_deleted_by VARCHAR(100)
-)
+-- Trigger to audit QR code deletion
+CREATE TRIGGER `conference_qr_before_update`
+BEFORE UPDATE ON `conference_qr`
+FOR EACH ROW
 BEGIN
-  DECLARE v_info JSON;
-  DECLARE v_description VARCHAR(500);
-
-  DECLARE exit handler FOR sqlexception
-  BEGIN
-      ROLLBACK;
-      RESIGNAL;
-  END;
-
-  DECLARE exit handler FOR sqlstate '02000'
-  BEGIN
-      ROLLBACK;
-      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'QR code not found';
-  END;
-
-  START TRANSACTION;
-
-  SELECT `info`, `description` INTO v_info, v_description
-  FROM `conference_qr`
-  WHERE `qr_id` = p_qr_id
-  FOR UPDATE;
-
-  INSERT INTO `conference_qr_audit` (
+  IF OLD.`status` = 'ACTIVE' AND NEW.`status` = 'DELETED' THEN
+    IF NEW.`updated_by` IS NULL THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'updated_by cannot be NULL when marking QR as DELETED';
+    END IF;
+    INSERT INTO `conference_qr_audit` (
       `qr_id`,
       `info`,
       `description`,
       `action_by`,
       `action_type`
-  ) VALUES (
-      p_qr_id,
-      v_info,
-      v_description,
-      p_deleted_by,
+    ) VALUES (
+      OLD.`qr_id`,
+      OLD.`info`,
+      OLD.`description`,
+      NEW.`updated_by`,
       'DELETE'
-  );
-
-  DELETE FROM `conference_qr`
-  WHERE `qr_id` = p_qr_id;
-
-  COMMIT;
+    );
+  END IF;
 END$$
 
 DELIMITER ;
