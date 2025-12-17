@@ -13,108 +13,104 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
-import { Suspense, useEffect, useState } from "react";
-import { useSelector } from "react-redux";
-import { Box, alpha, useMediaQuery } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
-
-import Header from "./header";
-import Sidebar from "./sidebar";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-
-import ConfirmationModalContextProvider from "@context/DialogContext";
-import { selectRoles } from "@slices/authSlice";
+import { Box, useTheme } from "@mui/material";
 import { useSnackbar } from "notistack";
-import pJson from "../../package.json";
-import { RootState, useAppSelector } from "@slices/store";
-import { Typography } from "@mui/material";
+import { useSelector } from "react-redux";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import Snowfall from "react-snowfall";
+
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+
+import SnowflakeIcon from "@assets/icons/SnowFlakeIcon";
+import PreLoader from "@component/common/PreLoader";
+import { redirectUrl as savedRedirectUrl } from "@config/constant";
+import ConfirmationModalContextProvider from "@context/DialogContext";
+import Header from "@layout/header";
+import Sidebar from "@layout/sidebar";
+import { selectRoles } from "@slices/authSlice/auth";
+import { type RootState, useAppSelector } from "@slices/store";
+
+import { Themes, useGetThemeQuery } from "../services/config.api";
 
 export default function Layout() {
-  //snackbar configuration
   const { enqueueSnackbar } = useSnackbar();
   const common = useAppSelector((state: RootState) => state.common);
   const navigate = useNavigate();
-  useEffect(() => {
-    if (common.timestamp != null) {
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+  const roles = useSelector(selectRoles);
+  const theme = useTheme();
+  const { data: themeData } = useGetThemeQuery();
+
+  const showSnackbar = useCallback(() => {
+    if (common.timestamp !== null) {
       enqueueSnackbar(common.message, {
         variant: common.type,
         preventDuplicate: true,
         anchorOrigin: { horizontal: "right", vertical: "bottom" },
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [common.timestamp]);
+  }, [common.message, common.type, common.timestamp, enqueueSnackbar]);
+
+  const snowflake = useMemo(
+    () => [SnowflakeIcon({ color: theme.palette.fill.xmas.active })],
+    [theme.palette.fill.xmas.active],
+  );
 
   useEffect(() => {
-    if (localStorage.getItem("qr-portal-app-redirect-url")) {
-      navigate(localStorage.getItem("qr-portal-app-redirect-url") as string);
-      localStorage.removeItem("qr-portal-app-redirect-url");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const location = useLocation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
-  const [open, setOpen] = useState(false);
-  const roles = useSelector(selectRoles);
+    showSnackbar();
+  }, [showSnackbar]);
 
   useEffect(() => {
-    if (isMobile && open) {
-      setOpen(false);
+    const redirectUrl = localStorage.getItem(savedRedirectUrl);
+    if (redirectUrl) {
+      navigate(redirectUrl);
+      localStorage.removeItem(savedRedirectUrl);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMobile]);
+  }, [navigate]);
 
   return (
     <ConfirmationModalContextProvider>
-      <Box sx={{ display: "flex" }}>
-        <CssBaseline />
+      {themeData?.theme === Themes.XMAS_THEME && (
+        <Snowfall color={theme.palette.fill.xmas.active} images={snowflake} radius={[5, 20]} />
+      )}
 
-        <Sidebar
-          roles={roles}
-          currentPath={location.pathname}
-          open={open}
-          handleDrawer={() => setOpen(!open)}
-          theme={theme}
-        />
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100vh",
+          width: "100vw",
+          backgroundColor: theme.palette.surface.primary.active,
+        }}
+      >
+        {/* Header */}
         <Header />
 
-        <Box
-          component="main"
-          className="Hello"
-          sx={{
-            flexGrow: 1,
-            height: "100vh",
-            p: { xs: 2, sm: 3 },
-            pt: { xs: 8, sm: 9 },
-            pb: { xs: 10, sm: 10 },
-          }}
-        >
-          <Suspense fallback={<div>Loading...</div>}>
-            <Box sx={{ pb: 8 }}>
-              <Outlet />
-            </Box>
-          </Suspense>
+        {/* Main content container */}
+        <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+          {/* Sidebar */}
+          <Box sx={{ width: "fit-content", height: "100%" }}>
+            <Sidebar
+              roles={roles}
+              currentPath={location.pathname}
+              open={open}
+              handleDrawer={() => setOpen(!open)}
+            />
+          </Box>
+
+          {/* Main content area */}
           <Box
-            className="layout-note"
             sx={{
-              background:
-                theme.palette.mode === "light"
-                  ? (theme) =>
-                      alpha(
-                        theme.palette.secondary.main,
-                        theme.palette.action.activatedOpacity
-                      )
-                  : (theme) => alpha(theme.palette.common.black, 0.4),
+              flex: 1,
+              height: "100%",
+              padding: theme.spacing(3),
+              overflowY: "auto",
             }}
           >
-            <Typography variant="h6" sx={{ color: "#919090" }}>
-              v {pJson.version} | © {new Date().getFullYear()} WSO2 LLC
-            </Typography>
+            <Suspense fallback={<PreLoader isLoading message="Loading page data" />}>
+              <Outlet />
+            </Suspense>
           </Box>
         </Box>
       </Box>

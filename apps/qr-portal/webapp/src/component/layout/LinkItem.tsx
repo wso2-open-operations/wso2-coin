@@ -13,105 +13,84 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import { Box, Typography, useTheme } from "@mui/material";
+import { ChevronDown as ChevronDownIcon } from "lucide-react";
+import { ChevronUp as ChevronUpIcon } from "lucide-react";
 
 import React from "react";
-import { Theme, alpha } from "@mui/material/styles";
-import ListItem from "@mui/material/ListItem";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
 
-import { NavLink as RouterLink, LinkProps as RouterLinkProps } from "react-router-dom";
-import { Typography } from "@mui/material";
-
-const Link = React.forwardRef<HTMLAnchorElement, RouterLinkProps>(function Link(itemProps, ref) {
-  return (
-    <RouterLink
-      ref={ref}
-      {...itemProps}
-      role={undefined}
-      style={({ isActive }) => (isActive ? { background: alpha("#FFFFF", 0.05), color: "#FF7300" } : {})}
-    />
-  );
-});
-
-const ListItemLink = (props: ListItemLinkProps) => {
-  const { icon, primary, to, open, theme, isActive } = props;
-
-  return (
-    <ListItem
-      component={Link}
-      to={to}
-      sx={{
-        borderRadius: 2,
-        mb: 1.5,
-        "&:hover": {
-          background: (theme) =>
-            theme.palette.mode === "light"
-              ? alpha(theme.palette.common.white, 0.35)
-              : alpha(theme.palette.primary.main, 0.35),
-          ...(!open && {
-            "& .menu-tooltip": {
-              opacity: 1,
-              marginLeft: -3,
-              visibility: "visible",
-              color: (theme) => theme.palette.common.white,
-              background: (theme) => theme.palette.primary.dark,
-              boxShadow: theme.palette.mode === "dark" ? "0px 0px 10px rgba(120, 125, 129, 0.2)" : 10,
-            },
-          }),
-        },
-        ...(isActive && {
-          background: (theme) =>
-            theme.palette.mode === "light"
-              ? alpha(theme.palette.common.white, 0.5)
-              : alpha(theme.palette.primary.main, 0.2),
-        }),
-        transition: theme.transitions.create(["width", "margin"], {
-          easing: theme.transitions.easing.sharp,
-          duration: theme.transitions.duration.enteringScreen,
-        }),
-      }}
-    >
-      {icon && (
-        <ListItemIcon
-          sx={{
-            color: (theme) => theme.palette.common.white,
-            ...(isActive && {
-              color: (theme) => theme.palette.primary.main,
-            }),
-          }}
-        >
-          {icon}
-        </ListItemIcon>
-      )}
-      <ListItemText
-        sx={{
-          ml: -2,
-          fontSize: 18,
-          "& .MuiListItemText-primary": {
-            color: (theme) => theme.palette.common.white,
-            ...(isActive && {
-              color: (theme) => theme.palette.primary.main,
-            }),
-          },
-        }}
-        primary={primary}
-      />
-
-      <span className="menu-tooltip">
-        <Typography variant="body2">{primary}</Typography>
-      </span>
-    </ListItem>
-  );
-};
-
-export default ListItemLink;
+import { RouteDetail } from "@root/src/types/types";
 
 interface ListItemLinkProps {
   icon?: React.ReactElement;
-  primary: string;
-  to: string;
+  label: string;
   open: boolean;
   isActive: boolean;
-  theme: Theme;
+  hasChildren: boolean;
+  route?: RouteDetail;
 }
+
+const LinkItem = (props: ListItemLinkProps) => {
+  const { icon, label, open, isActive, hasChildren } = props;
+  const theme = useTheme();
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        padding: 1,
+        borderRadius: "8px",
+        justifyContent: "space-between",
+        transition: "all 0.2s",
+        backgroundColor: isActive ? theme.palette.customNavigation.clickedBg : "transparent",
+        "&:hover": {
+          ...(!isActive && {
+            backgroundColor: theme.palette.customNavigation.hoverBg,
+          }),
+        },
+        color: isActive
+          ? theme.palette.customNavigation.textClicked
+          : theme.palette.customNavigation.text,
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: theme.spacing(1),
+          justifyContent: "flex-start",
+        }}
+      >
+        {icon && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              "& svg": { width: "20px", height: "20px" },
+            }}
+          >
+            {icon}
+          </Box>
+        )}
+        {open && (
+          <Typography
+            sx={{
+              fontSize: "14px",
+              fontWeight: 500,
+              lineHeight: "150%",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            {label}
+          </Typography>
+        )}
+      </Box>
+      {hasChildren &&
+        open &&
+        (isActive ? <ChevronUpIcon size={18} /> : <ChevronDownIcon size={18} />)}
+    </Box>
+  );
+};
+export default LinkItem;
