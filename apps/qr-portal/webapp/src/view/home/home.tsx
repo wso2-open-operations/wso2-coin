@@ -21,9 +21,9 @@ import {
   Download as DownloadIcon,
   Email as EmailIcon,
   Event as EventIcon,
-  Person as PersonIcon,
   ViewModule as GridViewIcon,
   ViewList as ListViewIcon,
+  Person as PersonIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
 import {
@@ -316,7 +316,7 @@ export default function QrPortal() {
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
         return (
-          <Box sx={{ display: "flex", gap: 1 }}>
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center", height: "100%" }}>
             <Tooltip title="Download QR Code" arrow enterDelay={300}>
               <IconButton size="small" color="primary" onClick={() => handleDownload(qr.qrId)}>
                 <DownloadIcon />
@@ -616,10 +616,7 @@ export default function QrPortal() {
                                 </Typography>
                               </Box>
                             </Tooltip>
-                            <Tooltip
-                              title={`Created by: ${qr.createdBy || "Unknown"}`}
-                              arrow
-                            >
+                            <Tooltip title={`Created by: ${qr.createdBy || "Unknown"}`} arrow>
                               <Box
                                 sx={{
                                   display: "flex",
@@ -717,6 +714,8 @@ export default function QrPortal() {
             }}
             pageSizeOptions={[5, 10, 20, 50]}
             disableColumnFilter
+            disableColumnResize
+            disableRowSelectionOnClick
             sx={{
               border: 0,
               "& .MuiDataGrid-cell": {
