@@ -13,15 +13,12 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import { Cached } from "@mui/icons-material";
+import { Box, ButtonGroup, IconButton, Tooltip } from "@mui/material";
 
 import React from "react";
-import { Box, ButtonGroup, IconButton, Tooltip } from "@mui/material";
-import { Cached } from "@mui/icons-material";
 
-function PanelHeader(props: {
-  refresh?: () => void;
-  header?: React.ReactNode;
-}) {
+function PanelHeader(props: { refresh?: () => void; header?: React.ReactNode }) {
   return (
     <Box
       className="panel-con"
