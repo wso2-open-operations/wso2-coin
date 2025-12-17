@@ -25,6 +25,7 @@ const PreLoader = (props: PreLoaderProps) => {
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
+        alignItems: "center",
         height: "100vh",
       }}
     >
@@ -37,7 +38,7 @@ const PreLoader = (props: PreLoaderProps) => {
             alignItems="center"
             spacing={2}
           >
-            <Grid size={{ xs: 12 }}>
+            <Grid size={{ xs: 12 }} sx={{ display: "flex", justifyContent: "center" }}>
               {props.isLoading && (
                 <LinearProgress
                   sx={{
@@ -46,7 +47,7 @@ const PreLoader = (props: PreLoaderProps) => {
                 />
               )}
             </Grid>
-            <Grid size={{ xs: 12 }}>
+            <Grid size={{ xs: 12 }} sx={{ display: "flex", justifyContent: "center" }}>
               <Typography
                 variant="inherit"
                 sx={{
@@ -56,6 +57,7 @@ const PreLoader = (props: PreLoaderProps) => {
                     theme.palette.mode === "light"
                       ? theme.palette.common.black
                       : theme.palette.common.white,
+                  textAlign: "center",
                 }}
               >
                 {props.message}
