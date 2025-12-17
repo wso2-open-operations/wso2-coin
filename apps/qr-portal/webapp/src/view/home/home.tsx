@@ -389,7 +389,7 @@ export default function QrPortal() {
             startIcon={<AddIcon />}
             onClick={() => setCreateModalOpen(true)}
             fullWidth={isMobile}
-            size={isMobile ? "medium" : "medium"}
+            size="medium"
           >
             Create QR
           </Button>
