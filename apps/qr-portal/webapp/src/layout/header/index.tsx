@@ -13,23 +13,24 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import { Avatar, Box, Menu, MenuItem, Stack, Tooltip, useTheme } from "@mui/material";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
 
 import React from "react";
-import Typography from "@mui/material/Typography";
-import Toolbar from "@mui/material/Toolbar";
-import { alpha, AppBar, Avatar, Box, Menu, MenuItem, Stack, Tooltip, useMediaQuery } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { useAppAuthContext } from "@context/AuthContext";
+
+import Wso2Logo from "@assets/images/wso2-logo.svg";
 import { APP_NAME } from "@config/config";
+import { useAppAuthContext } from "@context/AuthContext";
+import BasicBreadcrumbs from "@layout/BreadCrumbs/BreadCrumbs";
 import { RootState, useAppSelector } from "@slices/store";
 
 const Header = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const authContext = useAppAuthContext();
+  const theme = useTheme();
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
-  const user = useAppSelector((state: RootState) => state.user);
-  const auth = useAppSelector((state: RootState) => state.auth);
+
+  const user = useAppSelector((state: RootState) => state.user).userInfo;
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElUser(event.currentTarget);
@@ -39,46 +40,20 @@ const Header = () => {
     setAnchorElUser(null);
   };
 
-  // Get user display name from decoded token (given_name + family_name) or fallback to email
-  const getUserDisplayName = (): string => {
-    if (auth.decodedIdToken) {
-      const token = auth.decodedIdToken as any;
-      if (token.given_name && token.family_name) {
-        return `${token.given_name} ${token.family_name}`;
-      }
-      if (token.name) {
-        return token.name;
-      }
-      if (token.given_name) {
-        return token.given_name;
-      }
-    }
-    return user.userInfo?.email || "";
-  };
-
-  const getUserInitial = (): string => {
-    const displayName = getUserDisplayName();
-    if (displayName && displayName !== user.userInfo?.email) {
-      return displayName.charAt(0).toUpperCase();
-    }
-    return user.userInfo?.email?.charAt(0).toUpperCase() || "";
-  };
-
   return (
-    <AppBar
-      position="fixed"
+    <Box
       sx={{
-        zIndex: (theme) => theme.zIndex.drawer + 1,
-        color: (theme) => (theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.common.white),
-        background: (theme) =>
-          theme.palette.mode === "light" ? theme.palette.common.white : theme.palette.primary.dark,
-        boxShadow: 2,
+        zIndex: 10,
+        backgroundColor: theme.palette.surface.territory.active,
+        boxShadow: theme.shadows[4],
       }}
     >
       <Toolbar
         variant="dense"
         sx={{
           paddingY: 0.3,
+          display: "flex",
+          gap: 0.5,
           "&.MuiToolbar-root": {
             pl: 0.3,
           },
@@ -87,50 +62,73 @@ const Header = () => {
         <img
           alt="wso2"
           style={{
-            height: "45px",
+            height: "40px",
             maxWidth: "100px",
           }}
           onClick={() => (window.location.href = "/")}
-          src={require("../../assets/images/wso2-logo.svg").default}
+          src={Wso2Logo}
         ></img>
-        <Typography
-          variant="h5"
+
+        <Box
           sx={{
-            ml: 1,
-            flexGrow: 1,
-            fontWeight: 600,
-            fontSize: { xs: "0.875rem", sm: undefined },
+            display: "flex",
+            flexDirection: "row",
+            gap: theme.spacing(0.5),
+            width: "100%",
+            alignItems: "center",
+            height: "100%",
           }}
-          color={"primary"}
         >
-          {APP_NAME}
-        </Typography>
+          <Typography
+            variant="h5"
+            sx={{
+              color: theme.palette.customText.primary.p1.active,
+            }}
+          >
+            {APP_NAME}
+          </Typography>
+          <BasicBreadcrumbs />
+        </Box>
 
         <Box sx={{ flexGrow: 0 }}>
-          {user.userInfo && (
+          {user && (
             <>
-              <Stack flexDirection={"row"} alignItems={"center"} gap={{ xs: 1, sm: 2 }}>
-                {!isMobile && (
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                    {getUserDisplayName()}
-                  </Typography>
-                )}
-                <Tooltip title="Open settings" arrow enterDelay={300}>
+              <Stack flexDirection={"row"} alignItems={"center"} gap={1}>
+                <Tooltip title="Open settings">
                   <Avatar
                     onClick={handleOpenUserMenu}
                     sx={{
-                      width: { xs: 32, sm: 40 },
-                      height: { xs: 32, sm: 40 },
-                      boxShadow: (theme) =>
-                        `0 0 0 2px ${theme.palette.background.paper}, 0 0 0 4px ${alpha(
-                          theme.palette.primary.main,
-                          0.3
-                        )}`,
+                      width: 48,
+                      height: 48,
+                      border: 1,
+                      borderColor: theme.palette.customBorder.territory.active,
                     }}
+                    src={user.employeeThumbnail || ""}
+                    alt={user.firstName || "Avatar"}
                   >
-                    {getUserInitial()}
+                    {user.firstName?.charAt(0)}
                   </Avatar>
                 </Tooltip>
+                <Box sx={{ width: "fit-content" }}>
+                  <Typography
+                    noWrap
+                    variant="body1"
+                    sx={{
+                      color: theme.palette.customText.primary.p2.active,
+                    }}
+                  >
+                    {[user.firstName, user.lastName].filter(Boolean).join(" ")}
+                  </Typography>
+                  <Typography
+                    noWrap
+                    variant="body2"
+                    sx={{
+                      color: theme.palette.customText.primary.p3.active,
+                    }}
+                  >
+                    {user.jobRole}
+                  </Typography>
+                </Box>
               </Stack>
 
               <Menu
@@ -162,7 +160,7 @@ const Header = () => {
           )}
         </Box>
       </Toolbar>
-    </AppBar>
+    </Box>
   );
 };
 
