@@ -13,11 +13,12 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
 import { lazy } from "react";
 
-const qrPortal = lazy(() => import("./qr-portal"));
+const home = lazy(() => import("@view/home/home"));
+const appConfig = lazy(() => import("@view/appConfig/appConfig"));
 
 export const View = {
-  qrPortal,
+  home,
+  appConfig,
 };

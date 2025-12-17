@@ -13,54 +13,57 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
-import React, { useEffect, useState, useMemo } from "react";
+import {
+  Add as AddIcon,
+  CalendarToday as CalendarIcon,
+  Clear as ClearIcon,
+  Delete as DeleteIcon,
+  Download as DownloadIcon,
+  Email as EmailIcon,
+  Event as EventIcon,
+  ViewModule as GridViewIcon,
+  ViewList as ListViewIcon,
+  Search as SearchIcon,
+} from "@mui/icons-material";
 import {
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
+  CircularProgress,
   Container,
+  Divider,
   Grid,
   IconButton,
-  Typography,
-  CircularProgress,
-  TextField,
   InputAdornment,
-  ToggleButton,
-  ToggleButtonGroup,
   Pagination,
   Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
-  useMediaQuery,
-  Chip,
-  Divider,
+  Typography,
   alpha,
+  useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import {
-  Add as AddIcon,
-  Download as DownloadIcon,
-  Delete as DeleteIcon,
-  Search as SearchIcon,
-  Clear as ClearIcon,
-  ViewModule as GridViewIcon,
-  ViewList as ListViewIcon,
-  Event as EventIcon,
-  Email as EmailIcon,
-  CalendarToday as CalendarIcon,
-} from "@mui/icons-material";
-import { DataGrid, GridColDef, GridValueGetterParams } from "@mui/x-data-grid";
-import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
-import { fetchQrCodes, deleteQrCode, setLimit, setOffset } from "@slices/qrSlice/qr";
-import { fetchSessions } from "@slices/sessionSlice/session";
-import { State, ConferenceQrCode } from "@/types/types";
-import CreateQrModal from "./component/CreateQrModal";
-import QRCode from "qrcode";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import dayjs from "dayjs";
+import QRCode from "qrcode";
+
+import React, { useEffect, useMemo, useState } from "react";
+
+import { ConferenceQrCode, State } from "@/types/types";
+import Sss from "@assets/images/no-search-results.svg";
 import StateWithImage from "@component/ui/StateWithImage";
 import { useConfirmationModalContext } from "@context/DialogContext";
+import { deleteQrCode, fetchQrCodes, setLimit, setOffset } from "@slices/qrSlice/qr";
+import { fetchSessions } from "@slices/sessionSlice/session";
+import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
 import { ConfirmationType } from "@utils/types";
+
+import CreateQrModal from "./component/CreateQrModal";
 
 type ViewMode = "grid" | "list";
 
@@ -70,7 +73,7 @@ export default function QrPortal() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { showConfirmation } = useConfirmationModalContext();
   const { qrCodes, state, limit, offset, totalCount } = useAppSelector(
-    (state: RootState) => state.qr
+    (state: RootState) => state.qr,
   );
   const { sessions } = useAppSelector((state: RootState) => state.session);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -162,7 +165,7 @@ export default function QrPortal() {
         }
       },
       "Delete",
-      "Cancel"
+      "Cancel",
     );
   };
 
@@ -195,7 +198,10 @@ export default function QrPortal() {
         }
         // Try to find session name
         const session = sessions.find((s) => s.id === sessionInfo.sessionId);
-        if (session?.name?.toLowerCase().includes(query) || session?.presenter?.toLowerCase().includes(query)) {
+        if (
+          session?.name?.toLowerCase().includes(query) ||
+          session?.presenter?.toLowerCase().includes(query)
+        ) {
           return true;
         }
       }
@@ -225,31 +231,29 @@ export default function QrPortal() {
       headerName: "Title",
       flex: 1.5,
       minWidth: 200,
-      valueGetter: (params: GridValueGetterParams<ConferenceQrCode>) => {
-        const qr = params.row;
-        if (qr.info.eventType === "SESSION") {
-          const sessionInfo = qr.info as { eventType: "SESSION"; sessionId: string };
+      valueGetter: (_value: any, row: ConferenceQrCode) => {
+        if (!row || !row.info) return "";
+        if (row.info.eventType === "SESSION") {
+          const sessionInfo = row.info as { eventType: "SESSION"; sessionId: string };
           const session = sessions.find((s) => s.id === sessionInfo.sessionId);
           return session ? session.name : `Session ID: ${sessionInfo.sessionId}`;
         } else {
-          const o2barInfo = qr.info as { eventType: "O2BAR"; email: string };
+          const o2barInfo = row.info as { eventType: "O2BAR"; email: string };
           return o2barInfo.email;
         }
       },
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
-        return qr.info.eventType === "SESSION" ? (
-          (() => {
-            const sessionInfo = qr.info as { eventType: "SESSION"; sessionId: string };
-            const session = sessions.find((s) => s.id === sessionInfo.sessionId);
-            return session ? session.name : `Session ID: ${sessionInfo.sessionId}`;
-          })()
-        ) : (
-          (() => {
-            const o2barInfo = qr.info as { eventType: "O2BAR"; email: string };
-            return o2barInfo.email;
-          })()
-        );
+        return qr.info.eventType === "SESSION"
+          ? (() => {
+              const sessionInfo = qr.info as { eventType: "SESSION"; sessionId: string };
+              const session = sessions.find((s) => s.id === sessionInfo.sessionId);
+              return session ? session.name : `Session ID: ${sessionInfo.sessionId}`;
+            })()
+          : (() => {
+              const o2barInfo = qr.info as { eventType: "O2BAR"; email: string };
+              return o2barInfo.email;
+            })();
       },
     },
     {
@@ -257,8 +261,8 @@ export default function QrPortal() {
       headerName: "Description",
       flex: 1.5,
       minWidth: 200,
-      valueGetter: (params: GridValueGetterParams<ConferenceQrCode>) => {
-        return params.row.description || "";
+      valueGetter: (_value: any, row: ConferenceQrCode) => {
+        return row?.description || "";
       },
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
@@ -270,9 +274,9 @@ export default function QrPortal() {
       headerName: "Type",
       flex: 1,
       minWidth: 120,
-      valueGetter: (params: GridValueGetterParams<ConferenceQrCode>) => {
-        const qr = params.row;
-        return qr.info.eventType === "SESSION" ? "Session" : "O2 Bar";
+      valueGetter: (_value: any, row: ConferenceQrCode) => {
+        if (!row || !row.info) return "";
+        return row.info.eventType === "SESSION" ? "Session" : "O2 Bar";
       },
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
@@ -284,9 +288,9 @@ export default function QrPortal() {
       headerName: "Created",
       flex: 1,
       minWidth: 150,
-      valueGetter: (params: GridValueGetterParams<ConferenceQrCode>) => {
+      valueGetter: (_value: any, row: ConferenceQrCode) => {
         // Return the raw date string for proper sorting
-        return params.row.createdOn;
+        return row?.createdOn || "";
       },
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
@@ -311,20 +315,12 @@ export default function QrPortal() {
         return (
           <Box sx={{ display: "flex", gap: 1 }}>
             <Tooltip title="Download QR Code" arrow enterDelay={300}>
-              <IconButton
-                size="small"
-                color="primary"
-                onClick={() => handleDownload(qr.qrId)}
-              >
+              <IconButton size="small" color="primary" onClick={() => handleDownload(qr.qrId)}>
                 <DownloadIcon />
               </IconButton>
             </Tooltip>
             <Tooltip title="Delete QR Code" arrow enterDelay={300}>
-              <IconButton
-                size="small"
-                color="error"
-                onClick={() => handleDelete(qr.qrId)}
-              >
+              <IconButton size="small" color="error" onClick={() => handleDelete(qr.qrId)}>
                 <DeleteIcon />
               </IconButton>
             </Tooltip>
@@ -351,7 +347,9 @@ export default function QrPortal() {
         <Typography variant="h4" component="h1" sx={{ fontSize: { xs: "1.25rem", sm: undefined } }}>
           Conference QR Codes
         </Typography>
-        <Box sx={{ display: "flex", gap: 2, alignItems: "center", width: { xs: "100%", sm: "auto" } }}>
+        <Box
+          sx={{ display: "flex", gap: 2, alignItems: "center", width: { xs: "100%", sm: "auto" } }}
+        >
           {!isMobile && (
             <ToggleButtonGroup
               value={viewMode}
@@ -403,11 +401,7 @@ export default function QrPortal() {
             ),
             endAdornment: searchQuery && (
               <InputAdornment position="end">
-                <IconButton
-                  size="small"
-                  onClick={() => setSearchQuery("")}
-                  edge="end"
-                >
+                <IconButton size="small" onClick={() => setSearchQuery("")} edge="end">
                   <ClearIcon />
                 </IconButton>
               </InputAdornment>
@@ -417,7 +411,8 @@ export default function QrPortal() {
         />
         {searchQuery && (
           <Typography variant="body2" color="text.secondary">
-            Found {filteredQrCodes.length} QR code{filteredQrCodes.length !== 1 ? "s" : ""} matching "{searchQuery}"
+            Found {filteredQrCodes.length} QR code{filteredQrCodes.length !== 1 ? "s" : ""} matching
+            "{searchQuery}"
           </Typography>
         )}
       </Box>
@@ -435,11 +430,7 @@ export default function QrPortal() {
                   ? `No QR codes found matching "${searchQuery}". Try a different search term.`
                   : "No QR codes found. Create your first QR code!"
               }
-              imageUrl={
-                searchQuery
-                  ? require("../../assets/images/no-search-results.svg").default
-                  : require("../../assets/images/no-data.svg").default
-              }
+              imageUrl={searchQuery ? Sss : Sss}
             />
           </CardContent>
         </Card>
@@ -448,12 +439,19 @@ export default function QrPortal() {
           <Grid container spacing={{ xs: 2, sm: 3 }}>
             {filteredQrCodes.map((qr) => {
               const isSession = qr.info.eventType === "SESSION";
-              const sessionInfo = isSession ? (qr.info as { eventType: "SESSION"; sessionId: string }) : null;
-              const o2barInfo = !isSession ? (qr.info as { eventType: "O2BAR"; email: string }) : null;
-              const session = isSession && sessionInfo ? sessions.find((s) => s.id === sessionInfo.sessionId) : null;
+              const sessionInfo = isSession
+                ? (qr.info as { eventType: "SESSION"; sessionId: string })
+                : null;
+              const o2barInfo = !isSession
+                ? (qr.info as { eventType: "O2BAR"; email: string })
+                : null;
+              const session =
+                isSession && sessionInfo
+                  ? sessions.find((s) => s.id === sessionInfo.sessionId)
+                  : null;
 
               return (
-                <Grid item xs={12} sm={6} md={4} key={qr.qrId}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={qr.qrId}>
                   <Card
                     sx={{
                       height: "100%",
@@ -466,9 +464,18 @@ export default function QrPortal() {
                       },
                     }}
                   >
-                    <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column", p: 2.5 }}>
+                    <CardContent
+                      sx={{ flexGrow: 1, display: "flex", flexDirection: "column", p: 2.5 }}
+                    >
                       {/* Header: Type Badge and Actions */}
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          mb: 2,
+                        }}
+                      >
                         <Chip
                           icon={isSession ? <EventIcon /> : <EmailIcon />}
                           label={isSession ? "Session" : "O2 Bar"}
@@ -503,14 +510,9 @@ export default function QrPortal() {
                           }}
                         >
                           {isSession ? (
-                            <>
-                              {session ? session.name : `Session: ${sessionInfo?.sessionId}`}
-                            </>
+                            <>{session ? session.name : `Session: ${sessionInfo?.sessionId}`}</>
                           ) : (
-                            <>
-                              <EmailIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-                              {o2barInfo?.email}
-                            </>
+                            <>{o2barInfo?.email}</>
                           )}
                         </Typography>
                         {qr.description && (
@@ -635,7 +637,8 @@ export default function QrPortal() {
                   showLastButton
                 />
                 <Typography variant="caption" color="text.secondary" align="center">
-                  Showing {offset + 1}-{Math.min(offset + limit, totalCount)} of {totalCount} QR codes
+                  Showing {offset + 1}-{Math.min(offset + limit, totalCount)} of {totalCount} QR
+                  codes
                 </Typography>
               </Stack>
             </Box>
@@ -651,22 +654,20 @@ export default function QrPortal() {
             autoHeight
             paginationMode={searchQuery ? "client" : "server"}
             rowCount={searchQuery ? filteredQrCodes.length : totalCount}
-            page={page}
-            pageSize={limit}
-            onPageChange={(newPage) => {
+            paginationModel={{ page: page, pageSize: limit }}
+            onPaginationModelChange={(model) => {
               if (searchQuery) {
-                setPage(newPage);
+                setPage(model.page);
               } else {
-                // DataGrid uses 0-indexed pages, convert to 1-indexed for handlePageChange
-                handlePageChange({} as React.ChangeEvent<unknown>, newPage + 1);
+                if (model.page !== page) {
+                  handlePageChange({} as React.ChangeEvent<unknown>, model.page + 1);
+                }
+                if (model.pageSize !== limit) {
+                  handlePageSizeChange(model.pageSize);
+                }
               }
             }}
-            onPageSizeChange={(newPageSize) => {
-              if (!searchQuery) {
-                handlePageSizeChange(newPageSize);
-              }
-            }}
-            rowsPerPageOptions={[5, 10, 20, 50]}
+            pageSizeOptions={[5, 10, 20, 50]}
             disableColumnFilter
             sx={{
               border: 0,
@@ -688,4 +689,3 @@ export default function QrPortal() {
     </Container>
   );
 }
-
