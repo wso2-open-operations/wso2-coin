@@ -13,14 +13,13 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
+import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
-import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
-import { RootState } from "../store";
-import { AuthState, AuthData } from "../../utils/types";
 import { State } from "@/types/types";
+import { PRIVILEGES, SnackMessage } from "@config/constant";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
-import { UserState } from "@slices/userSlice/user";
-import { SnackMessage, PRIVILEGES } from "@config/constant";
+import { RootState } from "@slices/store";
 
 export enum Role {
   O2_BAR_ADMIN = "O2_BAR_ADMIN",
@@ -28,11 +27,48 @@ export enum Role {
   EMPLOYEE = "EMPLOYEE",
 }
 
+// Custom extended interface
+interface ExtendedDecodedIDTokenPayload extends DecodedIDTokenPayload {
+  groups?: string[];
+}
+
+interface AuthState {
+  status: State;
+  mode: "active" | "maintenance";
+  statusMessage: string | null;
+  isAuthenticated: boolean;
+  userInfo: BasicUserInfo | null;
+  decodedIdToken: ExtendedDecodedIDTokenPayload | null;
+  roles: Role[];
+}
+
+interface AuthData {
+  userInfo: BasicUserInfo;
+  decodedIdToken: ExtendedDecodedIDTokenPayload;
+}
+
+export interface UserState {
+  state: State;
+  stateMessage: string | null;
+  errorMessage: string | null;
+  userInfo: UserInfoInterface | null;
+}
+
+export interface UserInfoInterface {
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+  workEmail: string;
+  employeeThumbnail: string | null;
+  jobRole: string;
+  privileges: number[];
+}
+
 const initialState: AuthState = {
-  isAuthenticated: false,
   status: State.idle,
   mode: "active",
   statusMessage: null,
+  isAuthenticated: false,
   userInfo: null,
   decodedIdToken: null,
   roles: [],
@@ -41,16 +77,14 @@ const initialState: AuthState = {
 export const loadPrivileges = createAsyncThunk(
   "auth/loadPrivileges",
   (_, { getState, dispatch, rejectWithValue }) => {
-    const { userInfo, state, errorMessage } = (
-      getState() as { user: UserState }
-    ).user;
+    const { userInfo, state, errorMessage } = (getState() as { user: UserState }).user;
 
     if (state === State.failed) {
       dispatch(
         enqueueSnackbarMessage({
           message: SnackMessage.error.fetchPrivileges,
           type: "error",
-        })
+        }),
       );
       return rejectWithValue(errorMessage);
     }
@@ -72,12 +106,12 @@ export const loadPrivileges = createAsyncThunk(
         enqueueSnackbarMessage({
           message: SnackMessage.error.insufficientPrivileges,
           type: "error",
-        })
+        }),
       );
       return rejectWithValue("No roles found");
     }
     return { roles };
-  }
+  },
 );
 
 export const authSlice = createSlice({
@@ -88,6 +122,12 @@ export const authSlice = createSlice({
       state.userInfo = action.payload.userInfo;
       state.decodedIdToken = action.payload.decodedIdToken;
       state.status = State.success;
+    },
+    setAuthError: (state) => {
+      state.status = State.failed;
+      state.userInfo = null;
+      state.decodedIdToken = null;
+      state.roles = [];
     },
   },
   extraReducers: (builder) => {
@@ -105,7 +145,7 @@ export const authSlice = createSlice({
       });
   },
 });
-export const { setUserAuthData } = authSlice.actions;
-export const selectUserInfo = (state: RootState) => state.auth.userInfo;
+
+export const { setUserAuthData, setAuthError } = authSlice.actions;
 export const selectRoles = (state: RootState) => state.auth.roles;
 export default authSlice.reducer;
