@@ -13,57 +13,23 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import { Box, Typography } from "@mui/material";
 
-import React from "react";
-import { Grid, Typography } from "@mui/material";
-
-function StateWithImage(props: {
-  message: string;
-  imageUrl: string;
-  hideImage?: boolean;
-}) {
+function StateWithImage(props: { message: string; imageUrl: string; hideImage?: boolean }) {
   return (
-    <Grid
-      container
-      direction="column"
-      justifyContent="center"
-      alignItems="center"
-      sx={{ mt: 2 }}
-      gap={2}
-    >
-      {!props.hideImage && (
-        <Grid
-          item
-          xs={12}
-          style={{
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <img alt="logo" width="140" height="auto" src={props.imageUrl}></img>
-        </Grid>
-      )}
-      <Grid
-        item
-        xs={12}
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          mt: 2,
-          color: (theme) => theme.palette.secondary.dark,
-        }}
+    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+      {!props.hideImage && <img alt="logo" width="140" height="auto" src={props.imageUrl}></img>}
+
+      <Typography
+        variant="h5"
+        sx={(theme) => ({
+          color: theme.palette.grey[500],
+          textAlign: "center",
+        })}
       >
-        <Typography
-          variant="h5"
-          sx={(theme) => ({
-            color: theme.palette.grey[500],
-            textAlign: "center",
-          })}
-        >
-          {props.message}
-        </Typography>
-      </Grid>
-    </Grid>
+        {props.message}
+      </Typography>
+    </Box>
   );
 }
 

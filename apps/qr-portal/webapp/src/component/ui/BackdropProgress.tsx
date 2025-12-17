@@ -15,9 +15,12 @@
 // under the License.
 
 import { Backdrop, CircularProgress, useTheme } from "@mui/material";
-import React from "react";
 
-const BackdropProgress = ({ open }: any) => {
+type BackdropProgressProps = {
+  open: boolean;
+};
+
+const BackdropProgress = ({ open }: BackdropProgressProps) => {
   const theme = useTheme();
   return (
     <Backdrop
