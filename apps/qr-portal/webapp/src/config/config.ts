@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
 import { BaseURLAuthClientConfig } from "@asgardeo/auth-react";
 
 declare global {
@@ -31,7 +30,7 @@ declare global {
 }
 
 export const AsgardeoConfig: BaseURLAuthClientConfig = {
-  scope: ["openid", "profile", "email", "groups"],
+  scope: ["openid", "email", "groups"],
   baseUrl: window.config?.ASGARDEO_BASE_URL ?? "",
   clientID: window.config?.ASGARDEO_CLIENT_ID ?? "",
   signInRedirectURL: window.config?.AUTH_SIGN_IN_REDIRECT_URL ?? "",
@@ -39,12 +38,13 @@ export const AsgardeoConfig: BaseURLAuthClientConfig = {
 };
 
 export const APP_NAME = window.config?.APP_NAME ?? "";
-export const ServiceBaseUrl = window.config?.REACT_APP_BACKEND_BASE_URL ?? "";
+export const SERVICE_BASE_URL = window.config?.REACT_APP_BACKEND_BASE_URL ?? "";
 
 export const AppConfig = {
   serviceUrls: {
-    userInfo: ServiceBaseUrl + "/user-info",
-    sessions: ServiceBaseUrl + "/sessions",
-    qrCodes: ServiceBaseUrl + "/qr-codes",
+    userInfo: SERVICE_BASE_URL + "/user-info",
+    sessions: SERVICE_BASE_URL + "/sessions",
+    qrCodes: SERVICE_BASE_URL + "/qr-codes",
+    appConfig: SERVICE_BASE_URL + "/app-config",
   },
 };

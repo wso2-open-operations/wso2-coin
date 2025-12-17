@@ -20,8 +20,9 @@ export const SnackMessage = {
     qrCodeDeleted: "QR code deleted successfully!",
   },
   error: {
-    fetchPrivileges: "Failed to fetch Privileges",
-    insufficientPrivileges: "Insufficient Privileges",
+    fetchPrivileges: "Error while fetching user privileges",
+    insufficientPrivileges: "You don't have sufficient privileges to access this resource",
+    fetchAppConfigMessage: "Error while fetching app config",
     fetchQrCodes: "Failed to fetch QR codes",
     createQrCode: "Failed to create QR code",
     deleteQrCode: "Failed to delete QR code",
@@ -31,9 +32,14 @@ export const SnackMessage = {
   warning: {},
 };
 
-// Privilege codes from backend
 export const PRIVILEGES = {
   O2_BAR_ADMIN: 191,
   SESSION_ADMIN: 181,
   EMPLOYEE: 171,
 };
+
+export const APP_DESC = "QR Portal";
+
+export const redirectUrl = "qr-portal-redirect-url";
+
+export const localStorageTheme = "qr-portal-theme";

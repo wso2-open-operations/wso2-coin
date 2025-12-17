@@ -14,5 +14,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-export const SIDEBAR_WIDTH = 230;
-// Removed unused constants: DEFAULT_CHARACTER_LIMIT, APPLICATION_STATEMENT_CHARACTER_LIMIT, REJECTED_NOTE_CHARACTER_LIMIT
+export const DEFAULT_CHARACTER_LIMIT = 5000;
+export const APPLICATION_STATEMENT_CHARACTER_LIMIT = 5000;
+export const REJECTED_NOTE_CHARACTER_LIMIT = 250;
