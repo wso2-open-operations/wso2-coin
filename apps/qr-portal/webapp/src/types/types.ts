@@ -160,7 +160,7 @@ export interface ConferenceQrCodesResponse {
 export interface Session {
   id: string;
   name: string;
-  presenter: string;
+  presenters: string[];
 }
 
 export interface UserInfo {

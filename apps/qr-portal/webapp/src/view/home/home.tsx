@@ -196,13 +196,15 @@ export default function QrPortal() {
         if (sessionInfo.sessionId?.toLowerCase().includes(query)) {
           return true;
         }
-        // Try to find session name
+        // Try to find session name or presenters
         const session = sessions.find((s) => s.id === sessionInfo.sessionId);
-        if (
-          session?.name?.toLowerCase().includes(query) ||
-          session?.presenter?.toLowerCase().includes(query)
-        ) {
-          return true;
+        if (session) {
+          if (session.name?.toLowerCase().includes(query)) {
+            return true;
+          }
+          if (session.presenters?.some((presenter) => presenter.toLowerCase().includes(query))) {
+            return true;
+          }
         }
       }
 

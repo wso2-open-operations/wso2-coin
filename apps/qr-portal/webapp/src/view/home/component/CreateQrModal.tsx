@@ -106,6 +106,13 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     description: Yup.string(),
   });
 
+  const formatPresenters = (presenters: string[]): string => {
+    if (presenters.length === 0) return "";
+    if (presenters.length === 1) return presenters[0];
+    if (presenters.length === 2) return `${presenters[0]} & ${presenters[1]}`;
+    return `${presenters[0]} & ${presenters.length - 1} more`;
+  };
+
   const handleSubmit = async (values: any) => {
     const payload: CreateQrCodePayload = {
       info:
@@ -345,11 +352,28 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
                         helperText={touched.sessionId && errors.sessionId}
                         sx={{ mb: 2 }}
                       >
-                        {sessions.map((session) => (
-                          <MenuItem key={session.id} value={session.id}>
-                            {session.name} - {session.presenter}
-                          </MenuItem>
-                        ))}
+                        {sessions.map((session) => {
+                          const presentersText = session.presenters?.length
+                            ? formatPresenters(session.presenters)
+                            : "";
+
+                          return (
+                            <MenuItem key={session.id} value={session.id}>
+                              <Typography variant="body1">
+                                {session.name}
+                                {presentersText && (
+                                  <Typography
+                                    component="span"
+                                    variant="body2"
+                                    sx={{ ml: 1, color: "text.secondary" }}
+                                  >
+                                    - {presentersText}
+                                  </Typography>
+                                )}
+                              </Typography>
+                            </MenuItem>
+                          );
+                        })}
                       </TextField>
                     )}
 
