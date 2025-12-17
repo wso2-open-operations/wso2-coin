@@ -278,16 +278,15 @@ service http:InterceptableService / on new http:Listener(9090) {
         boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups);
 
         if (isO2BarAdmin && isSessionAdmin) {
+            // No filters
         } else if (isO2BarAdmin) {
             filters.eventType = database:O2BAR;
         } else if (isSessionAdmin) {
-            filters.includeOwnO2Bar = true;
+            filters.email = userInfo.email;
             filters.eventType = database:SESSION;
         } else if (isEmployee) {
-            filters.createdBy = userInfo.email;
+            filters.email = userInfo.email;
             filters.eventType = database:O2BAR;
-        } else {
-            filters.createdBy = userInfo.email;
         }
 
         database:ConferenceQrCodesResponse|error qrsResponse = database:fetchConferenceQrCodes(filters);
