@@ -13,16 +13,18 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
-import authReducer from "./authSlice";
-import userReducer from "./userSlice/user";
-import commonReducer from "./commonSlice/common";
-import qrReducer from "./qrSlice/qr";
-import sessionReducer from "./sessionSlice/session";
-// import collectionReducer from "./collectionSlice/collection"; // Not used in QR Portal
-import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import { enableMapSet } from "immer";
+import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
+
+import { configApi } from "@services/config.api";
+import authReducer from "@slices/authSlice/auth";
+import commonReducer from "@slices/commonSlice/common";
+import appConfigReducer from "@slices/configSlice/config";
+import userReducer from "@slices/userSlice/user";
+
+import qrReducer from "./qrSlice/qr";
+import sessionReducer from "./sessionSlice/session";
 
 enableMapSet();
 
@@ -31,13 +33,14 @@ export const store = configureStore({
     auth: authReducer,
     user: userReducer,
     common: commonReducer,
+    appConfig: appConfigReducer,
     qr: qrReducer,
     session: sessionReducer,
+
+    // RTK Query API reducers
+    [configApi.reducerPath]: configApi.reducer,
   },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      thunk: undefined,
-    }),
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(configApi.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;
