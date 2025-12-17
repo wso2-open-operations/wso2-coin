@@ -16,7 +16,6 @@
 
 import React, { useContext, useState } from "react";
 
-// MUI Imports
 import { IconButton, Stack, TextField } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
@@ -32,8 +31,8 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import LoadingButton from "@mui/lab/LoadingButton";
-// APP imports
 import { ConfirmationType } from "@utils/types";
+import { JSX } from "react/jsx-runtime";
 
 type InputObj = {
   label: string;
