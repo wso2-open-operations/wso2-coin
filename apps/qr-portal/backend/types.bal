@@ -17,7 +17,7 @@ import qr_portal.database;
 
 # Response for fetching user information.
 public type UserInfo record {|
-    # User email
+    # User work email
     string workEmail;
     # Array of privileges assigned to the user
     int[] privileges;
