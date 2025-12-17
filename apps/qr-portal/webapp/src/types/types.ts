@@ -83,21 +83,6 @@ export enum ConfirmationType {
   accept = "accept",
 }
 
-export enum QrCodeEventType {
-  SESSION = "SESSION",
-  O2BAR = "O2BAR",
-}
-
-export interface QrCodeInfoSession {
-  eventType: "SESSION";
-  sessionId: string;
-}
-
-export interface QrCodeInfoO2Bar {
-  eventType: "O2BAR";
-  email: string;
-}
-
 export interface RouteDetail {
   path: string;
   allowRoles: string[];
@@ -115,6 +100,11 @@ export interface RouteObjectWithRole extends NonIndexRouteObject {
   children?: RouteObjectWithRole[];
   bottomNav?: boolean;
   element?: React.ReactNode;
+}
+
+export enum QrCodeEventType {
+  SESSION = "SESSION",
+  O2BAR = "O2BAR",
 }
 
 export interface QrCodeInfoSession {
@@ -135,16 +125,6 @@ export interface ConferenceQrCode {
   description?: string;
   createdBy: string;
   createdOn: string;
-}
-
-export interface QrCodeInfoSession {
-  eventType: "SESSION";
-  sessionId: string;
-}
-
-export interface QrCodeInfoO2Bar {
-  eventType: "O2BAR";
-  email: string;
 }
 
 export interface CreateQrCodePayload {
