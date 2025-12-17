@@ -21,6 +21,7 @@ import {
   Download as DownloadIcon,
   Email as EmailIcon,
   Event as EventIcon,
+  Person as PersonIcon,
   ViewModule as GridViewIcon,
   ViewList as ListViewIcon,
   Search as SearchIcon,
@@ -485,7 +486,7 @@ export default function QrPortal() {
                           size="small"
                           sx={{ fontWeight: 600 }}
                         />
-                        <Tooltip title="Delete QR Code" arrow enterDelay={300}>
+                        <Tooltip title="Delete QR Code" arrow>
                           <IconButton
                             size="small"
                             color="error"
@@ -572,33 +573,71 @@ export default function QrPortal() {
                         <Box
                           sx={{
                             display: "flex",
-                            flexWrap: "wrap",
                             alignItems: "center",
                             justifyContent: "space-between",
                             gap: 1,
                           }}
                         >
-                          <Tooltip title="Created at" arrow enterDelay={300}>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                              <CalendarIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-                              <Typography variant="caption" color="text.secondary">
-                                {dayjs(qr.createdOn).format("MMM DD, YYYY")}
-                              </Typography>
-                            </Box>
-                          </Tooltip>
-                          <Chip
-                            label={`Created by ${qr.createdBy || "Unknown"}`}
-                            size="small"
-                            color="default"
+                          <Box
                             sx={{
-                              fontWeight: 600,
-                              bgcolor: (theme) =>
-                                theme.palette.mode === "dark"
-                                  ? alpha(theme.palette.common.white, 0.08)
-                                  : alpha(theme.palette.common.black, 0.04),
+                              display: "flex",
+                              alignItems: "center",
+                              gap: { xs: 1, sm: 1.5 },
+                              flex: 1,
+                              minWidth: 0,
                             }}
-                          />
-                          <Tooltip title="Download QR Code" arrow enterDelay={300}>
+                          >
+                            <Tooltip
+                              title={`Created at: ${dayjs(qr.createdOn).format("MMM DD, YYYY")}`}
+                              arrow
+                            >
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 0.5,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <CalendarIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ whiteSpace: "nowrap" }}
+                                >
+                                  {dayjs(qr.createdOn).format("MMM DD, YYYY")}
+                                </Typography>
+                              </Box>
+                            </Tooltip>
+                            <Tooltip
+                              title={`Created by: ${qr.createdBy || "Unknown"}`}
+                              arrow
+                            >
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 0.5,
+                                  minWidth: 0,
+                                  overflow: "hidden",
+                                }}
+                              >
+                                <PersonIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {qr.createdBy || "Unknown"}
+                                </Typography>
+                              </Box>
+                            </Tooltip>
+                          </Box>
+                          <Tooltip title="Download QR Code" arrow>
                             <IconButton
                               size="small"
                               color="primary"
