@@ -14,8 +14,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import React from "react";
 import { Box, Typography } from "@mui/material";
+import MaintenanceGif from "@assets/images/maintenance.gif";
 
 export default function MaintenancePage() {
   return (
@@ -28,7 +28,7 @@ export default function MaintenancePage() {
         minHeight: "100vh",
       }}
     >
-      <img alt="maintenance" src={require("../../assets/images/maintenance.gif").default} />
+      <img alt="maintenance" src={MaintenanceGif} />
       <Typography variant="h4" style={{ color: "gray" }}>
         Exciting changes are on the way! Our website is currently undergoing a
         transformation to enhance your experience. Please check back soon to see
