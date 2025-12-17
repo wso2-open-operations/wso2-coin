@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
 import axios, { AxiosInstance, CancelTokenSource } from "axios";
 import * as rax from "retry-axios";
 
@@ -22,12 +21,12 @@ export class APIService {
   private static _idToken: string;
   private static _cancelTokenSource = axios.CancelToken.source();
   private static _cancelTokenMap: Map<string, CancelTokenSource> = new Map();
-  private static callback: () => Promise<{ idToken: string }>;
+  private static callback: () => Promise<{ accessToken: string }>;
 
   private static _isRefreshing = false;
-  private static _refreshPromise: Promise<{ idToken: string }> | null = null;
+  private static _refreshPromise: Promise<{ accessToken: string }> | null = null;
 
-  constructor(idToken: string, callback: () => Promise<{ idToken: string }>) {
+  constructor(idToken: string, callback: () => Promise<{ accessToken: string }>) {
     APIService._instance = axios.create();
     rax.attach(APIService._instance);
 
@@ -41,12 +40,12 @@ export class APIService {
       statusCodesToRetry: [[401, 401]],
       retryDelay: 100,
 
-      onRetryAttempt: async (err) => {
+      onRetryAttempt: async () => {
         if (!APIService._isRefreshing) {
           APIService._isRefreshing = true;
           APIService._refreshPromise = APIService.callback()
             .then((res) => {
-              APIService.updateTokens(res.idToken);
+              APIService.updateTokens(res.accessToken);
               APIService._instance.interceptors.request.clear();
               APIService.updateRequestInterceptor();
               return res;
@@ -87,7 +86,7 @@ export class APIService {
 
         const existingToken = APIService._cancelTokenMap.get(endpoint);
         if (existingToken) {
-          existingToken.cancel(`Request canceled for endpoint: ${endpoint}`);
+          existingToken.cancel(`Request cancelled for endpoint: ${endpoint}`);
         }
 
         const newTokenSource = axios.CancelToken.source();
@@ -96,8 +95,8 @@ export class APIService {
         return config;
       },
       (error) => {
-        Promise.reject(error);
-      }
+        return Promise.reject(error);
+      },
     );
   }
 }

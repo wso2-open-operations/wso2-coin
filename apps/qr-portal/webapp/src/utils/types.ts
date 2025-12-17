@@ -13,11 +13,11 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
-import { State } from "@/types/types";
-// import { Collection } from "@slices/collectionSlice/collection"; // Not used in QR Portal
 import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
-import { Role } from "@slices/authSlice";
+
+import { Role } from "@slices/authSlice/auth";
+
+export type stateType = "failed" | "success" | "loading" | "idle";
 
 export interface AuthState {
   status: State;
@@ -31,8 +31,13 @@ export interface AuthState {
 
 export interface AuthData {
   userInfo: BasicUserInfo;
-  idToken: string;
   decodedIdToken: DecodedIDTokenPayload;
+}
+
+export interface Header {
+  title: string;
+  size: number;
+  align: "left" | "right" | "center";
 }
 
 export enum ThemeMode {
@@ -41,13 +46,20 @@ export enum ThemeMode {
 }
 
 export interface PreLoaderProps {
-  message: string | null;
+  message?: string;
   hideLogo?: boolean;
   isLoading?: boolean;
 }
 
 export interface ErrorHandlerProps {
   message: string | null;
+}
+
+export enum State {
+  failed = "failed",
+  success = "success",
+  loading = "loading",
+  idle = "idle",
 }
 
 export enum ConfirmationType {
@@ -57,4 +69,3 @@ export enum ConfirmationType {
   accept = "accept",
   delete = "delete",
 }
-
