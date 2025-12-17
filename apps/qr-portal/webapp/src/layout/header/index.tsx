@@ -106,7 +106,7 @@ const Header = () => {
                     src={user.employeeThumbnail || ""}
                     alt={user.firstName || "Avatar"}
                   >
-                    {user.firstName?.charAt(0)}
+                    {user.workEmail?.charAt(0).toUpperCase()}
                   </Avatar>
                 </Tooltip>
                 <Box sx={{ width: "fit-content" }}>
@@ -117,9 +117,18 @@ const Header = () => {
                       color: theme.palette.customText.primary.p2.active,
                     }}
                   >
-                    {[user.firstName, user.lastName].filter(Boolean).join(" ")}
+                    {user.workEmail}
                   </Typography>
-                  <Typography
+                  {/* <Typography
+                    noWrap
+                    variant="body1"
+                    sx={{
+                      color: theme.palette.customText.primary.p2.active,
+                    }}
+                  >
+                    {[user.firstName, user.lastName].filter(Boolean).join(" ")}
+                  </Typography> */}
+                  {/* <Typography
                     noWrap
                     variant="body2"
                     sx={{
@@ -127,7 +136,7 @@ const Header = () => {
                     }}
                   >
                     {user.jobRole}
-                  </Typography>
+                  </Typography> */}
                 </Box>
               </Stack>
 
