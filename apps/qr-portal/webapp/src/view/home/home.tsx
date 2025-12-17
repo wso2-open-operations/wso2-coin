@@ -56,7 +56,7 @@ import QRCode from "qrcode";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { ConferenceQrCode, State } from "@/types/types";
-import Sss from "@assets/images/no-search-results.svg";
+import NoSearchResults from "@assets/images/no-search-results.svg";
 import StateWithImage from "@component/ui/StateWithImage";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import { deleteQrCode, fetchQrCodes, setLimit, setOffset } from "@slices/qrSlice/qr";
@@ -440,7 +440,7 @@ export default function QrPortal() {
                   ? `No QR codes found matching "${searchQuery}". Try a different search term.`
                   : "No QR codes found. Create your first QR code!"
               }
-              imageUrl={searchQuery ? Sss : Sss}
+              imageUrl={NoSearchResults}
             />
           </CardContent>
         </Card>
