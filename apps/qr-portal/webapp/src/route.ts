@@ -13,52 +13,56 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import QrCode2Icon from "@mui/icons-material/QrCode2";
+import SettingsSuggestOutlinedIcon from "@mui/icons-material/SettingsSuggestOutlined";
+import type { RouteObject } from "react-router-dom";
 
 import React from "react";
-import { RouteObject, NonIndexRouteObject } from "react-router-dom";
-// MUI imports
-import QrCode2Icon from "@mui/icons-material/QrCode2";
-// APP imports
-import { View } from "./view/Index";
-import { isIncludedRole } from "./utils/utils";
-import { Role } from "@slices/authSlice";
 
-export interface RouteObjectWithRole extends NonIndexRouteObject {
-  allowRoles: string[];
-  icon:
-    | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-    | undefined;
-  text: string;
-  children?: RouteObjectWithRole[];
-  bottomNav?: boolean;
-}
+import { Role } from "@/types/types";
+import { isIncludedRole } from "@utils/utils";
+import { View } from "@view/index";
 
-interface RouteDetail {
-  path: string;
-  allowRoles: string[];
-  icon:
-    | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-    | undefined;
-  text: string;
-  bottomNav?: boolean;
-}
+import type { RouteDetail, RouteObjectWithRole } from "./types/types";
 
 export const routes: RouteObjectWithRole[] = [
   {
     path: "/",
     text: "Conference QR",
     icon: React.createElement(QrCode2Icon),
-    element: React.createElement(View.qrPortal),
+    element: React.createElement(View.home),
     allowRoles: [Role.O2_BAR_ADMIN, Role.SESSION_ADMIN, Role.EMPLOYEE],
   },
+  {
+    path: "/appConfig",
+    text: "App Config",
+    icon: React.createElement(SettingsSuggestOutlinedIcon),
+    element: React.createElement(View.appConfig),
+    allowRoles: [Role.O2_BAR_ADMIN, Role.SESSION_ADMIN],
+    bottomNav: true,
+  },
+  /*
+   TODO: Implement User Guide page when the user guide content is ready.
+   The /help route is commented out for now and will be re-enabled once the
+   user guide page (View.help) is implemented.
+
+  {
+    path: "/help",
+    text: "Help",
+    icon: React.createElement(HelpOutlineIcon),
+    element: React.createElement(View.help),
+    allowRoles: [Role.ADMIN, Role.EMPLOYEE],
+    bottomNav: true,
+  }
+  */
 ];
 
 export const getActiveRoutesV2 = (
   routes: RouteObjectWithRole[] | undefined,
-  roles: string[]
+  roles: string[],
 ): RouteObjectWithRole[] => {
   if (!routes) return [];
-  var routesObj: RouteObjectWithRole[] = [];
+  const routesObj: RouteObjectWithRole[] = [];
   routes.forEach((routeObj) => {
     if (isIncludedRole(roles, routeObj.allowRoles)) {
       routesObj.push({
@@ -72,7 +76,7 @@ export const getActiveRoutesV2 = (
 };
 
 export const getActiveRoutes = (roles: string[]): RouteObject[] => {
-  var routesObj: RouteObject[] = [];
+  const routesObj: RouteObject[] = [];
   routes.forEach((routeObj) => {
     if (isIncludedRole(roles, routeObj.allowRoles)) {
       routesObj.push({
@@ -84,14 +88,37 @@ export const getActiveRoutes = (roles: string[]): RouteObject[] => {
 };
 
 export const getActiveRouteDetails = (roles: string[]): RouteDetail[] => {
-  var routesObj: RouteDetail[] = [];
+  const routesObj: RouteDetail[] = [];
   routes.forEach((routeObj) => {
     if (isIncludedRole(roles, routeObj.allowRoles)) {
       routesObj.push({
-        path: routeObj.path ? routeObj.path : "",
         ...routeObj,
+        path: routeObj.path ?? "",
       });
     }
   });
   return routesObj;
+};
+
+interface getActiveParentRoutesProps {
+  routes: RouteObjectWithRole[] | undefined;
+  roles: string[];
+}
+
+export const getActiveParentRoutes = ({ routes, roles }: getActiveParentRoutesProps): string[] => {
+  if (!routes) return [];
+
+  let activeParentPaths: string[] = [];
+
+  routes.forEach((routeObj) => {
+    if (!routeObj.element) return;
+
+    if (isIncludedRole(roles, routeObj.allowRoles)) {
+      if (routeObj.path) {
+        activeParentPaths.push(routeObj.path);
+      }
+    }
+  });
+
+  return activeParentPaths;
 };
