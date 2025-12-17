@@ -13,33 +13,38 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
-import "./App.scss";
-import { store } from "@slices/store";
-import { Provider } from "react-redux";
-import { ThemeMode } from "@utils/types";
 import AppHandler from "@app/AppHandler";
-import { themeSettings } from "./theme";
-import { SnackbarProvider } from "notistack";
-import AppAuthProvider from "@context/AuthContext";
 import { AuthProvider } from "@asgardeo/auth-react";
-import { createContext, useState, useMemo } from "react";
-import { APP_NAME, AsgardeoConfig } from "@config/config";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { SnackbarProvider } from "notistack";
+import { Provider } from "react-redux";
 
-export const ColorModeContext = createContext({ toggleColorMode: () => {} });
+import { createContext, useMemo, useState } from "react";
+
+import { APP_NAME, AsgardeoConfig } from "@config/config";
+import { localStorageTheme } from "@config/constant";
+import AppAuthProvider from "@context/AuthContext";
+import { themeSettings } from "@root/src/theme";
+import { store } from "@slices/store";
+import { ThemeMode } from "@utils/types";
+
+import "./index.css";
+
+export const ColorModeContext = createContext({
+  mode: ThemeMode.Light,
+  toggleColorMode: () => {},
+});
 
 function App() {
   document.title = APP_NAME;
+
   const processLocalThemeMode = (): ThemeMode => {
-    var localMode: ThemeMode | null = localStorage.getItem(
-      "internal-app-theme"
-    ) as ThemeMode;
+    var localMode: ThemeMode | null = localStorage.getItem(localStorageTheme) as ThemeMode;
 
     if (localMode) {
       return localMode;
     } else {
-      localStorage.setItem("internal-app-theme", ThemeMode.Dark);
+      localStorage.setItem(localStorageTheme, ThemeMode.Dark);
       return ThemeMode.Dark;
     }
   };
@@ -50,21 +55,19 @@ function App() {
     () => ({
       toggleColorMode: () => {
         localStorage.setItem(
-          "internal-app-theme",
-          mode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light
+          localStorageTheme,
+          mode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light,
         );
-        setMode((prevMode) =>
-          prevMode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light
-        );
+        setMode((prevMode) => (prevMode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light));
       },
     }),
-    [mode]
+    [mode],
   );
 
   const theme = useMemo(() => createTheme(themeSettings(mode)), [mode]);
 
   return (
-    <ColorModeContext.Provider value={colorMode}>
+    <ColorModeContext.Provider value={{ mode, toggleColorMode: colorMode.toggleColorMode }}>
       <SnackbarProvider maxSnack={3} preventDuplicate>
         <ThemeProvider theme={theme}>
           <Provider store={store}>
