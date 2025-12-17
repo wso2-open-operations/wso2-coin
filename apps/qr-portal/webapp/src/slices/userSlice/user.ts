@@ -13,20 +13,13 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { APIService } from "../../utils/apiService";
-import { AppConfig } from "../../config/config";
-import { State } from "@/types/types";
-import { UserInfo } from "@/types/types";
+import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 
-export interface UserState {
-  state: State;
-  stateMessage: string | null;
-  errorMessage: string | null;
-  userInfo: UserInfo | null;
-}
+import { State } from "@/types/types";
+import { AppConfig } from "@config/config";
+import { UserInfoInterface, UserState } from "@slices/authSlice/auth";
+import { APIService } from "@utils/apiService";
 
 const initialState: UserState = {
   state: State.idle,
@@ -35,9 +28,9 @@ const initialState: UserState = {
   userInfo: null,
 };
 
-export const getUserInfo = createAsyncThunk("User/getUserInfo", async () => {
+export const getUserInfo = createAsyncThunk("user/getUserInfo", async () => {
   return new Promise<{
-    UserInfo: UserInfo;
+    UserInfo: UserInfoInterface;
   }>((resolve, reject) => {
     APIService.getInstance()
       .get(AppConfig.serviceUrls.userInfo)
@@ -62,9 +55,9 @@ export const UserSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(getUserInfo.pending, (state, action) => {
+      .addCase(getUserInfo.pending, (state) => {
         state.state = State.loading;
-        state.stateMessage = "Checking User Info";
+        state.stateMessage = "Checking User Info...";
       })
       .addCase(getUserInfo.fulfilled, (state, action) => {
         state.userInfo = action.payload.UserInfo;
@@ -76,8 +69,7 @@ export const UserSlice = createSlice({
           state.errorMessage =
             "Oops! Looks like you are not authorized to access this application.";
         } else {
-          state.errorMessage =
-            "Something went wrong while authenticating the user.";
+          state.errorMessage = "Something went wrong while authenticating the user.";
         }
       });
   },

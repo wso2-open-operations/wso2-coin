@@ -13,14 +13,14 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import { State } from "@/types/types";
+import { Session } from "@/types/types";
 import { AppConfig } from "@config/config";
-import { APIService } from "@utils/apiService";
 import { SnackMessage } from "@config/constant";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { Session } from "@/types/types";
+import { APIService } from "@utils/apiService";
 
 interface SessionState {
   state: State;
@@ -41,7 +41,7 @@ export const fetchSessions = createAsyncThunk(
   async (_, { dispatch, rejectWithValue }) => {
     try {
       const response = await APIService.getInstance().get<Session[]>(
-        AppConfig.serviceUrls.sessions
+        AppConfig.serviceUrls.sessions,
       );
       return response.data;
     } catch (error: any) {
@@ -49,11 +49,11 @@ export const fetchSessions = createAsyncThunk(
         enqueueSnackbarMessage({
           message: SnackMessage.error.fetchSessions,
           type: "error",
-        })
+        }),
       );
       return rejectWithValue(error.message || "Failed to fetch sessions");
     }
-  }
+  },
 );
 
 export const sessionSlice = createSlice({
@@ -79,4 +79,3 @@ export const sessionSlice = createSlice({
 });
 
 export default sessionSlice.reducer;
-

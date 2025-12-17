@@ -13,18 +13,14 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import { State } from "@/types/types";
+import { ConferenceQrCode, ConferenceQrCodesResponse, CreateQrCodePayload } from "@/types/types";
 import { AppConfig } from "@config/config";
-import { APIService } from "@utils/apiService";
 import { SnackMessage } from "@config/constant";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import {
-  ConferenceQrCode,
-  ConferenceQrCodesResponse,
-  CreateQrCodePayload,
-} from "@/types/types";
+import { APIService } from "@utils/apiService";
 
 interface QrState {
   state: State;
@@ -48,10 +44,7 @@ const initialState: QrState = {
 
 export const fetchQrCodes = createAsyncThunk(
   "qr/fetchQrCodes",
-  async (
-    params: { limit?: number; offset?: number },
-    { dispatch, rejectWithValue }
-  ) => {
+  async (params: { limit?: number; offset?: number }, { dispatch, rejectWithValue }) => {
     try {
       const queryParams = new URLSearchParams();
       if (params.limit) queryParams.append("limit", params.limit.toString());
@@ -65,11 +58,11 @@ export const fetchQrCodes = createAsyncThunk(
         enqueueSnackbarMessage({
           message: SnackMessage.error.fetchQrCodes,
           type: "error",
-        })
+        }),
       );
       return rejectWithValue(error.message || "Failed to fetch QR codes");
     }
-  }
+  },
 );
 
 export const createQrCode = createAsyncThunk(
@@ -78,13 +71,13 @@ export const createQrCode = createAsyncThunk(
     try {
       const response = await APIService.getInstance().post<{ qrId: string }>(
         AppConfig.serviceUrls.qrCodes,
-        payload
+        payload,
       );
       dispatch(
         enqueueSnackbarMessage({
           message: SnackMessage.success.qrCodeCreated,
           type: "success",
-        })
+        }),
       );
       return response.data;
     } catch (error: any) {
@@ -96,11 +89,11 @@ export const createQrCode = createAsyncThunk(
         enqueueSnackbarMessage({
           message: errorMessage,
           type: "error",
-        })
+        }),
       );
       return rejectWithValue(error.message || "Failed to create QR code");
     }
-  }
+  },
 );
 
 export const deleteQrCode = createAsyncThunk(
@@ -112,7 +105,7 @@ export const deleteQrCode = createAsyncThunk(
         enqueueSnackbarMessage({
           message: SnackMessage.success.qrCodeDeleted,
           type: "success",
-        })
+        }),
       );
       return qrId;
     } catch (error: any) {
@@ -120,11 +113,11 @@ export const deleteQrCode = createAsyncThunk(
         enqueueSnackbarMessage({
           message: SnackMessage.error.deleteQrCode,
           type: "error",
-        })
+        }),
       );
       return rejectWithValue(error.message || "Failed to delete QR code");
     }
-  }
+  },
 );
 
 export const qrSlice = createSlice({
@@ -179,4 +172,3 @@ export const qrSlice = createSlice({
 
 export const { setLimit, setOffset, clearQrCodes } = qrSlice.actions;
 export default qrSlice.reducer;
-
