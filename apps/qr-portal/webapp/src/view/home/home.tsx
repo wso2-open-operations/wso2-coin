@@ -347,7 +347,14 @@ export default function QrPortal() {
           gap: { xs: 2, sm: 0 },
         }}
       >
-        <Typography variant="h4" component="h1" sx={{ fontSize: { xs: "1.25rem", sm: undefined } }}>
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{
+            fontSize: { xs: "1.25rem", sm: undefined },
+            color: theme.palette.customText.primary.p1.active,
+          }}
+        >
           Conference QR Codes
         </Typography>
         <Box
@@ -482,7 +489,7 @@ export default function QrPortal() {
                         <Chip
                           icon={isSession ? <EventIcon /> : <EmailIcon />}
                           label={isSession ? "Session" : "O2 Bar"}
-                          color="primary"
+                          color="default"
                           size="small"
                           sx={{ fontWeight: 600 }}
                         />

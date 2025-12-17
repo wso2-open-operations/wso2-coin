@@ -571,11 +571,14 @@ export const themeSettings = (mode: PaletteMode) => {
             fontWeight: 500,
           },
           contained: {
-            backgroundColor: colors.fill.primary.clicked,
-            color: colors.text.brand.p2.active,
+            backgroundColor:
+              mode === "dark" ? colors.navigation.clickedBg : colors.fill.primary.clicked,
+            color: mode === "dark" ? colors.navigation.textClicked : colors.text.brand.p2.active,
             boxShadow: "none",
             "&:hover": {
-              backgroundColor: colors.fill.primary.hover,
+              backgroundColor:
+                mode === "dark" ? colors.navigation.clickedBg : colors.fill.primary.hover,
+              opacity: mode === "dark" ? 0.9 : 1,
               boxShadow: "none",
             },
             "&:active": {
