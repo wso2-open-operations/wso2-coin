@@ -21,7 +21,7 @@ import React from "react";
 
 import { Role } from "@/types/types";
 import { isIncludedRole } from "@utils/utils";
-import { View } from "@view/index";
+import { View } from "@view/Index";
 
 import type { RouteDetail, RouteObjectWithRole } from "./types/types";
 
