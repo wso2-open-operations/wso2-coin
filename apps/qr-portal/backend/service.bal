@@ -284,7 +284,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         } else if (isSessionAdmin) {
             filters.email = userInfo.email;
             filters.eventType = database:SESSION;
-        } else if (isEmployee) {
+        } else if isEmployee {
             filters.email = userInfo.email;
             filters.eventType = database:O2BAR;
         } else {
