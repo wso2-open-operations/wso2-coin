@@ -75,7 +75,7 @@ export default function Layout() {
         <Snowfall
           color={theme.palette.fill.xmas.active}
           images={snowflake}
-          radius={[5, 20]}
+          radius={[4, 16]}
           snowflakeCount={80}
         />
       )}
