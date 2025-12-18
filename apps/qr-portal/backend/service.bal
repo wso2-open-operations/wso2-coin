@@ -14,8 +14,8 @@
 // specific language governing permissions and limitations
 // under the License.
 import qr_portal.authorization;
-import qr_portal.database;
 import qr_portal.conference;
+import qr_portal.database;
 
 import ballerina/http;
 import ballerina/log;
@@ -60,7 +60,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         return {
-            email: invokerInfo.email,
+            workEmail: invokerInfo.email,
             privileges
         };
     }
@@ -69,7 +69,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + return - Array of active sessions or error
     resource function get sessions(http:RequestContext ctx) returns conference:Session[]|http:InternalServerError {
-        
+
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
             log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
@@ -141,7 +141,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     }
                 };
             }
-            
+
             // for own email, allow if user has any role
             if o2BarInfo.email == invokerInfo.email {
                 if !hasAnyRole {
@@ -183,8 +183,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         if isQrExists {
-            string identifier = payload.info is database:QrCodeInfoO2Bar 
-                ? (<database:QrCodeInfoO2Bar>payload.info).email 
+            string identifier = payload.info is database:QrCodeInfoO2Bar
+                ? (<database:QrCodeInfoO2Bar>payload.info).email
                 : (<database:QrCodeInfoSession>payload.info).sessionId;
             return <http:BadRequest>{
                 body: {
@@ -194,13 +194,13 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string qrId = uuid:createType4AsString();
-        
+
         database:AddConferenceQrCodePayload dbPayload = {
             info: payload.info,
             description: payload.description,
             createdBy: invokerInfo.email
         };
-        
+
         error? qrError = database:addConferenceQrCode(qrId, dbPayload, invokerInfo.email);
         if qrError is error {
             string customError = "Error occurred while creating QR code!";
@@ -273,20 +273,22 @@ service http:InterceptableService / on new http:Listener(9090) {
             offset: offset
         };
 
-        if authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], userInfo.groups) {
+        boolean isO2BarAdmin = authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], userInfo.groups);
+        boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], userInfo.groups);
+        boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups);
+
+        if isO2BarAdmin && isSessionAdmin {
+            // No filters
+        } else if isO2BarAdmin {
             filters.eventType = database:O2BAR;
-        }
-        else if authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], userInfo.groups) {
-            filters.includeOwnO2Bar = true;
+        } else if isSessionAdmin {
+            filters.email = userInfo.email;
             filters.eventType = database:SESSION;
-            filters.createdBy = userInfo.email;
-        }
-        else if authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups) {            
-            filters.createdBy = userInfo.email;
+        } else if isEmployee {
+            filters.email = userInfo.email;
             filters.eventType = database:O2BAR;
-        }
-        else {
-            filters.createdBy = userInfo.email;
+        } else {
+            filters.email = userInfo.email;
         }
 
         database:ConferenceQrCodesResponse|error qrsResponse = database:fetchConferenceQrCodes(filters);

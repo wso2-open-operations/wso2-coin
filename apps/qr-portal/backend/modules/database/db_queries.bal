@@ -81,25 +81,25 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
     filterQueries.push(` status = ${ACTIVE}`);
 
     // Setting the filters based on the inputs.
-    // Session Admin - show all SESSION QRs OR own O2BAR QRs
-    if filters.includeOwnO2Bar == true && filters.createdBy is string {
-        filterQueries.push(`
+    if filters.email is string && filters.eventType is QrCodeType {
+        if filters.eventType == SESSION {
+            filterQueries.push(`
                 (
-                    JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION} 
+                    JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION}
                     OR (
-                        JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR} 
-                        AND created_by = ${filters.createdBy}
+                        JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}
+                        AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}
                     )
                 )
             `);
-    } else {
-        // Standard filtering
-        if filters.createdBy is string {
-            filterQueries.push(` created_by = ${filters.createdBy}`);
+        } else if filters.eventType == O2BAR {
+            filterQueries.push(`
+                JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}
+                AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}
+            `);
         }
-        if filters.eventType is QrCodeType {
-            filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${filters.eventType}`);
-        }
+    } else if filters.eventType is QrCodeType {
+        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${filters.eventType}`);
     }
 
     if filterQueries.length() > 0 {
@@ -131,11 +131,11 @@ isolated function checkIsQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:Parame
         SELECT 1 AS count
         FROM conference_qr
         WHERE `;
-    
+
     sql:ParameterizedQuery whereClause = qrInfo is QrCodeInfoO2Bar
         ? `JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${qrInfo.email}`
         : `JSON_UNQUOTE(JSON_EXTRACT(info, '$.sessionId')) = ${qrInfo.sessionId}`;
-    
+
     return sql:queryConcat(mainQuery, whereClause, ` AND status = ${ACTIVE} LIMIT 1`);
 }
 

@@ -48,11 +48,11 @@ public type QrCodeInfoSession record {|
     # Event type discriminator
     QrCodeType eventType;
     # Session identifier when `eventType` is SESSION
-    @constraint:String { 
-        pattern: { 
-            value: NONE_EMPTY_PRINTABLE_STRING_REGEX, 
-            message: "The session ID should be a non-empty string with printable characters." 
-        } 
+    @constraint:String {
+        pattern: {
+            value: NONE_EMPTY_PRINTABLE_STRING_REGEX,
+            message: "The session ID should be a non-empty string with printable characters."
+        }
     }
     string sessionId;
 |};
@@ -62,11 +62,11 @@ public type QrCodeInfoO2Bar record {|
     # Event type discriminator
     QrCodeType eventType;
     # Contact email when `eventType` is O2BAR
-    @constraint:String { 
-        pattern: { 
-            value: EMAIL_REGEX, 
-            message: "Provide a valid email address." 
-        } 
+    @constraint:String {
+        pattern: {
+            value: EMAIL_REGEX,
+            message: "Provide a valid email address."
+        }
     }
     string email;
 |};
@@ -77,11 +77,11 @@ public type QrCodeInfo QrCodeInfoSession|QrCodeInfoO2Bar;
 # [Database] ConferenceQR record.
 public type ConferenceQrCode record {|
     # UUID string
-    @constraint:String { 
-        pattern: { 
-            value: UUID_REGEX, 
-            message: "qrId should be a UUID string." 
-        } 
+    @constraint:String {
+        pattern: {
+            value: UUID_REGEX,
+            message: "qrId should be a UUID string."
+        }
     }
     string qrId;
     # Parsed JSON array as strongly typed entries
@@ -94,25 +94,25 @@ public type ConferenceQrCode record {|
 # [Database] ConferenceQR record (matches DB column names).
 type ConferenceQrCodeRecord record {|
     # UUID of the QR code
-    @sql:Column { name: "qr_id" }
+    @sql:Column {name: "qr_id"}
     string qrId;
     # JSON object as string from database
-    @sql:Column { name: "info" }
+    @sql:Column {name: "info"}
     string info;
     # Optional description/note
-    @sql:Column { name: "description" }
+    @sql:Column {name: "description"}
     string? description = ();
     # Creator email
-    @sql:Column { name: "created_by" }
+    @sql:Column {name: "created_by"}
     string createdBy;
     # Creation timestamp
-    @sql:Column { name: "created_on" }
+    @sql:Column {name: "created_on"}
     string createdOn;
     # Status of the QR code (ACTIVE or DELETED)
-    @sql:Column { name: "status" }
+    @sql:Column {name: "status"}
     string status;
     # Total count for pagination
-    @sql:Column { name: "total_count" }
+    @sql:Column {name: "total_count"}
     int totalCount = 0;
 |};
 
@@ -129,11 +129,11 @@ public type AddConferenceQrCodePayload record {|
     # Optional description/note about the QR code
     string? description = ();
     # Who created the QR
-    @constraint:String { 
-        pattern: { 
-            value: NONE_EMPTY_PRINTABLE_STRING_REGEX, 
-            message: "The creator email should be a non-empty string with printable characters." 
-        } 
+    @constraint:String {
+        pattern: {
+            value: NONE_EMPTY_PRINTABLE_STRING_REGEX,
+            message: "The creator email should be a non-empty string with printable characters."
+        }
     }
     string createdBy;
 |};
@@ -148,12 +148,10 @@ public type ConferenceQrCodesResponse record {|
 
 # Filters for fetching QR codes.
 public type ConferenceQrCodeFilters record {|
-    # Email of the creator
-    string? createdBy = ();
+    # Email in O2BAR QR info
+    string? email = ();
     # Filter by event type (SESSION or O2BAR)
     QrCodeType? eventType = ();
-    # Include own O2Bar QRs when filtering by SESSION
-    boolean? includeOwnO2Bar = ();
     # Limit number of QRs to fetch
     int? 'limit = DEFAULT_LIMIT;
     # Offset for pagination
