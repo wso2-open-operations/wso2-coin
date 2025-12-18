@@ -408,7 +408,6 @@ export default function QrPortal() {
           variant="h4"
           component="h1"
           sx={{
-            fontSize: { xs: "1.25rem", sm: undefined },
             color: theme.palette.customText.primary.p1.active,
           }}
         >
@@ -582,7 +581,6 @@ export default function QrPortal() {
                           variant="h6"
                           component="h2"
                           sx={{
-                            fontWeight: 600,
                             mb: 0.5,
                             lineHeight: 1.3,
                             display: "flex",
@@ -621,10 +619,6 @@ export default function QrPortal() {
                           mb: 2,
                           flexGrow: 1,
                           minHeight: { xs: 180, sm: 200 },
-                          bgcolor: (theme) =>
-                            theme.palette.mode === "dark"
-                              ? alpha(theme.palette.common.white, 0.05)
-                              : alpha(theme.palette.common.black, 0.02),
                           borderRadius: 2,
                           p: 2,
                         }}
@@ -792,6 +786,7 @@ export default function QrPortal() {
         onSuccess={handleCreateSuccess}
         onRefresh={handleRefresh}
       />
+      <Box sx={{ height: 36 }} />
     </Container>
   );
 }
