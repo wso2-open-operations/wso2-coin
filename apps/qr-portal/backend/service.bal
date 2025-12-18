@@ -277,7 +277,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], userInfo.groups);
         boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups);
 
-        if (isO2BarAdmin && isSessionAdmin) {
+        if isO2BarAdmin && isSessionAdmin {
             // No filters
         } else if (isO2BarAdmin) {
             filters.eventType = database:O2BAR;
