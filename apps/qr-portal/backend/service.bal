@@ -279,7 +279,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         if isO2BarAdmin && isSessionAdmin {
             // No filters
-        } else if (isO2BarAdmin) {
+        } else if isO2BarAdmin {
             filters.eventType = database:O2BAR;
         } else if (isSessionAdmin) {
             filters.email = userInfo.email;
