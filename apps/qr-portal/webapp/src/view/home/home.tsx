@@ -291,7 +291,7 @@ export default function QrPortal() {
     },
     {
       field: "createdOn",
-      headerName: "Created",
+      headerName: "Created At",
       flex: 1,
       minWidth: 150,
       valueGetter: (_value: any, row: ConferenceQrCode) => {
@@ -301,13 +301,49 @@ export default function QrPortal() {
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
         const formattedDate = dayjs(qr.createdOn).format("MMM DD, YYYY");
-        const tooltipLabel = "Created at";
         return (
-          <Tooltip title={tooltipLabel} arrow enterDelay={300}>
-            <Typography variant="body2" component="span">
-              {formattedDate}
+          <Typography variant="body2" component="span">
+            {formattedDate}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: "createdBy",
+      headerName: "Created By",
+      flex: 1.2,
+      minWidth: 180,
+      valueGetter: (_value: any, row: ConferenceQrCode) => {
+        return row?.createdBy || "";
+      },
+      renderCell: (params) => {
+        const qr = params.row as ConferenceQrCode;
+        const createdBy = qr.createdBy || "Unknown";
+
+        return (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              height: "100%",
+              gap: 0.5,
+              minWidth: 0,
+              overflow: "hidden",
+            }}
+          >
+            <PersonIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {createdBy}
             </Typography>
-          </Tooltip>
+          </Box>
         );
       },
     },
@@ -532,7 +568,7 @@ export default function QrPortal() {
                               color={isDeleteDisabled ? "default" : "error"}
                               onClick={isDeleteDisabled ? undefined : () => handleDelete(qr.qrId)}
                               disabled={isDeleteDisabled}
-                            sx={{ ml: 1 }}
+                              sx={{ ml: 1 }}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
