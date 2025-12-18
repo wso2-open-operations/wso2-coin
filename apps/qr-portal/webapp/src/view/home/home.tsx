@@ -77,6 +77,7 @@ export default function QrPortal() {
     (state: RootState) => state.qr,
   );
   const { sessions } = useAppSelector((state: RootState) => state.session);
+  const { userInfo } = useAppSelector((state: RootState) => state.user);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [qrImages, setQrImages] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -228,6 +229,8 @@ export default function QrPortal() {
   };
 
   // DataGrid columns for list view
+  const loggedInEmail = userInfo?.workEmail?.toLowerCase() ?? "";
+
   const columns: GridColDef[] = [
     {
       field: "title",
@@ -315,6 +318,12 @@ export default function QrPortal() {
       sortable: false,
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
+        const isDeleteDisabled =
+          !qr.createdBy || !loggedInEmail || qr.createdBy.toLowerCase() !== loggedInEmail;
+        const deleteTooltipTitle = isDeleteDisabled
+          ? "You don't have permission to delete this"
+          : "Delete QR Code";
+
         return (
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", height: "100%" }}>
             <Tooltip title="Download QR Code" arrow enterDelay={300}>
@@ -322,10 +331,22 @@ export default function QrPortal() {
                 <DownloadIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Delete QR Code" arrow enterDelay={300}>
-              <IconButton size="small" color="error" onClick={() => handleDelete(qr.qrId)}>
-                <DeleteIcon />
-              </IconButton>
+            <Tooltip title={deleteTooltipTitle} arrow enterDelay={300}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  cursor: isDeleteDisabled ? "not-allowed" : "pointer",
+                }}
+              >
+                <IconButton
+                  size="small"
+                  color={isDeleteDisabled ? "default" : "error"}
+                  onClick={isDeleteDisabled ? undefined : () => handleDelete(qr.qrId)}
+                  disabled={isDeleteDisabled}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </span>
             </Tooltip>
           </Box>
         );
@@ -460,6 +481,12 @@ export default function QrPortal() {
                   ? sessions.find((s) => s.id === sessionInfo.sessionId)
                   : null;
 
+              const isDeleteDisabled =
+                !qr.createdBy || !loggedInEmail || qr.createdBy.toLowerCase() !== loggedInEmail;
+              const deleteTooltipTitle = isDeleteDisabled
+                ? "You don't have permission to delete this"
+                : "Delete QR Code";
+
               return (
                 <Grid size={{ xs: 12, sm: 6, md: 4 }} key={qr.qrId}>
                   <Card
@@ -493,15 +520,23 @@ export default function QrPortal() {
                           size="small"
                           sx={{ fontWeight: 600 }}
                         />
-                        <Tooltip title="Delete QR Code" arrow>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDelete(qr.qrId)}
-                            sx={{ ml: 1 }}
+                        <Tooltip title={deleteTooltipTitle} arrow>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              cursor: isDeleteDisabled ? "not-allowed" : "pointer",
+                            }}
                           >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
+                            <IconButton
+                              size="small"
+                              color={isDeleteDisabled ? "default" : "error"}
+                              onClick={isDeleteDisabled ? undefined : () => handleDelete(qr.qrId)}
+                              disabled={isDeleteDisabled}
+                            sx={{ ml: 1 }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       </Box>
 
@@ -646,18 +681,6 @@ export default function QrPortal() {
                               size="small"
                               color="primary"
                               onClick={() => handleDownload(qr.qrId)}
-                              sx={{
-                                bgcolor: (theme) =>
-                                  theme.palette.mode === "dark"
-                                    ? alpha(theme.palette.primary.main, 0.1)
-                                    : alpha(theme.palette.primary.main, 0.08),
-                                "&:hover": {
-                                  bgcolor: (theme) =>
-                                    theme.palette.mode === "dark"
-                                      ? alpha(theme.palette.primary.main, 0.2)
-                                      : alpha(theme.palette.primary.main, 0.15),
-                                },
-                              }}
                             >
                               <DownloadIcon fontSize="small" />
                             </IconButton>
