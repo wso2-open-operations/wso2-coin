@@ -45,7 +45,6 @@ import {
   ToggleButtonGroup,
   Tooltip,
   Typography,
-  alpha,
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -77,6 +76,7 @@ export default function QrPortal() {
     (state: RootState) => state.qr,
   );
   const { sessions } = useAppSelector((state: RootState) => state.session);
+  const { userInfo } = useAppSelector((state: RootState) => state.user);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [qrImages, setQrImages] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -227,7 +227,18 @@ export default function QrPortal() {
     dispatch(fetchQrCodes({ limit, offset }));
   };
 
+  const getDeletePermission = (qr: ConferenceQrCode, loggedInEmail: string) => {
+    const isDeleteDisabled =
+      !qr.createdBy || !loggedInEmail || qr.createdBy.toLowerCase() !== loggedInEmail;
+    const deleteTooltipTitle = isDeleteDisabled
+      ? "You don't have permission to delete this"
+      : "Delete QR Code";
+    return { isDeleteDisabled, deleteTooltipTitle };
+  };
+
   // DataGrid columns for list view
+  const loggedInEmail = userInfo?.workEmail?.toLowerCase() ?? "";
+
   const columns: GridColDef[] = [
     {
       field: "title",
@@ -288,7 +299,7 @@ export default function QrPortal() {
     },
     {
       field: "createdOn",
-      headerName: "Created",
+      headerName: "Created At",
       flex: 1,
       minWidth: 150,
       valueGetter: (_value: any, row: ConferenceQrCode) => {
@@ -298,13 +309,49 @@ export default function QrPortal() {
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
         const formattedDate = dayjs(qr.createdOn).format("MMM DD, YYYY");
-        const tooltipLabel = "Created at";
         return (
-          <Tooltip title={tooltipLabel} arrow enterDelay={300}>
-            <Typography variant="body2" component="span">
-              {formattedDate}
+          <Typography variant="body2" component="span">
+            {formattedDate}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: "createdBy",
+      headerName: "Created By",
+      flex: 1.2,
+      minWidth: 180,
+      valueGetter: (_value: any, row: ConferenceQrCode) => {
+        return row?.createdBy || "Unknown";
+      },
+      renderCell: (params) => {
+        const qr = params.row as ConferenceQrCode;
+        const createdBy = qr.createdBy || "Unknown";
+
+        return (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              height: "100%",
+              gap: 0.5,
+              minWidth: 0,
+              overflow: "hidden",
+            }}
+          >
+            <PersonIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {createdBy}
             </Typography>
-          </Tooltip>
+          </Box>
         );
       },
     },
@@ -315,6 +362,8 @@ export default function QrPortal() {
       sortable: false,
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
+        const { isDeleteDisabled, deleteTooltipTitle } = getDeletePermission(qr, loggedInEmail);
+
         return (
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", height: "100%" }}>
             <Tooltip title="Download QR Code" arrow enterDelay={300}>
@@ -322,10 +371,23 @@ export default function QrPortal() {
                 <DownloadIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Delete QR Code" arrow enterDelay={300}>
-              <IconButton size="small" color="error" onClick={() => handleDelete(qr.qrId)}>
-                <DeleteIcon />
-              </IconButton>
+            <Tooltip title={deleteTooltipTitle} arrow enterDelay={300}>
+              <Box
+                component="span"
+                sx={{
+                  display: "inline-flex",
+                  cursor: isDeleteDisabled ? "not-allowed" : "pointer",
+                }}
+              >
+                <IconButton
+                  size="small"
+                  color={isDeleteDisabled ? "default" : "error"}
+                  onClick={isDeleteDisabled ? undefined : () => handleDelete(qr.qrId)}
+                  disabled={isDeleteDisabled}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
             </Tooltip>
           </Box>
         );
@@ -351,7 +413,6 @@ export default function QrPortal() {
           variant="h4"
           component="h1"
           sx={{
-            fontSize: { xs: "1.25rem", sm: undefined },
             color: theme.palette.customText.primary.p1.active,
           }}
         >
@@ -460,6 +521,11 @@ export default function QrPortal() {
                   ? sessions.find((s) => s.id === sessionInfo.sessionId)
                   : null;
 
+              const { isDeleteDisabled, deleteTooltipTitle } = getDeletePermission(
+                qr,
+                loggedInEmail,
+              );
+
               return (
                 <Grid size={{ xs: 12, sm: 6, md: 4 }} key={qr.qrId}>
                   <Card
@@ -493,15 +559,24 @@ export default function QrPortal() {
                           size="small"
                           sx={{ fontWeight: 600 }}
                         />
-                        <Tooltip title="Delete QR Code" arrow>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDelete(qr.qrId)}
-                            sx={{ ml: 1 }}
+                        <Tooltip title={deleteTooltipTitle} arrow>
+                          <Box
+                            component="span"
+                            sx={{
+                              display: "inline-flex",
+                              cursor: isDeleteDisabled ? "not-allowed" : "pointer",
+                            }}
                           >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
+                            <IconButton
+                              size="small"
+                              color={isDeleteDisabled ? "default" : "error"}
+                              onClick={isDeleteDisabled ? undefined : () => handleDelete(qr.qrId)}
+                              disabled={isDeleteDisabled}
+                              sx={{ ml: 1 }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
                         </Tooltip>
                       </Box>
 
@@ -511,7 +586,6 @@ export default function QrPortal() {
                           variant="h6"
                           component="h2"
                           sx={{
-                            fontWeight: 600,
                             mb: 0.5,
                             lineHeight: 1.3,
                             display: "flex",
@@ -550,10 +624,6 @@ export default function QrPortal() {
                           mb: 2,
                           flexGrow: 1,
                           minHeight: { xs: 180, sm: 200 },
-                          bgcolor: (theme) =>
-                            theme.palette.mode === "dark"
-                              ? alpha(theme.palette.common.white, 0.05)
-                              : alpha(theme.palette.common.black, 0.02),
                           borderRadius: 2,
                           p: 2,
                         }}
@@ -646,18 +716,6 @@ export default function QrPortal() {
                               size="small"
                               color="primary"
                               onClick={() => handleDownload(qr.qrId)}
-                              sx={{
-                                bgcolor: (theme) =>
-                                  theme.palette.mode === "dark"
-                                    ? alpha(theme.palette.primary.main, 0.1)
-                                    : alpha(theme.palette.primary.main, 0.08),
-                                "&:hover": {
-                                  bgcolor: (theme) =>
-                                    theme.palette.mode === "dark"
-                                      ? alpha(theme.palette.primary.main, 0.2)
-                                      : alpha(theme.palette.primary.main, 0.15),
-                                },
-                              }}
                             >
                               <DownloadIcon fontSize="small" />
                             </IconButton>
@@ -733,6 +791,7 @@ export default function QrPortal() {
         onSuccess={handleCreateSuccess}
         onRefresh={handleRefresh}
       />
+      <Box sx={{ height: 36 }} />
     </Container>
   );
 }

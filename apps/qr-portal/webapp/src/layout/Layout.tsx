@@ -72,7 +72,12 @@ export default function Layout() {
   return (
     <ConfirmationModalContextProvider>
       {themeData?.theme === Themes.XMAS_THEME && (
-        <Snowfall color={theme.palette.fill.xmas.active} images={snowflake} radius={[5, 20]} />
+        <Snowfall
+          color={theme.palette.fill.xmas.active}
+          images={snowflake}
+          radius={[4, 16]}
+          snowflakeCount={80}
+        />
       )}
 
       <Box
