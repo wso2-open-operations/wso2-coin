@@ -45,7 +45,6 @@ import {
   ToggleButtonGroup,
   Tooltip,
   Typography,
-  alpha,
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -228,6 +227,15 @@ export default function QrPortal() {
     dispatch(fetchQrCodes({ limit, offset }));
   };
 
+  const getDeletePermission = (qr: ConferenceQrCode, loggedInEmail: string) => {
+    const isDeleteDisabled =
+      !qr.createdBy || !loggedInEmail || qr.createdBy.toLowerCase() !== loggedInEmail;
+    const deleteTooltipTitle = isDeleteDisabled
+      ? "You don't have permission to delete this"
+      : "Delete QR Code";
+    return { isDeleteDisabled, deleteTooltipTitle };
+  };
+
   // DataGrid columns for list view
   const loggedInEmail = userInfo?.workEmail?.toLowerCase() ?? "";
 
@@ -354,11 +362,7 @@ export default function QrPortal() {
       sortable: false,
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
-        const isDeleteDisabled =
-          !qr.createdBy || !loggedInEmail || qr.createdBy.toLowerCase() !== loggedInEmail;
-        const deleteTooltipTitle = isDeleteDisabled
-          ? "You don't have permission to delete this"
-          : "Delete QR Code";
+        const { isDeleteDisabled, deleteTooltipTitle } = getDeletePermission(qr, loggedInEmail);
 
         return (
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", height: "100%" }}>
@@ -516,11 +520,10 @@ export default function QrPortal() {
                   ? sessions.find((s) => s.id === sessionInfo.sessionId)
                   : null;
 
-              const isDeleteDisabled =
-                !qr.createdBy || !loggedInEmail || qr.createdBy.toLowerCase() !== loggedInEmail;
-              const deleteTooltipTitle = isDeleteDisabled
-                ? "You don't have permission to delete this"
-                : "Delete QR Code";
+              const { isDeleteDisabled, deleteTooltipTitle } = getDeletePermission(
+                qr,
+                loggedInEmail,
+              );
 
               return (
                 <Grid size={{ xs: 12, sm: 6, md: 4 }} key={qr.qrId}>
