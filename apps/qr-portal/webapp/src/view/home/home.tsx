@@ -322,7 +322,7 @@ export default function QrPortal() {
       flex: 1.2,
       minWidth: 180,
       valueGetter: (_value: any, row: ConferenceQrCode) => {
-        return row?.createdBy || "";
+        return row?.createdBy || "Unknown";
       },
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
