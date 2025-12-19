@@ -372,8 +372,9 @@ export default function QrPortal() {
               </IconButton>
             </Tooltip>
             <Tooltip title={deleteTooltipTitle} arrow enterDelay={300}>
-              <span
-                style={{
+              <Box
+                component="span"
+                sx={{
                   display: "inline-flex",
                   cursor: isDeleteDisabled ? "not-allowed" : "pointer",
                 }}
@@ -386,7 +387,7 @@ export default function QrPortal() {
                 >
                   <DeleteIcon />
                 </IconButton>
-              </span>
+              </Box>
             </Tooltip>
           </Box>
         );
@@ -559,8 +560,9 @@ export default function QrPortal() {
                           sx={{ fontWeight: 600 }}
                         />
                         <Tooltip title={deleteTooltipTitle} arrow>
-                          <span
-                            style={{
+                          <Box
+                            component="span"
+                            sx={{
                               display: "inline-flex",
                               cursor: isDeleteDisabled ? "not-allowed" : "pointer",
                             }}
@@ -574,7 +576,7 @@ export default function QrPortal() {
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
-                          </span>
+                          </Box>
                         </Tooltip>
                       </Box>
 
