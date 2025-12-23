@@ -25,8 +25,8 @@ public type CustomJwtPayload record {|
 
 # Application specific role mapping.
 public type AppRoles record {|
-    # Role for the O2 bar admin
-    string o2BarAdminRole;
+    # Role for the general admin
+    string generalAdminRole;
     # Role for the session admin
     string sessionAdminRole;
     # Role for the employee

@@ -49,8 +49,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         int[] privileges = [];
-        if authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], invokerInfo.groups) {
-            privileges.push(authorization:O2_BAR_ADMIN_PRIVILEGE);
+        if authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], invokerInfo.groups) {
+            privileges.push(authorization:GENERAL_ADMIN_PRIVILEGE);
         }
         if authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], invokerInfo.groups) {
             privileges.push(authorization:SESSION_ADMIN_PRIVILEGE);
@@ -111,10 +111,10 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isO2BarAdmin = authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], invokerInfo.groups);
+        boolean isGeneralAdmin = authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], invokerInfo.groups);
         boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], invokerInfo.groups);
         boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], invokerInfo.groups);
-        boolean hasAnyRole = isO2BarAdmin || isSessionAdmin || isEmployee;
+        boolean hasAnyRole = isGeneralAdmin || isSessionAdmin || isEmployee;
 
         if payload.info is database:QrCodeInfoSession && payload.info.eventType != database:SESSION {
             return <http:BadRequest>{
@@ -151,7 +151,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                         }
                     };
                 }
-            } else if !isO2BarAdmin {
+            } else if !isGeneralAdmin {
                 // for other email, only O2 Bar Admins are allowed
                 return <http:Forbidden>{
                     body: {
@@ -273,13 +273,13 @@ service http:InterceptableService / on new http:Listener(9090) {
             offset: offset
         };
 
-        boolean isO2BarAdmin = authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], userInfo.groups);
+        boolean isGeneralAdmin = authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], userInfo.groups);
         boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], userInfo.groups);
         boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups);
 
-        if isO2BarAdmin && isSessionAdmin {
+        if isGeneralAdmin && isSessionAdmin {
             // No filters
-        } else if isO2BarAdmin {
+        } else if isGeneralAdmin {
             filters.eventType = database:O2BAR;
         } else if isSessionAdmin {
             filters.email = userInfo.email;

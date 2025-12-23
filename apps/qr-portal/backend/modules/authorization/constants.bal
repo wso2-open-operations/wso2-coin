@@ -22,6 +22,6 @@ public const JWT_ASSERTION_HEADER = "x-jwt-assertion";
 public const PATH_QR_CODES = "qr-codes";
 
 # Privileges.
-public const O2_BAR_ADMIN_PRIVILEGE = 191;
+public const GENERAL_ADMIN_PRIVILEGE = 191;
 public const SESSION_ADMIN_PRIVILEGE = 181;
 public const EMPLOYEE_PRIVILEGE = 171;
