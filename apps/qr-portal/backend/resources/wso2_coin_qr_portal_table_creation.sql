@@ -14,11 +14,22 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
+-- Create table for conference event type table
+CREATE TABLE `conference_event_type` (
+  `category` enum('SESSION', 'O2BAR', 'GENERAL') NOT NULL,
+  `type` varchar(100) UNIQUE NOT NULL,
+  `description` varchar(500) DEFAULT NULL,
+  `default_coins` decimal(10,2) NOT NULL,
+  PRIMARY KEY (`category`),
+  UNIQUE KEY `unique_type` (`type`)
+);
+
 -- Create table to store conference QR codes
 CREATE TABLE `conference_qr` (
   `qr_id` char(36) NOT NULL,
   `info` json NOT NULL,
   `description` varchar(500) DEFAULT NULL,
+  `coins` decimal(10,2) NOT NULL,
   `created_by` varchar(100) NOT NULL,
   `created_on` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `status` enum('ACTIVE', 'DELETED') NOT NULL DEFAULT 'ACTIVE',
