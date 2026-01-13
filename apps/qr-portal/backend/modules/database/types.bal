@@ -198,7 +198,7 @@ type ConferenceEventTypeRecord record {|
     string eventTypeName;
     # Category (SESSION, O2BAR, or GENERAL)
     @sql:Column {name: "category"}
-    string category;
+    QrCodeType category;
     # Optional description
     @sql:Column {name: "description"}
     string? description = ();

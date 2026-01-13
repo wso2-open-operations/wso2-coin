@@ -176,22 +176,6 @@ isolated function fetchConferenceEventTypesQuery() returns sql:ParameterizedQuer
         ORDER BY category, type;
     `;
 
-# Build query to fetch event type by type name.
-#
-# + typeName - Event type name
-# + return - sql:ParameterizedQuery - Select query for the event type
-isolated function fetchConferenceEventTypeQuery(string typeName) returns sql:ParameterizedQuery => `
-        SELECT
-            type,
-            category,
-            description,
-            default_coins
-        FROM 
-            conference_event_type
-        WHERE 
-            type = ${typeName};
-    `;
-
 # Build query to add a new event type.
 #
 # + payload - Payload containing the event type details
