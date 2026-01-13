@@ -130,6 +130,13 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
+        if payload.info is database:QrCodeInfoGeneral && payload.info.eventType != database:GENERAL {
+            return <http:BadRequest>{
+                body: {
+                    message: string `Invalid event type. Use ${database:GENERAL} when providing a general event type name.`
+                }
+            };
+        }
 
         // Handle O2 Bar QR creation
         if payload.info is database:QrCodeInfoO2Bar {
@@ -171,6 +178,16 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        // Handle General QR creation
+        boolean isGeneralQr = payload.info is database:QrCodeInfoGeneral;
+        if isGeneralQr && !hasAnyRole {
+            return <http:Forbidden>{
+                body: {
+                    message: "You don't have permission to create General QR codes!"
+                }
+            };
+        }
+
         // Check if QR already exists
         boolean|error isQrExists = database:isQrCodeExists(payload.info);
         if isQrExists is error {
@@ -183,9 +200,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         if isQrExists {
-            string identifier = payload.info is database:QrCodeInfoO2Bar
-                ? (<database:QrCodeInfoO2Bar>payload.info).email
-                : (<database:QrCodeInfoSession>payload.info).sessionId;
+            string identifier = database:getQrCodeIdentifier(payload.info);
             return <http:BadRequest>{
                 body: {
                     message: string `QR code already exists for: ${identifier}`
@@ -198,6 +213,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         database:AddConferenceQrCodePayload dbPayload = {
             info: payload.info,
             description: payload.description,
+            coins: payload.coins,
             createdBy: invokerInfo.email
         };
 
@@ -355,6 +371,181 @@ service http:InterceptableService / on new http:Listener(9090) {
         error? deleteError = database:deleteConferenceQrCode(qr.qrId, invokerInfo.email);
         if deleteError is error {
             string customError = "Error occurred while deleting QR code!";
+            log:printError(customError, deleteError);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return http:NO_CONTENT;
+    }
+
+    # Fetch all event types.
+    #
+    # + ctx - Request context
+    # + return - Array of event types or error
+    resource function get event\-types(http:RequestContext ctx)
+        returns database:ConferenceEventType[]|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        database:ConferenceEventType[]|error eventTypes = database:fetchConferenceEventTypes();
+        if eventTypes is error {
+            string customError = "Error occurred while fetching event types!";
+            log:printError(customError, eventTypes);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return eventTypes;
+    }
+
+    # Create a new event type.
+    #
+    # + ctx - Request context
+    # + payload - Payload containing the event type details
+    # + return - Created event type or error
+    resource function post event\-types(http:RequestContext ctx, database:AddConferenceEventTypePayload payload)
+        returns http:Created|http:InternalServerError|http:BadRequest|http:Forbidden {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isGeneralAdmin = authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], invokerInfo.groups);
+        if !isGeneralAdmin {
+            return <http:Forbidden>{
+                body: {
+                    message: "Only General Admins can create event types!"
+                }
+            };
+        }
+
+        error? addError = database:addConferenceEventType(payload);
+        if addError is error {
+            string customError = "Error occurred while creating event type!";
+            log:printError(customError, addError);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return <http:Created>{
+            body: payload
+        };
+    }
+
+    # Update an event type.
+    #
+    # + ctx - Request context
+    # + typeName - Event type name to update
+    # + payload - Payload containing the updated event type details
+    # + return - Updated event type or error
+    resource function put event\-types/[string typeName](http:RequestContext ctx, database:AddConferenceEventTypePayload payload)
+        returns http:Ok|http:InternalServerError|http:NotFound|http:Forbidden {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isGeneralAdmin = authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], invokerInfo.groups);
+        if !isGeneralAdmin {
+            return <http:Forbidden>{
+                body: {
+                    message: "Only General Admins can update event types!"
+                }
+            };
+        }
+
+        error? updateError = database:updateConferenceEventType(typeName, payload);
+        if updateError is error {
+            string errorMessage = updateError.message();
+            if errorMessage == "Event type not found" {
+                return <http:NotFound>{
+                    body: {
+                        message: errorMessage
+                    }
+                };
+            }
+            string customError = "Error occurred while updating event type!";
+            log:printError(customError, updateError);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return <http:Ok>{
+            body: payload
+        };
+    }
+
+    # Delete an event type.
+    #
+    # + ctx - Request context
+    # + typeName - Event type name to delete
+    # + return - Success or error
+    resource function delete event\-types/[string typeName](http:RequestContext ctx)
+        returns http:NoContent|http:InternalServerError|http:NotFound|http:Forbidden {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isGeneralAdmin = authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], invokerInfo.groups);
+        if !isGeneralAdmin {
+            return <http:Forbidden>{
+                body: {
+                    message: "Only General Admins can delete event types!"
+                }
+            };
+        }
+
+        error? deleteError = database:deleteConferenceEventType(typeName);
+        if deleteError is error {
+            string errorMessage = deleteError.message();
+            if errorMessage == "Event type not found" {
+                return <http:NotFound>{
+                    body: {
+                        message: errorMessage
+                    }
+                };
+            }
+            string customError = "Error occurred while deleting event type!";
             log:printError(customError, deleteError);
             return <http:InternalServerError>{
                 body: {
