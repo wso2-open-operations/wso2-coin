@@ -71,8 +71,22 @@ public type QrCodeInfoO2Bar record {|
     string email;
 |};
 
-# The `info` field is a session or o2bar entry.
-public type QrCodeInfo QrCodeInfoSession|QrCodeInfoO2Bar;
+# [Database] Info entry for a general QR item.
+public type QrCodeInfoGeneral record {|
+    # Event type discriminator
+    QrCodeType eventType;
+    # Event type name when `eventType` is GENERAL
+    @constraint:String {
+        pattern: {
+            value: NONE_EMPTY_PRINTABLE_STRING_REGEX,
+            message: "The event type name should be a non-empty string with printable characters."
+        }
+    }
+    string eventTypeName;
+|};
+
+# The `info` field is a session, o2bar, or general entry.
+public type QrCodeInfo QrCodeInfoSession|QrCodeInfoO2Bar|QrCodeInfoGeneral;
 
 # [Database] ConferenceQR record.
 public type ConferenceQrCode record {|
@@ -88,6 +102,8 @@ public type ConferenceQrCode record {|
     QrCodeInfo info;
     # Optional description/note about the QR code
     string? description = ();
+    # Coin amount for this QR code
+    decimal coins;
     *AuditFields;
 |};
 
@@ -102,6 +118,9 @@ type ConferenceQrCodeRecord record {|
     # Optional description/note
     @sql:Column {name: "description"}
     string? description = ();
+    # Coin amount for this QR code
+    @sql:Column {name: "coins"}
+    decimal coins;
     # Creator email
     @sql:Column {name: "created_by"}
     string createdBy;
@@ -124,10 +143,12 @@ type CountRecord record {|
 
 # [Database] Insert record for conference QR.
 public type AddConferenceQrCodePayload record {|
-    # Session or O2BAR entry
+    # Session, O2BAR, or GENERAL entry
     QrCodeInfo info;
     # Optional description/note about the QR code
     string? description = ();
+    # Coin amount for this QR code
+    decimal coins;
     # Who created the QR
     @constraint:String {
         pattern: {
@@ -156,4 +177,50 @@ public type ConferenceQrCodeFilters record {|
     int? 'limit = DEFAULT_LIMIT;
     # Offset for pagination
     int? offset = ();
+|};
+
+# [Database] Conference event type record.
+public type ConferenceEventType record {|
+    # Event type name (unique identifier)
+    string eventTypeName;
+    # Category (SESSION, O2BAR, or GENERAL)
+    QrCodeType category;
+    # Optional description
+    string? description = ();
+    # Default coin amount for this event type
+    decimal defaultCoins;
+|};
+
+# [Database] Conference event type record (matches DB column names).
+type ConferenceEventTypeRecord record {|
+    # Event type name
+    @sql:Column {name: "type"}
+    string eventTypeName;
+    # Category (SESSION, O2BAR, or GENERAL)
+    @sql:Column {name: "category"}
+    string category;
+    # Optional description
+    @sql:Column {name: "description"}
+    string? description = ();
+    # Default coin amount
+    @sql:Column {name: "default_coins"}
+    decimal defaultCoins;
+|};
+
+# Payload for creating/updating event type.
+public type AddConferenceEventTypePayload record {|
+    # Event type name
+    @constraint:String {
+        pattern: {
+            value: NONE_EMPTY_PRINTABLE_STRING_REGEX,
+            message: "The event type name should be a non-empty string with printable characters."
+        }
+    }
+    string eventTypeName;
+    # Category (SESSION, O2BAR, or GENERAL)
+    QrCodeType category;
+    # Optional description
+    string? description = ();
+    # Default coin amount
+    decimal defaultCoins;
 |};

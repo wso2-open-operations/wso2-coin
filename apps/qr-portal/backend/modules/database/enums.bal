@@ -17,7 +17,8 @@
 # QR info types.
 public enum QrCodeType {
     SESSION,
-    O2BAR
+    O2BAR,
+    GENERAL
 };
 
 # QR code status types.
