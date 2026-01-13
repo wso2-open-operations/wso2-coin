@@ -20,11 +20,13 @@ ADD COLUMN `coins` decimal(10,2) NOT NULL
 AFTER `description`;
 
 -- Create table for conference event type table
-CREATE TABLE `conference_event_type` (
+CREATE TABLE IF NOT EXISTS `conference_event_type` (
+  `type` varchar(100) NOT NULL,
   `category` enum('SESSION', 'O2BAR', 'GENERAL') NOT NULL,
-  `type` varchar(100) UNIQUE NOT NULL,
   `description` varchar(500) DEFAULT NULL,
   `default_coins` decimal(10,2) NOT NULL,
-  PRIMARY KEY (`category`),
-  UNIQUE KEY `unique_type` (`type`)
+  PRIMARY KEY (`type`),
+  KEY `idx_category` (`category`),
+  CONSTRAINT `chk_session_type_match` CHECK (`category` != 'SESSION' OR `type` = 'SESSION'),
+  CONSTRAINT `chk_o2bar_type_match` CHECK (`category` != 'O2BAR' OR `type` = 'O2BAR')
 );
