@@ -14,7 +14,7 @@ minIdleConnections = 5
 connectTimeout = 10.0
 
 [qr_portal.authorization.authorizedRoles]
-o2BarAdminRole = ""
+generalAdminRole = ""
 sessionAdminRole = ""
 employeeRole = ""
 

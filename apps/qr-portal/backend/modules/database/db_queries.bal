@@ -28,6 +28,7 @@ isolated function addConferenceQrCodeQuery(string qrId, AddConferenceQrCodePaylo
             qr_id,
             info,
             description,
+            coins,
             created_by
         )
         VALUES
@@ -35,6 +36,7 @@ isolated function addConferenceQrCodeQuery(string qrId, AddConferenceQrCodePaylo
             ${qrId},
             ${payload.info.toJsonString()},
             ${payload.description},
+            ${payload.coins},
             ${createdBy}
         );
     `;
@@ -48,6 +50,7 @@ isolated function fetchConferenceQrCodeQuery(string qrId) returns sql:Parameteri
             qr_id,
             info,
             description,
+            coins,
             created_by,
             created_on,
             status
@@ -69,6 +72,7 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
             qr_id,
             info,
             description,
+            coins,
             created_by,
             created_on,
             status,
@@ -132,9 +136,14 @@ isolated function checkIsQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:Parame
         FROM conference_qr
         WHERE `;
 
-    sql:ParameterizedQuery whereClause = qrInfo is QrCodeInfoO2Bar
-        ? `JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${qrInfo.email}`
-        : `JSON_UNQUOTE(JSON_EXTRACT(info, '$.sessionId')) = ${qrInfo.sessionId}`;
+    sql:ParameterizedQuery whereClause;
+    if qrInfo is QrCodeInfoO2Bar {
+        whereClause = `JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${qrInfo.email}`;
+    } else if qrInfo is QrCodeInfoGeneral {
+        whereClause = `JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventTypeName')) = ${qrInfo.eventTypeName}`;
+    } else {
+        whereClause = `JSON_UNQUOTE(JSON_EXTRACT(info, '$.sessionId')) = ${qrInfo.sessionId}`;
+    }
 
     return sql:queryConcat(mainQuery, whereClause, ` AND status = ${ACTIVE} LIMIT 1`);
 }
@@ -151,4 +160,81 @@ isolated function deleteConferenceQrCodeQuery(string qrId, string deletedBy) ret
             updated_on = CURRENT_TIMESTAMP(6)
         WHERE qr_id = ${qrId}
             AND status = ${ACTIVE}
+    `;
+
+# Build query to fetch all event types.
+#
+# + return - sql:ParameterizedQuery - Select query for all event types
+isolated function fetchConferenceEventTypesQuery() returns sql:ParameterizedQuery => `
+        SELECT
+            type,
+            category,
+            description,
+            default_coins
+        FROM 
+            conference_event_type
+        ORDER BY category, type;
+    `;
+
+# Build query to fetch event type by type name.
+#
+# + typeName - Event type name
+# + return - sql:ParameterizedQuery - Select query for the event type
+isolated function fetchConferenceEventTypeQuery(string typeName) returns sql:ParameterizedQuery => `
+        SELECT
+            type,
+            category,
+            description,
+            default_coins
+        FROM 
+            conference_event_type
+        WHERE 
+            type = ${typeName};
+    `;
+
+# Build query to add a new event type.
+#
+# + payload - Payload containing the event type details
+# + return - sql:ParameterizedQuery - Insert query for the new event type
+isolated function addConferenceEventTypeQuery(AddConferenceEventTypePayload payload) returns sql:ParameterizedQuery
+    => `
+        INSERT INTO conference_event_type
+        (
+            type,
+            category,
+            description,
+            default_coins
+        )
+        VALUES
+        (
+            ${payload.eventTypeName},
+            ${payload.category},
+            ${payload.description},
+            ${payload.defaultCoins}
+        );
+    `;
+
+# Build query to update an event type.
+#
+# + typeName - Event type name to update
+# + payload - Payload containing the updated event type details
+# + return - sql:ParameterizedQuery - Update query for the event type
+isolated function updateConferenceEventTypeQuery(string typeName, AddConferenceEventTypePayload payload) returns sql:ParameterizedQuery
+    => `
+        UPDATE conference_event_type
+        SET
+            category = ${payload.category},
+            description = ${payload.description},
+            default_coins = ${payload.defaultCoins}
+        WHERE 
+            type = ${typeName};
+    `;
+
+# Build query to delete an event type.
+#
+# + typeName - Event type name to delete
+# + return - sql:ParameterizedQuery - Delete query for the event type
+isolated function deleteConferenceEventTypeQuery(string typeName) returns sql:ParameterizedQuery => `
+        DELETE FROM conference_event_type
+        WHERE type = ${typeName};
     `;
