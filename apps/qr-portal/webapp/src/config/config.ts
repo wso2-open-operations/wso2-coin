@@ -46,5 +46,6 @@ export const AppConfig = {
     sessions: SERVICE_BASE_URL + "/sessions",
     qrCodes: SERVICE_BASE_URL + "/qr-codes",
     appConfig: SERVICE_BASE_URL + "/app-config",
+    eventTypes: SERVICE_BASE_URL + "/event-types",
   },
 };
