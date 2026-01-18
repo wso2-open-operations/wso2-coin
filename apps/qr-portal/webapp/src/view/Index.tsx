@@ -17,8 +17,10 @@ import { lazy } from "react";
 
 const home = lazy(() => import("@view/home/home"));
 const appConfig = lazy(() => import("@view/appConfig/appConfig"));
+const eventTypes = lazy(() => import("@view/eventTypes/eventTypes"));
 
 export const View = {
   home,
   appConfig,
+  eventTypes,
 };
