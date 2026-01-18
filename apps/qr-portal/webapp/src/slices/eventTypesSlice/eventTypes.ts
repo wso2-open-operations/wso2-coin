@@ -76,9 +76,15 @@ export const createEventType = createAsyncThunk(
   "eventTypes/createEventType",
   async (eventType: Omit<ConferenceEventType, "eventTypeName"> & { eventTypeName: string }, { dispatch, rejectWithValue }) => {
     try {
+      APIService.getCancelToken().cancel();
+      const newCancelTokenSource = APIService.updateCancelToken();
+
       const response = await APIService.getInstance().post<ConferenceEventType>(
         AppConfig.serviceUrls.eventTypes,
         eventType,
+        {
+          cancelToken: newCancelTokenSource.token,
+        },
       );
       dispatch(
         enqueueSnackbarMessage({
@@ -135,9 +141,15 @@ export const updateEventType = createAsyncThunk(
         defaultCoins: payload.defaultCoins !== undefined ? payload.defaultCoins : currentEventType.defaultCoins,
       };
 
+      APIService.getCancelToken().cancel();
+      const newCancelTokenSource = APIService.updateCancelToken();
+
       const response = await APIService.getInstance().put<ConferenceEventType>(
         `${AppConfig.serviceUrls.eventTypes}/${encodeURIComponent(payload.eventTypeName)}`,
         updatePayload,
+        {
+          cancelToken: newCancelTokenSource.token,
+        },
       );
       dispatch(
         enqueueSnackbarMessage({
@@ -169,8 +181,14 @@ export const deleteEventType = createAsyncThunk(
   "eventTypes/deleteEventType",
   async (eventTypeName: string, { dispatch, rejectWithValue }) => {
     try {
+      APIService.getCancelToken().cancel();
+      const newCancelTokenSource = APIService.updateCancelToken();
+
       await APIService.getInstance().delete(
         `${AppConfig.serviceUrls.eventTypes}/${encodeURIComponent(eventTypeName)}`,
+        {
+          cancelToken: newCancelTokenSource.token,
+        },
       );
       dispatch(
         enqueueSnackbarMessage({

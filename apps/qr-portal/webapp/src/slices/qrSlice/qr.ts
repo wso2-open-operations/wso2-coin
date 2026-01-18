@@ -47,12 +47,17 @@ export const fetchQrCodes = createAsyncThunk(
   "qr/fetchQrCodes",
   async (params: { limit?: number; offset?: number }, { dispatch, rejectWithValue }) => {
     try {
+      APIService.getCancelToken().cancel();
+      const newCancelTokenSource = APIService.updateCancelToken();
+
       const queryParams = new URLSearchParams();
       if (params.limit) queryParams.append("limit", params.limit.toString());
       if (params.offset) queryParams.append("offset", params.offset.toString());
 
       const url = `${AppConfig.serviceUrls.qrCodes}?${queryParams.toString()}`;
-      const response = await APIService.getInstance().get<ConferenceQrCodesResponse>(url);
+      const response = await APIService.getInstance().get<ConferenceQrCodesResponse>(url, {
+        cancelToken: newCancelTokenSource.token,
+      });
       return response.data;
     } catch (error) {
       if (axios.isCancel(error)) {
@@ -77,9 +82,15 @@ export const createQrCode = createAsyncThunk(
   "qr/createQrCode",
   async (payload: CreateQrCodePayload, { dispatch, rejectWithValue }) => {
     try {
+      APIService.getCancelToken().cancel();
+      const newCancelTokenSource = APIService.updateCancelToken();
+
       const response = await APIService.getInstance().post<{ qrId: string }>(
         AppConfig.serviceUrls.qrCodes,
         payload,
+        {
+          cancelToken: newCancelTokenSource.token,
+        },
       );
       dispatch(
         enqueueSnackbarMessage({
@@ -115,7 +126,12 @@ export const deleteQrCode = createAsyncThunk(
   "qr/deleteQrCode",
   async (qrId: string, { dispatch, rejectWithValue }) => {
     try {
-      await APIService.getInstance().delete(`${AppConfig.serviceUrls.qrCodes}/${qrId}`);
+      APIService.getCancelToken().cancel();
+      const newCancelTokenSource = APIService.updateCancelToken();
+
+      await APIService.getInstance().delete(`${AppConfig.serviceUrls.qrCodes}/${qrId}`, {
+        cancelToken: newCancelTokenSource.token,
+      });
       dispatch(
         enqueueSnackbarMessage({
           message: SnackMessage.success.qrCodeDeleted,

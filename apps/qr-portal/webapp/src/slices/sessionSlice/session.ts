@@ -41,8 +41,14 @@ export const fetchSessions = createAsyncThunk(
   "session/fetchSessions",
   async (_, { dispatch, rejectWithValue }) => {
     try {
+      APIService.getCancelToken().cancel();
+      const newCancelTokenSource = APIService.updateCancelToken();
+
       const response = await APIService.getInstance().get<Session[]>(
         AppConfig.serviceUrls.sessions,
+        {
+          cancelToken: newCancelTokenSource.token,
+        },
       );
       return response.data;
     } catch (error) {
