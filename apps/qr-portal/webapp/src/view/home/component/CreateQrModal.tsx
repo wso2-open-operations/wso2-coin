@@ -49,6 +49,15 @@ interface CreateQrModalProps {
   onRefresh?: () => void;
 }
 
+interface CreateQrFormValues {
+  eventType: QrCodeEventType;
+  email: string;
+  sessionId: string;
+  eventTypeName: string;
+  coins: number;
+  description: string;
+}
+
 const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh }) => {
   const dispatch = useAppDispatch();
   const { roles } = useAppSelector((state: RootState) => state.auth);
@@ -187,7 +196,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     return `${presenters[0]} & ${presenters.length - 1} more`;
   };
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: CreateQrFormValues) => {
     let info;
     if (values.eventType === QrCodeEventType.SESSION) {
       info = {
