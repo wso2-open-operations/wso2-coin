@@ -106,6 +106,10 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
         filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${filters.eventType}`);
     }
 
+    if filters.excludeEventType is QrCodeType {
+        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) != ${filters.excludeEventType}`);
+    }
+
     if filterQueries.length() > 0 {
         mainQuery = buildSqlSelectQuery(mainQuery, filterQueries);
     }
@@ -176,6 +180,22 @@ isolated function fetchConferenceEventTypesQuery() returns sql:ParameterizedQuer
         ORDER BY category, type;
     `;
 
+# Build query to fetch event type by name.
+#
+# + typeName - Event type name to fetch
+# + return - sql:ParameterizedQuery - Select query for the event type
+isolated function fetchConferenceEventTypeByNameQuery(string typeName) returns sql:ParameterizedQuery => `
+        SELECT
+            type,
+            category,
+            description,
+            default_coins
+        FROM 
+            conference_event_type
+        WHERE 
+            type = ${typeName};
+    `;
+
 # Build query to add a new event type.
 #
 # + payload - Payload containing the event type details
@@ -202,12 +222,11 @@ isolated function addConferenceEventTypeQuery(AddConferenceEventTypePayload payl
 #
 # + typeName - Event type name to update
 # + payload - Payload containing the updated event type details
-# + return - sql:ParameterizedQuery - Update query for the event type
+# + return - sql:ParameterizedQuery - Update query for event type
 isolated function updateConferenceEventTypeQuery(string typeName, AddConferenceEventTypePayload payload) returns sql:ParameterizedQuery
     => `
         UPDATE conference_event_type
         SET
-            category = ${payload.category},
             description = ${payload.description},
             default_coins = ${payload.defaultCoins}
         WHERE 
