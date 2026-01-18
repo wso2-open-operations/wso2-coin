@@ -32,7 +32,7 @@ export enum State {
 export enum Role {
   ADMIN = "ADMIN",
   EMPLOYEE = "EMPLOYEE",
-  O2_BAR_ADMIN = "O2_BAR_ADMIN",
+  GENERAL_ADMIN = "GENERAL_ADMIN",
   SESSION_ADMIN = "SESSION_ADMIN",
 }
 
@@ -105,6 +105,7 @@ export interface RouteObjectWithRole extends NonIndexRouteObject {
 export enum QrCodeEventType {
   SESSION = "SESSION",
   O2BAR = "O2BAR",
+  GENERAL = "GENERAL",
 }
 
 export interface QrCodeInfoSession {
@@ -117,19 +118,33 @@ export interface QrCodeInfoO2Bar {
   email: string;
 }
 
-export type QrCodeInfo = QrCodeInfoSession | QrCodeInfoO2Bar;
+export interface QrCodeInfoGeneral {
+  eventType: "GENERAL";
+  eventTypeName: string;
+}
+
+export type QrCodeInfo = QrCodeInfoSession | QrCodeInfoO2Bar | QrCodeInfoGeneral;
 
 export interface ConferenceQrCode {
   qrId: string;
   info: QrCodeInfo;
   description?: string;
+  coins: number;
   createdBy: string;
   createdOn: string;
+}
+
+export interface ConferenceEventType {
+  eventTypeName: string;
+  category: "SESSION" | "O2BAR" | "GENERAL";
+  description?: string;
+  defaultCoins: number;
 }
 
 export interface CreateQrCodePayload {
   info: QrCodeInfo;
   description?: string;
+  coins: number;
 }
 
 export interface ConferenceQrCodesResponse {
