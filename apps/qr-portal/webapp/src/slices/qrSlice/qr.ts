@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
 
 import { State } from "@/types/types";
 import { ConferenceQrCode, ConferenceQrCodesResponse, CreateQrCodePayload } from "@/types/types";
@@ -53,14 +54,21 @@ export const fetchQrCodes = createAsyncThunk(
       const url = `${AppConfig.serviceUrls.qrCodes}?${queryParams.toString()}`;
       const response = await APIService.getInstance().get<ConferenceQrCodesResponse>(url);
       return response.data;
-    } catch (error: any) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: SnackMessage.error.fetchQrCodes,
-          type: "error",
-        }),
-      );
-      return rejectWithValue(error.message || "Failed to fetch QR codes");
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        return rejectWithValue("Request Cancelled");
+      }
+
+      if (axios.isAxiosError(error)) {
+        dispatch(
+          enqueueSnackbarMessage({
+            message: SnackMessage.error.fetchQrCodes,
+            type: "error",
+          }),
+        );
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch QR codes");
+      }
+      return rejectWithValue("An unexpected error occurred");
     }
   },
 );
@@ -80,18 +88,25 @@ export const createQrCode = createAsyncThunk(
         }),
       );
       return response.data;
-    } catch (error: any) {
-      const errorMessage =
-        error.response?.status === 400
-          ? SnackMessage.error.duplicateQrCode
-          : SnackMessage.error.createQrCode;
-      dispatch(
-        enqueueSnackbarMessage({
-          message: errorMessage,
-          type: "error",
-        }),
-      );
-      return rejectWithValue(error.message || "Failed to create QR code");
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        return rejectWithValue("Request Cancelled");
+      }
+
+      if (axios.isAxiosError(error)) {
+        const errorMessage =
+          error.response?.status === 400
+            ? SnackMessage.error.duplicateQrCode
+            : SnackMessage.error.createQrCode;
+        dispatch(
+          enqueueSnackbarMessage({
+            message: errorMessage,
+            type: "error",
+          }),
+        );
+        return rejectWithValue(error.response?.data?.message || "Failed to create QR code");
+      }
+      return rejectWithValue("An unexpected error occurred");
     }
   },
 );
@@ -108,14 +123,21 @@ export const deleteQrCode = createAsyncThunk(
         }),
       );
       return qrId;
-    } catch (error: any) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: SnackMessage.error.deleteQrCode,
-          type: "error",
-        }),
-      );
-      return rejectWithValue(error.message || "Failed to delete QR code");
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        return rejectWithValue("Request Cancelled");
+      }
+
+      if (axios.isAxiosError(error)) {
+        dispatch(
+          enqueueSnackbarMessage({
+            message: SnackMessage.error.deleteQrCode,
+            type: "error",
+          }),
+        );
+        return rejectWithValue(error.response?.data?.message || "Failed to delete QR code");
+      }
+      return rejectWithValue("An unexpected error occurred");
     }
   },
 );

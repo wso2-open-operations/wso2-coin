@@ -87,18 +87,25 @@ export const createEventType = createAsyncThunk(
         }),
       );
       return response.data;
-    } catch (error: any) {
-      const errorMessage =
-        error.response?.status === 400
-          ? SnackMessage.error.duplicateEventType
-          : SnackMessage.error.createEventType;
-      dispatch(
-        enqueueSnackbarMessage({
-          message: errorMessage,
-          type: "error",
-        }),
-      );
-      return rejectWithValue(error.response?.data?.message || "Failed to create event type");
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        return rejectWithValue("Request Cancelled");
+      }
+
+      if (axios.isAxiosError(error)) {
+        const errorMessage =
+          error.response?.status === 400
+            ? SnackMessage.error.duplicateEventType
+            : SnackMessage.error.createEventType;
+        dispatch(
+          enqueueSnackbarMessage({
+            message: errorMessage,
+            type: "error",
+          }),
+        );
+        return rejectWithValue(error.response?.data?.message || "Failed to create event type");
+      }
+      return rejectWithValue("An unexpected error occurred");
     }
   },
 );
@@ -139,14 +146,21 @@ export const updateEventType = createAsyncThunk(
         }),
       );
       return response.data;
-    } catch (error: any) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: SnackMessage.error.updateEventType,
-          type: "error",
-        }),
-      );
-      return rejectWithValue(error.response?.data?.message || "Failed to update event type");
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        return rejectWithValue("Request Cancelled");
+      }
+
+      if (axios.isAxiosError(error)) {
+        dispatch(
+          enqueueSnackbarMessage({
+            message: SnackMessage.error.updateEventType,
+            type: "error",
+          }),
+        );
+        return rejectWithValue(error.response?.data?.message || "Failed to update event type");
+      }
+      return rejectWithValue("An unexpected error occurred");
     }
   },
 );
@@ -165,14 +179,21 @@ export const deleteEventType = createAsyncThunk(
         }),
       );
       return eventTypeName;
-    } catch (error: any) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: SnackMessage.error.deleteEventType,
-          type: "error",
-        }),
-      );
-      return rejectWithValue(error.response?.data?.message || "Failed to delete event type");
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        return rejectWithValue("Request Cancelled");
+      }
+
+      if (axios.isAxiosError(error)) {
+        dispatch(
+          enqueueSnackbarMessage({
+            message: SnackMessage.error.deleteEventType,
+            type: "error",
+          }),
+        );
+        return rejectWithValue(error.response?.data?.message || "Failed to delete event type");
+      }
+      return rejectWithValue("An unexpected error occurred");
     }
   },
 );
