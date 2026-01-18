@@ -377,8 +377,8 @@ export default function EventTypesManagement() {
               </DialogContent>
               <DialogActions>
                 <Button onClick={() => setCreateModalOpen(false)}>Cancel</Button>
-                <Button type="submit" variant="contained" disabled={state === "loading"}>
-                  {state === "loading" ? <CircularProgress size={20} /> : "Create"}
+                <Button type="submit" variant="contained" disabled={state === State.loading}>
+                  {state === State.loading ? <CircularProgress size={20} /> : "Create"}
                 </Button>
               </DialogActions>
             </Form>
@@ -466,8 +466,8 @@ export default function EventTypesManagement() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" variant="contained" disabled={state === "loading"}>
-                    {state === "loading" ? <CircularProgress size={20} /> : "Update"}
+                  <Button type="submit" variant="contained" disabled={state === State.loading}>
+                    {state === State.loading ? <CircularProgress size={20} /> : "Update"}
                   </Button>
                 </DialogActions>
               </Form>

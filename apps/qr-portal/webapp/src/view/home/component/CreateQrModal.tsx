@@ -35,7 +35,7 @@ import * as Yup from "yup";
 
 import React, { useEffect, useMemo, useState } from "react";
 
-import { CreateQrCodePayload, QrCodeEventType } from "@/types/types";
+import { CreateQrCodePayload, QrCodeEventType, State } from "@/types/types";
 import { Role } from "@slices/authSlice/auth";
 import { fetchEventTypes } from "@slices/eventTypesSlice/eventTypes";
 import { createQrCode } from "@slices/qrSlice/qr";
@@ -574,8 +574,8 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
               {!createdQrId && (
                 <DialogActions>
                   <Button onClick={handleClose}>Cancel</Button>
-                  <Button type="submit" variant="contained" disabled={state === "loading"}>
-                    {state === "loading" ? <CircularProgress size={20} /> : "Create"}
+                  <Button type="submit" variant="contained" disabled={state === State.loading}>
+                    {state === State.loading ? <CircularProgress size={20} /> : "Create"}
                   </Button>
                 </DialogActions>
               )}
