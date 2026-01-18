@@ -95,7 +95,12 @@ export default function EventTypesManagement() {
   });
 
   const handleCreate = async (values: EventTypeFormValues) => {
-    const result = await dispatch(createEventType(values));
+    const result = await dispatch(
+      createEventType({
+        ...values,
+        defaultCoins: Number(values.defaultCoins),
+      }),
+    );
     if (createEventType.fulfilled.match(result)) {
       setCreateModalOpen(false);
       dispatch(fetchEventTypes());
@@ -113,7 +118,7 @@ export default function EventTypesManagement() {
       updateEventType({
         eventTypeName: editingEventType.eventTypeName,
         description: values.description,
-        defaultCoins: values.defaultCoins,
+        defaultCoins: Number(values.defaultCoins),
       }),
     );
     if (updateEventType.fulfilled.match(result)) {

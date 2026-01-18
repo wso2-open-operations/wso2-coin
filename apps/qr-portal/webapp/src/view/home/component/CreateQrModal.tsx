@@ -218,7 +218,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     const payload: CreateQrCodePayload = {
       info,
       description: values.description || undefined,
-      coins: values.coins,
+      coins: Number(values.coins),
     };
 
     const result = await dispatch(createQrCode(payload));
