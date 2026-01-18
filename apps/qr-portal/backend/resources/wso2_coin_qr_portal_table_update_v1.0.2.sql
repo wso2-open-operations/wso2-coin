@@ -30,3 +30,8 @@ CREATE TABLE IF NOT EXISTS `conference_event_type` (
   CONSTRAINT `chk_session_type_match` CHECK (`category` != 'SESSION' OR `type` = 'SESSION'),
   CONSTRAINT `chk_o2bar_type_match` CHECK (`category` != 'O2BAR' OR `type` = 'O2BAR')
 );
+
+-- Insert system event types
+INSERT INTO `conference_event_type` (`type`, `category`, `description`, `default_coins`) VALUES
+('SESSION', 'SESSION', 'Session QR code', 10.00),
+('O2BAR', 'O2BAR', 'O2 Bar QR code', 5.00);

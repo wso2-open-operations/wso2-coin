@@ -26,6 +26,11 @@ CREATE TABLE `conference_event_type` (
   CONSTRAINT `chk_o2bar_type_match` CHECK (`category` != 'O2BAR' OR `type` = 'O2BAR')
 );
 
+-- Insert system event types (SESSION and O2BAR)
+INSERT INTO `conference_event_type` (`type`, `category`, `description`, `default_coins`) VALUES
+('SESSION', 'SESSION', 'Session QR code', 10.00),
+('O2BAR', 'O2BAR', 'O2 Bar QR code', 5.00);
+
 -- Create table to store conference QR codes
 CREATE TABLE `conference_qr` (
   `qr_id` char(36) NOT NULL,
