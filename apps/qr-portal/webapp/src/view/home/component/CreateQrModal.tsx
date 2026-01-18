@@ -37,6 +37,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { CreateQrCodePayload, QrCodeEventType } from "@/types/types";
 import { Role } from "@slices/authSlice/auth";
+import { fetchEventTypes } from "@slices/eventTypesSlice/eventTypes";
 import { createQrCode } from "@slices/qrSlice/qr";
 import { fetchSessions } from "@slices/sessionSlice/session";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
@@ -53,13 +54,17 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
   const { roles } = useAppSelector((state: RootState) => state.auth);
   const { userInfo } = useAppSelector((state: RootState) => state.user);
   const { sessions } = useAppSelector((state: RootState) => state.session);
+  const { eventTypes } = useAppSelector((state: RootState) => state.eventTypes);
   const { state } = useAppSelector((state: RootState) => state.qr);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [createdQrId, setCreatedQrId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open && roles.includes(Role.SESSION_ADMIN)) {
-      dispatch(fetchSessions());
+    if (open) {
+      dispatch(fetchEventTypes());
+      if (roles.includes(Role.SESSION_ADMIN)) {
+        dispatch(fetchSessions());
+      }
     }
   }, [open, dispatch, roles]);
 
@@ -68,27 +73,90 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     setCreatedQrId(null);
   };
 
-  const isO2BarAdmin = roles.includes(Role.O2_BAR_ADMIN);
+  const isGeneralAdmin = roles.includes(Role.GENERAL_ADMIN);
   const isSessionAdmin = roles.includes(Role.SESSION_ADMIN);
+  const isEmployee = roles.includes(Role.EMPLOYEE);
 
+  // Filter event types based on user role
+  const availableEventTypes = useMemo(() => {
+    return eventTypes.filter((eventType) => {
+      if (eventType.category === "SESSION") {
+        return isSessionAdmin;
+      }
+      if (eventType.category === "O2BAR") {
+        return isGeneralAdmin || isSessionAdmin || isEmployee;
+      }
+      if (eventType.category === "GENERAL") {
+        return isGeneralAdmin;
+      }
+      return false;
+    });
+  }, [eventTypes, isSessionAdmin, isGeneralAdmin, isEmployee]);
+
+  // Group event types by category for dropdown
   const eventTypeOptions = useMemo(() => {
-    const options: { value: QrCodeEventType; label: string }[] = [
-      { value: QrCodeEventType.O2BAR, label: "O2 Bar" },
-    ];
+    const options: Array<{
+      value: QrCodeEventType;
+      label: string;
+      category: "SESSION" | "O2BAR" | "GENERAL";
+    }> = [];
 
-    if (isSessionAdmin) {
-      options.push({ value: QrCodeEventType.SESSION, label: "Session" });
+    if (isSessionAdmin && eventTypes.some((et) => et.category === "SESSION")) {
+      options.push({ value: QrCodeEventType.SESSION, label: "Session", category: "SESSION" });
+    }
+
+    if (
+      (isGeneralAdmin || isSessionAdmin || isEmployee) &&
+      eventTypes.some((et) => et.category === "O2BAR")
+    ) {
+      options.push({ value: QrCodeEventType.O2BAR, label: "O2 Bar", category: "O2BAR" });
+    }
+
+    if (isGeneralAdmin) {
+      const generalTypes = eventTypes.filter((et) => et.category === "GENERAL");
+      if (generalTypes.length > 0) {
+        options.push({ value: QrCodeEventType.GENERAL, label: "General", category: "GENERAL" });
+      }
     }
 
     return options;
-  }, [isSessionAdmin]);
+  }, [eventTypes, isSessionAdmin, isGeneralAdmin, isEmployee]);
 
   const eventTypeSelectDisabled = eventTypeOptions.length === 1;
 
-  // Determine default event type based on role
   const getDefaultEventType = (): QrCodeEventType => {
-    if (isSessionAdmin) return QrCodeEventType.SESSION;
-    return QrCodeEventType.O2BAR;
+    if (isSessionAdmin && eventTypes.some((et) => et.category === "SESSION")) {
+      return QrCodeEventType.SESSION;
+    }
+    if (
+      (isGeneralAdmin || isSessionAdmin || isEmployee) &&
+      eventTypes.some((et) => et.category === "O2BAR")
+    ) {
+      return QrCodeEventType.O2BAR;
+    }
+    const generalType = eventTypes.find((et) => et.category === "GENERAL");
+    if (generalType) {
+      return QrCodeEventType.GENERAL;
+    }
+    return eventTypeOptions[0]?.value ?? QrCodeEventType.O2BAR;
+  };
+
+  const getDefaultCoins = (eventType: QrCodeEventType, eventTypeName?: string): number => {
+    if (eventType === QrCodeEventType.GENERAL && eventTypeName) {
+      const type = eventTypes.find(
+        (et) => et.category === "GENERAL" && et.eventTypeName === eventTypeName,
+      );
+      return type?.defaultCoins ?? 0;
+    }
+    if (eventType === QrCodeEventType.SESSION) {
+      const type = eventTypes.find((et) => et.category === "SESSION");
+      return type?.defaultCoins ?? 0;
+    }
+    if (eventType === QrCodeEventType.O2BAR) {
+      const type = eventTypes.find((et) => et.category === "O2BAR");
+      return type?.defaultCoins ?? 0;
+    }
+    return 0;
   };
 
   const validationSchema = Yup.object().shape({
@@ -103,6 +171,12 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       then: (schema) => schema.required("Session is required"),
       otherwise: (schema) => schema.notRequired(),
     }),
+    eventTypeName: Yup.string().when("eventType", {
+      is: QrCodeEventType.GENERAL,
+      then: (schema) => schema.required("Event type name is required"),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    coins: Yup.number().required("Coins is required").min(0, "Coins must be a positive number"),
     description: Yup.string(),
   });
 
@@ -114,18 +188,28 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
   };
 
   const handleSubmit = async (values: any) => {
+    let info;
+    if (values.eventType === QrCodeEventType.SESSION) {
+      info = {
+        eventType: "SESSION" as const,
+        sessionId: values.sessionId,
+      };
+    } else if (values.eventType === QrCodeEventType.GENERAL) {
+      info = {
+        eventType: "GENERAL" as const,
+        eventTypeName: values.eventTypeName,
+      };
+    } else {
+      info = {
+        eventType: "O2BAR" as const,
+        email: values.email,
+      };
+    }
+
     const payload: CreateQrCodePayload = {
-      info:
-        values.eventType === QrCodeEventType.SESSION
-          ? {
-              eventType: "SESSION",
-              sessionId: values.sessionId,
-            }
-          : {
-              eventType: "O2BAR",
-              email: values.email,
-            },
+      info,
       description: values.description || undefined,
+      coins: values.coins,
     };
 
     const result = await dispatch(createQrCode(payload));
@@ -164,10 +248,26 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     onClose();
   };
 
+  const getInitialEventTypeName = (): string => {
+    const generalType = availableEventTypes.find((et) => et.category === "GENERAL");
+    return generalType?.eventTypeName ?? "";
+  };
+
+  const getInitialCoins = (): number => {
+    const defaultEventType = eventTypeOptions[0]?.value ?? getDefaultEventType();
+    if (defaultEventType === QrCodeEventType.GENERAL) {
+      const firstGeneralType = availableEventTypes.find((et) => et.category === "GENERAL");
+      return firstGeneralType?.defaultCoins ?? 0;
+    }
+    return getDefaultCoins(defaultEventType);
+  };
+
   const initialValues = {
     eventType: eventTypeOptions[0]?.value ?? getDefaultEventType(),
     email: userInfo?.workEmail ?? "",
     sessionId: "",
+    eventTypeName: getInitialEventTypeName(),
+    coins: getInitialCoins(),
     description: "",
   };
 
@@ -186,13 +286,38 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
         enableReinitialize
       >
         {({ values, errors, touched, handleChange, handleBlur, setFieldValue }) => {
-          // Reset email to user's email when switching to O2 Bar (for non-O2 Bar Admins)
+          const canEditCoins =
+            isGeneralAdmin || (isSessionAdmin && values.eventType === QrCodeEventType.SESSION);
+
           const handleEventTypeChange = (
             e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
           ) => {
+            const newEventType = e.target.value as QrCodeEventType;
             handleChange(e);
-            if (e.target.value === QrCodeEventType.O2BAR && !isO2BarAdmin && userInfo) {
+            if (newEventType === QrCodeEventType.O2BAR && !isGeneralAdmin && userInfo) {
               setFieldValue("email", userInfo.workEmail);
+            }
+            if (newEventType === QrCodeEventType.GENERAL) {
+              const firstGeneralType = availableEventTypes.find((et) => et.category === "GENERAL");
+              if (firstGeneralType) {
+                setFieldValue("eventTypeName", firstGeneralType.eventTypeName);
+                setFieldValue("coins", firstGeneralType.defaultCoins);
+              }
+            } else {
+              setFieldValue("coins", getDefaultCoins(newEventType));
+              setFieldValue("eventTypeName", "");
+            }
+          };
+
+          const handleEventTypeNameChange = (
+            e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+          ) => {
+            handleChange(e);
+            const selectedType = eventTypes.find(
+              (et) => et.category === "GENERAL" && et.eventTypeName === e.target.value,
+            );
+            if (selectedType) {
+              setFieldValue("coins", selectedType.defaultCoins);
             }
           };
 
@@ -317,6 +442,38 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
                       ))}
                     </TextField>
 
+                    {values.eventType === QrCodeEventType.GENERAL && (
+                      <TextField
+                        fullWidth
+                        select
+                        label="General Event Type"
+                        name="eventTypeName"
+                        value={values.eventTypeName}
+                        onChange={handleEventTypeNameChange}
+                        onBlur={handleBlur}
+                        error={touched.eventTypeName && !!errors.eventTypeName}
+                        helperText={touched.eventTypeName && errors.eventTypeName}
+                        sx={{ mb: 2 }}
+                      >
+                        {availableEventTypes
+                          .filter((et) => et.category === "GENERAL")
+                          .map((et) => (
+                            <MenuItem key={et.eventTypeName} value={et.eventTypeName}>
+                              {et.eventTypeName}
+                              {et.description && (
+                                <Typography
+                                  component="span"
+                                  variant="body2"
+                                  sx={{ ml: 1, color: "text.secondary" }}
+                                >
+                                  - {et.description}
+                                </Typography>
+                              )}
+                            </MenuItem>
+                          ))}
+                      </TextField>
+                    )}
+
                     {values.eventType === QrCodeEventType.O2BAR && (
                       <TextField
                         fullWidth
@@ -330,11 +487,11 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
                         helperText={
                           touched.email && errors.email
                             ? errors.email
-                            : isO2BarAdmin
+                            : isGeneralAdmin
                               ? "Enter the email address for this O2 Bar QR code"
                               : "Your email address (cannot be changed)"
                         }
-                        disabled={!isO2BarAdmin}
+                        disabled={!isGeneralAdmin}
                         sx={{ mb: 2 }}
                       />
                     )}
@@ -376,6 +533,27 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
                         })}
                       </TextField>
                     )}
+
+                    <TextField
+                      fullWidth
+                      label="Coins"
+                      name="coins"
+                      type="number"
+                      value={values.coins}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      error={touched.coins && !!errors.coins}
+                      helperText={
+                        touched.coins && errors.coins
+                          ? errors.coins
+                          : canEditCoins
+                            ? "Number of coins to award for this QR code"
+                            : "You cannot modify the amount of coins"
+                      }
+                      inputProps={{ min: 0, step: 0.01 }}
+                      disabled={!canEditCoins}
+                      sx={{ mb: 2 }}
+                    />
 
                     <TextField
                       fullWidth
