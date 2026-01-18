@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios from "axios";
+import axios, { CancelTokenSource } from "axios";
 
 import { State } from "@/types/types";
 import { ConferenceQrCode, ConferenceQrCodesResponse, CreateQrCodePayload } from "@/types/types";
@@ -22,6 +22,11 @@ import { AppConfig } from "@config/config";
 import { SnackMessage } from "@config/constant";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { APIService } from "@utils/apiService";
+
+// Per-thunk cancel token sources
+let fetchCancelSource: CancelTokenSource | null = null;
+let createCancelSource: CancelTokenSource | null = null;
+let deleteCancelSource: CancelTokenSource | null = null;
 
 interface QrState {
   state: State;
@@ -47,8 +52,10 @@ export const fetchQrCodes = createAsyncThunk(
   "qr/fetchQrCodes",
   async (params: { limit?: number; offset?: number }, { dispatch, rejectWithValue }) => {
     try {
-      APIService.getCancelToken().cancel();
-      const newCancelTokenSource = APIService.updateCancelToken();
+      if (fetchCancelSource) {
+        fetchCancelSource.cancel();
+      }
+      fetchCancelSource = axios.CancelToken.source();
 
       const queryParams = new URLSearchParams();
       if (params.limit) queryParams.append("limit", params.limit.toString());
@@ -56,7 +63,7 @@ export const fetchQrCodes = createAsyncThunk(
 
       const url = `${AppConfig.serviceUrls.qrCodes}?${queryParams.toString()}`;
       const response = await APIService.getInstance().get<ConferenceQrCodesResponse>(url, {
-        cancelToken: newCancelTokenSource.token,
+        cancelToken: fetchCancelSource.token,
       });
       return response.data;
     } catch (error) {
@@ -82,14 +89,16 @@ export const createQrCode = createAsyncThunk(
   "qr/createQrCode",
   async (payload: CreateQrCodePayload, { dispatch, rejectWithValue }) => {
     try {
-      APIService.getCancelToken().cancel();
-      const newCancelTokenSource = APIService.updateCancelToken();
+      if (createCancelSource) {
+        createCancelSource.cancel();
+      }
+      createCancelSource = axios.CancelToken.source();
 
       const response = await APIService.getInstance().post<{ qrId: string }>(
         AppConfig.serviceUrls.qrCodes,
         payload,
         {
-          cancelToken: newCancelTokenSource.token,
+          cancelToken: createCancelSource.token,
         },
       );
       dispatch(
@@ -126,11 +135,13 @@ export const deleteQrCode = createAsyncThunk(
   "qr/deleteQrCode",
   async (qrId: string, { dispatch, rejectWithValue }) => {
     try {
-      APIService.getCancelToken().cancel();
-      const newCancelTokenSource = APIService.updateCancelToken();
+      if (deleteCancelSource) {
+        deleteCancelSource.cancel();
+      }
+      deleteCancelSource = axios.CancelToken.source();
 
       await APIService.getInstance().delete(`${AppConfig.serviceUrls.qrCodes}/${qrId}`, {
-        cancelToken: newCancelTokenSource.token,
+        cancelToken: deleteCancelSource.token,
       });
       dispatch(
         enqueueSnackbarMessage({

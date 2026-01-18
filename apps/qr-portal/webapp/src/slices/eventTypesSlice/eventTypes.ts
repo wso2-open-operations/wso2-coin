@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios from "axios";
+import axios, { CancelTokenSource } from "axios";
 
 import { State } from "@/types/types";
 import { ConferenceEventType } from "@/types/types";
@@ -22,6 +22,12 @@ import { AppConfig } from "@config/config";
 import { SnackMessage } from "@config/constant";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { APIService } from "@utils/apiService";
+
+// Per-thunk cancel token sources
+let fetchCancelSource: CancelTokenSource | null = null;
+let createCancelSource: CancelTokenSource | null = null;
+let updateCancelSource: CancelTokenSource | null = null;
+let deleteCancelSource: CancelTokenSource | null = null;
 
 interface EventTypesState {
   state: State;
@@ -41,13 +47,15 @@ export const fetchEventTypes = createAsyncThunk(
   "eventTypes/fetchEventTypes",
   async (_, { dispatch, rejectWithValue }) => {
     try {
-      APIService.getCancelToken().cancel();
-      const newCancelTokenSource = APIService.updateCancelToken();
+      if (fetchCancelSource) {
+        fetchCancelSource.cancel();
+      }
+      fetchCancelSource = axios.CancelToken.source();
 
       const response = await APIService.getInstance().get<ConferenceEventType[]>(
         AppConfig.serviceUrls.eventTypes,
         {
-          cancelToken: newCancelTokenSource.token,
+          cancelToken: fetchCancelSource.token,
         },
       );
 
@@ -76,14 +84,16 @@ export const createEventType = createAsyncThunk(
   "eventTypes/createEventType",
   async (eventType: Omit<ConferenceEventType, "eventTypeName"> & { eventTypeName: string }, { dispatch, rejectWithValue }) => {
     try {
-      APIService.getCancelToken().cancel();
-      const newCancelTokenSource = APIService.updateCancelToken();
+      if (createCancelSource) {
+        createCancelSource.cancel();
+      }
+      createCancelSource = axios.CancelToken.source();
 
       const response = await APIService.getInstance().post<ConferenceEventType>(
         AppConfig.serviceUrls.eventTypes,
         eventType,
         {
-          cancelToken: newCancelTokenSource.token,
+          cancelToken: createCancelSource.token,
         },
       );
       dispatch(
@@ -141,14 +151,16 @@ export const updateEventType = createAsyncThunk(
         defaultCoins: payload.defaultCoins !== undefined ? payload.defaultCoins : currentEventType.defaultCoins,
       };
 
-      APIService.getCancelToken().cancel();
-      const newCancelTokenSource = APIService.updateCancelToken();
+      if (updateCancelSource) {
+        updateCancelSource.cancel();
+      }
+      updateCancelSource = axios.CancelToken.source();
 
       const response = await APIService.getInstance().put<ConferenceEventType>(
         `${AppConfig.serviceUrls.eventTypes}/${encodeURIComponent(payload.eventTypeName)}`,
         updatePayload,
         {
-          cancelToken: newCancelTokenSource.token,
+          cancelToken: updateCancelSource.token,
         },
       );
       dispatch(
@@ -181,13 +193,15 @@ export const deleteEventType = createAsyncThunk(
   "eventTypes/deleteEventType",
   async (eventTypeName: string, { dispatch, rejectWithValue }) => {
     try {
-      APIService.getCancelToken().cancel();
-      const newCancelTokenSource = APIService.updateCancelToken();
+      if (deleteCancelSource) {
+        deleteCancelSource.cancel();
+      }
+      deleteCancelSource = axios.CancelToken.source();
 
       await APIService.getInstance().delete(
         `${AppConfig.serviceUrls.eventTypes}/${encodeURIComponent(eventTypeName)}`,
         {
-          cancelToken: newCancelTokenSource.token,
+          cancelToken: deleteCancelSource.token,
         },
       );
       dispatch(
