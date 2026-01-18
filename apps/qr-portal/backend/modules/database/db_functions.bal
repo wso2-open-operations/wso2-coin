@@ -126,6 +126,21 @@ public isolated function fetchConferenceEventTypes() returns ConferenceEventType
         };
 }
 
+# Fetch event type by name.
+#
+# + typeName - Event type name
+# + return - ConferenceEventType or error
+public isolated function fetchConferenceEventTypeByName(string typeName) returns ConferenceEventType|error? {
+    ConferenceEventTypeRecord|error eventType = databaseClient->queryRow(fetchConferenceEventTypeByNameQuery(typeName));
+    if eventType is error {
+        return eventType is sql:NoRowsError ? () : eventType;
+    }
+
+    return {
+        ...eventType
+    };
+}
+
 # Add new event type.
 #
 # + payload - Payload containing the event type details
@@ -144,10 +159,31 @@ public isolated function updateConferenceEventType(string typeName, AddConferenc
     if updateResult is sql:Error {
         return updateResult;
     }
-
     if updateResult.affectedRowCount <= 0 {
         return error("Event type not found");
     }
+}
+
+# Get default coins for an event type based on QR info.
+#
+# + qrInfo - QR code info to determine event type
+# + return - Default coins amount or error
+public isolated function getDefaultCoinsForQrInfo(QrCodeInfo qrInfo) returns decimal|error? {
+    string eventTypeName;
+    if qrInfo is QrCodeInfoSession {
+        eventTypeName = "SESSION";
+    } else if qrInfo is QrCodeInfoO2Bar {
+        eventTypeName = "O2BAR";
+    } else {
+        eventTypeName = qrInfo.eventTypeName;
+    }
+    
+    ConferenceEventTypeRecord|error eventType = databaseClient->queryRow(fetchConferenceEventTypeByNameQuery(eventTypeName));
+    if eventType is error {
+        return eventType is sql:NoRowsError ? () : eventType;
+    }
+    
+    return eventType.defaultCoins;
 }
 
 # Delete event type.
