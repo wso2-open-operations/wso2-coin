@@ -16,6 +16,7 @@
 import {
   Add as AddIcon,
   CalendarToday as CalendarIcon,
+  Category as CategoryIcon,
   Clear as ClearIcon,
   Delete as DeleteIcon,
   Download as DownloadIcon,
@@ -58,6 +59,7 @@ import { ConferenceQrCode, State } from "@/types/types";
 import NoSearchResults from "@assets/images/no-search-results.svg";
 import StateWithImage from "@component/ui/StateWithImage";
 import { useConfirmationModalContext } from "@context/DialogContext";
+import { fetchEventTypes } from "@slices/eventTypesSlice/eventTypes";
 import { deleteQrCode, fetchQrCodes, setLimit, setOffset } from "@slices/qrSlice/qr";
 import { fetchSessions } from "@slices/sessionSlice/session";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
@@ -76,6 +78,7 @@ export default function QrPortal() {
     (state: RootState) => state.qr,
   );
   const { sessions } = useAppSelector((state: RootState) => state.session);
+  const { eventTypes } = useAppSelector((state: RootState) => state.eventTypes);
   const { userInfo } = useAppSelector((state: RootState) => state.user);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [qrImages, setQrImages] = useState<Record<string, string>>({});
@@ -87,6 +90,8 @@ export default function QrPortal() {
     dispatch(fetchQrCodes({ limit, offset }));
     // Fetch sessions for search functionality
     dispatch(fetchSessions());
+    // Fetch event types for display
+    dispatch(fetchEventTypes());
   }, [dispatch, limit, offset]);
 
   // Update page when offset changes
@@ -209,6 +214,14 @@ export default function QrPortal() {
         }
       }
 
+      // Search in eventTypeName (for GENERAL)
+      if (qr.info.eventType === "GENERAL") {
+        const generalInfo = qr.info as { eventType: "GENERAL"; eventTypeName: string };
+        if (generalInfo.eventTypeName?.toLowerCase().includes(query)) {
+          return true;
+        }
+      }
+
       // Search in QR ID
       if (qr.qrId.toLowerCase().includes(query)) {
         return true;
@@ -236,6 +249,42 @@ export default function QrPortal() {
     return { isDeleteDisabled, deleteTooltipTitle };
   };
 
+  const toTitleCase = (str: string): string => {
+    if (str.toUpperCase() === "SESSION" || str.toUpperCase() === "O2BAR") {
+      return str.toUpperCase() === "SESSION" ? "Session" : "O2 Bar";
+    }
+    
+    const withSpaces = str.replace(/([a-z])([A-Z])/g, "$1 $2");
+    
+    return withSpaces
+      .toLowerCase()
+      .split(/[\s_-]+/)
+      .map((word) => {
+        if (/^[0-9]/.test(word) || word === "o2") {
+          return word.toUpperCase();
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      })
+      .join(" ");
+  };
+  const getEventTypeDisplayName = (qr: ConferenceQrCode): string => {
+    if (qr.info.eventType === "SESSION") {
+      const sessionType = eventTypes.find((et) => et.category === "SESSION");
+      const name = sessionType?.eventTypeName ?? "Session";
+      return toTitleCase(name);
+    }
+    if (qr.info.eventType === "O2BAR") {
+      const o2barType = eventTypes.find((et) => et.category === "O2BAR");
+      const name = o2barType?.eventTypeName ?? "O2 Bar";
+      return toTitleCase(name);
+    }
+    if (qr.info.eventType === "GENERAL") {
+      const generalInfo = qr.info as { eventType: "GENERAL"; eventTypeName: string };
+      return toTitleCase(generalInfo.eventTypeName);
+    }
+    return "Unknown";
+  };
+
   // DataGrid columns for list view
   const loggedInEmail = userInfo?.workEmail?.toLowerCase() ?? "";
 
@@ -251,6 +300,9 @@ export default function QrPortal() {
           const sessionInfo = row.info as { eventType: "SESSION"; sessionId: string };
           const session = sessions.find((s) => s.id === sessionInfo.sessionId);
           return session ? session.name : `Session ID: ${sessionInfo.sessionId}`;
+        } else if (row.info.eventType === "GENERAL") {
+          const generalInfo = row.info as { eventType: "GENERAL"; eventTypeName: string };
+          return generalInfo.eventTypeName;
         } else {
           const o2barInfo = row.info as { eventType: "O2BAR"; email: string };
           return o2barInfo.email;
@@ -258,16 +310,17 @@ export default function QrPortal() {
       },
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
-        return qr.info.eventType === "SESSION"
-          ? (() => {
-              const sessionInfo = qr.info as { eventType: "SESSION"; sessionId: string };
-              const session = sessions.find((s) => s.id === sessionInfo.sessionId);
-              return session ? session.name : `Session ID: ${sessionInfo.sessionId}`;
-            })()
-          : (() => {
-              const o2barInfo = qr.info as { eventType: "O2BAR"; email: string };
-              return o2barInfo.email;
-            })();
+        if (qr.info.eventType === "SESSION") {
+          const sessionInfo = qr.info as { eventType: "SESSION"; sessionId: string };
+          const session = sessions.find((s) => s.id === sessionInfo.sessionId);
+          return session ? session.name : `Session ID: ${sessionInfo.sessionId}`;
+        } else if (qr.info.eventType === "GENERAL") {
+          const generalInfo = qr.info as { eventType: "GENERAL"; eventTypeName: string };
+          return generalInfo.eventTypeName;
+        } else {
+          const o2barInfo = qr.info as { eventType: "O2BAR"; email: string };
+          return o2barInfo.email;
+        }
       },
     },
     {
@@ -290,11 +343,28 @@ export default function QrPortal() {
       minWidth: 120,
       valueGetter: (_value: any, row: ConferenceQrCode) => {
         if (!row || !row.info) return "";
-        return row.info.eventType === "SESSION" ? "Session" : "O2 Bar";
+        return getEventTypeDisplayName(row);
       },
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
-        return qr.info.eventType === "SESSION" ? "Session" : "O2 Bar";
+        return getEventTypeDisplayName(qr);
+      },
+    },
+    {
+      field: "coins",
+      headerName: "Coins",
+      flex: 0.8,
+      minWidth: 100,
+      valueGetter: (_value: any, row: ConferenceQrCode) => {
+        return row?.coins ?? 0;
+      },
+      renderCell: (params) => {
+        const qr = params.row as ConferenceQrCode;
+        return (
+          <Typography variant="body2" component="span" sx={{ fontWeight: 500 }}>
+            {qr.coins ?? 0} coin{(qr.coins ?? 0) !== 1 ? "s" : ""}
+          </Typography>
+        );
       },
     },
     {
@@ -510,16 +580,24 @@ export default function QrPortal() {
           <Grid container spacing={{ xs: 2, sm: 3 }}>
             {filteredQrCodes.map((qr) => {
               const isSession = qr.info.eventType === "SESSION";
+              const isGeneral = qr.info.eventType === "GENERAL";
               const sessionInfo = isSession
                 ? (qr.info as { eventType: "SESSION"; sessionId: string })
                 : null;
-              const o2barInfo = !isSession
-                ? (qr.info as { eventType: "O2BAR"; email: string })
+              const o2barInfo =
+                !isSession && !isGeneral
+                  ? (qr.info as { eventType: "O2BAR"; email: string })
+                  : null;
+              const generalInfo = isGeneral
+                ? (qr.info as { eventType: "GENERAL"; eventTypeName: string })
                 : null;
               const session =
                 isSession && sessionInfo
                   ? sessions.find((s) => s.id === sessionInfo.sessionId)
                   : null;
+              const eventTypeDisplayName = isGeneral
+                ? "General"
+                : getEventTypeDisplayName(qr);
 
               const { isDeleteDisabled, deleteTooltipTitle } = getDeletePermission(
                 qr,
@@ -553,8 +631,10 @@ export default function QrPortal() {
                         }}
                       >
                         <Chip
-                          icon={isSession ? <EventIcon /> : <EmailIcon />}
-                          label={isSession ? "Session" : "O2 Bar"}
+                          icon={
+                            isSession ? <EventIcon /> : isGeneral ? <CategoryIcon /> : <EmailIcon />
+                          }
+                          label={eventTypeDisplayName}
                           color="default"
                           size="small"
                           sx={{ fontWeight: 600 }}
@@ -595,6 +675,8 @@ export default function QrPortal() {
                         >
                           {isSession ? (
                             <>{session ? session.name : `Session: ${sessionInfo?.sessionId}`}</>
+                          ) : isGeneral ? (
+                            <>{generalInfo?.eventTypeName}</>
                           ) : (
                             <>{o2barInfo?.email}</>
                           )}
@@ -683,6 +765,24 @@ export default function QrPortal() {
                                   sx={{ whiteSpace: "nowrap" }}
                                 >
                                   {dayjs(qr.createdOn).format("MMM DD, YYYY")}
+                                </Typography>
+                              </Box>
+                            </Tooltip>
+                            <Tooltip title={`Amount of coins: ${qr.coins}`} arrow>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 0.5,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ whiteSpace: "nowrap", fontWeight: 500 }}
+                                >
+                                  {qr.coins} coin{qr.coins !== 1 ? "s" : ""}
                                 </Typography>
                               </Box>
                             </Tooltip>

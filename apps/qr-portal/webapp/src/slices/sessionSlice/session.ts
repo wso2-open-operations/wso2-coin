@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
 
 import { State } from "@/types/types";
 import { Session } from "@/types/types";
@@ -40,18 +41,31 @@ export const fetchSessions = createAsyncThunk(
   "session/fetchSessions",
   async (_, { dispatch, rejectWithValue }) => {
     try {
+      APIService.getCancelToken().cancel();
+      const newCancelTokenSource = APIService.updateCancelToken();
+
       const response = await APIService.getInstance().get<Session[]>(
         AppConfig.serviceUrls.sessions,
+        {
+          cancelToken: newCancelTokenSource.token,
+        },
       );
       return response.data;
-    } catch (error: any) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: SnackMessage.error.fetchSessions,
-          type: "error",
-        }),
-      );
-      return rejectWithValue(error.message || "Failed to fetch sessions");
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        return rejectWithValue("Request Cancelled");
+      }
+
+      if (axios.isAxiosError(error)) {
+        dispatch(
+          enqueueSnackbarMessage({
+            message: SnackMessage.error.fetchSessions,
+            type: "error",
+          }),
+        );
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch sessions");
+      }
+      return rejectWithValue("An unexpected error occurred");
     }
   },
 );

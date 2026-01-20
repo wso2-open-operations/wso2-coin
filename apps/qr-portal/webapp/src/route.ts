@@ -13,8 +13,8 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import EventIcon from "@mui/icons-material/Event";
 import QrCode2Icon from "@mui/icons-material/QrCode2";
-import SettingsSuggestOutlinedIcon from "@mui/icons-material/SettingsSuggestOutlined";
 import type { RouteObject } from "react-router-dom";
 
 import React from "react";
@@ -31,17 +31,25 @@ export const routes: RouteObjectWithRole[] = [
     text: "Conference QR",
     icon: React.createElement(QrCode2Icon),
     element: React.createElement(View.home),
-    allowRoles: [Role.O2_BAR_ADMIN, Role.SESSION_ADMIN, Role.EMPLOYEE],
+    allowRoles: [Role.GENERAL_ADMIN, Role.SESSION_ADMIN, Role.EMPLOYEE],
   },
   {
-    path: "/appConfig",
+    path: "/EventTypes",
+    text: "Event Types",
+    icon: React.createElement(EventIcon),
+    element: React.createElement(View.eventTypes),
+    allowRoles: [Role.GENERAL_ADMIN],
+  },
+  /*
+   TODO: Implement App Config page when the content is ready.
+  {
+    path: "/AppConfig",
     text: "App Config",
     icon: React.createElement(SettingsSuggestOutlinedIcon),
     element: React.createElement(View.appConfig),
-    allowRoles: [Role.O2_BAR_ADMIN, Role.SESSION_ADMIN],
+    allowRoles: [Role.GENERAL_ADMIN],
     bottomNav: true,
   },
-  /*
    TODO: Implement User Guide page when the user guide content is ready.
    The /help route is commented out for now and will be re-enabled once the
    user guide page (View.help) is implemented.
