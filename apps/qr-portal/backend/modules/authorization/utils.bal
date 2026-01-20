@@ -27,3 +27,17 @@ public isolated function checkPermissions(string[] requiredRoles, string[] userR
     final string[] & readonly userRolesReadOnly = userRoles.cloneReadOnly();
     return requiredRoles.every(role => userRolesReadOnly.indexOf(role) !is ());
 }
+
+# Helper function to user has any role.
+#
+# + requiredRoles - Required Role list
+# + userRoles - Roles list, The user has
+# + return - Allow or not
+public isolated function checkAnyPermissions(string[] requiredRoles, string[] userRoles) returns boolean {
+    if userRoles.length() == 0 && requiredRoles.length() > 0 {
+        return false;
+    }
+
+    final string[] & readonly userRolesReadOnly = userRoles.cloneReadOnly();
+    return requiredRoles.some(role => userRolesReadOnly.indexOf(role) !is ());
+}

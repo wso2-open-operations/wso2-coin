@@ -148,7 +148,9 @@ service http:InterceptableService / on new http:Listener(9090) {
         if isO2BarQr {
             database:QrCodeInfoO2Bar o2BarInfo = <database:QrCodeInfoO2Bar>payload.info;
             if o2BarInfo.email == invokerInfo.email {
-                if !isGeneralAdmin && !isSessionAdmin && !isEmployee {
+                if !authorization:checkAnyPermissions([authorization:authorizedRoles.generalAdminRole,
+                 authorization:authorizedRoles.sessionAdminRole, authorization:authorizedRoles.employeeRole],
+                 invokerInfo.groups) {
                     return <http:Forbidden>{
                         body: {
                             message: "You don't have permission to create O2 Bar QR codes!"
