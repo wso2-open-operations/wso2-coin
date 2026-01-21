@@ -85,29 +85,65 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
     filterQueries.push(` status = ${ACTIVE}`);
 
     // Setting the filters based on the inputs.
-    if filters.email is string && filters.eventType is QrCodeType {
-        if filters.eventType == SESSION {
-            filterQueries.push(`
-                (
-                    JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION}
-                    OR (
+    QrCodeType[]? eventTypesOpt = filters.eventTypes;
+    if eventTypesOpt is QrCodeType[] {
+        QrCodeType[] eventTypes = eventTypesOpt;
+        if eventTypes.length() > 0 {
+            boolean hasSession = false;
+            boolean hasO2Bar = false;
+            boolean hasGeneral = false;
+            foreach QrCodeType eventType in eventTypes {
+                if eventType == SESSION {
+                    hasSession = true;
+                } else if eventType == O2BAR {
+                    hasO2Bar = true;
+                } else if eventType == GENERAL {
+                    hasGeneral = true;
+                }
+            }
+            
+            if filters.email is string {
+                // When email is provided with SESSION, show SESSION OR (O2BAR with matching email)
+                if hasSession && hasO2Bar {
+                    filterQueries.push(`
+                        (
+                            JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION}
+                            OR (
+                                JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}
+                                AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}
+                            )
+                        )
+                    `);
+                } else if hasO2Bar {
+                    // O2BAR with email filter
+                    filterQueries.push(`
                         JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}
                         AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}
-                    )
-                )
-            `);
-        } else if filters.eventType == O2BAR {
-            filterQueries.push(`
-                JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}
-                AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}
-            `);
+                    `);
+                } else if hasSession {
+                    // SESSION only (no email filter for SESSION)
+                    filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION}`);
+                }
+                
+                // GENERAL has no email filter
+                if hasGeneral {
+                    if hasSession || hasO2Bar {
+                        filterQueries.push(` OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${GENERAL}`);
+                    } else {
+                        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${GENERAL}`);
+                    }
+                }
+            } else {
+                // No email filter - build OR clause for event types
+                if eventTypes.length() == 1 {
+                    filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]}`);
+                } else if eventTypes.length() == 2 {
+                    filterQueries.push(` (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[1]})`);
+                } else if eventTypes.length() == 3 {
+                    filterQueries.push(` (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[1]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[2]})`);
+                }
+            }
         }
-    } else if filters.eventType is QrCodeType {
-        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${filters.eventType}`);
-    }
-
-    if filters.excludeEventType is QrCodeType {
-        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) != ${filters.excludeEventType}`);
     }
 
     if filterQueries.length() > 0 {

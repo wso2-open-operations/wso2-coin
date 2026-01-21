@@ -171,10 +171,8 @@ public type ConferenceQrCodesResponse record {|
 public type ConferenceQrCodeFilters record {|
     # Email in O2BAR QR info
     string? email = ();
-    # Filter by event type (SESSION, O2BAR, or GENERAL)
-    QrCodeType? eventType = ();
-    # Exclude event type from results
-    QrCodeType? excludeEventType = ();
+    # Filter by event types (SESSION, O2BAR, or GENERAL)
+    QrCodeType[]? eventTypes = ();
     # Limit number of QRs to fetch
     int? 'limit = DEFAULT_LIMIT;
     # Offset for pagination

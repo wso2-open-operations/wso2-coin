@@ -295,18 +295,18 @@ service http:InterceptableService / on new http:Listener(9090) {
         boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups);
 
         if isGeneralAdmin && isSessionAdmin {
-            // No filters - see all QR codes (SESSION, O2BAR, GENERAL)
+            filters.eventTypes = [database:SESSION, database:O2BAR, database:GENERAL];
         } else if isGeneralAdmin {
-            filters.excludeEventType = database:SESSION;
+            filters.eventTypes = [database:O2BAR, database:GENERAL];
         } else if isSessionAdmin {
             filters.email = userInfo.email;
-            filters.eventType = database:SESSION;
-            filters.excludeEventType = database:GENERAL;
+            filters.eventTypes = [database:SESSION, database:O2BAR];
         } else if isEmployee {
             filters.email = userInfo.email;
-            filters.eventType = database:O2BAR;
+            filters.eventTypes = [database:O2BAR];
         } else {
             filters.email = userInfo.email;
+            filters.eventTypes = [database:O2BAR];
         }
 
         database:ConferenceQrCodesResponse|error qrsResponse = database:fetchConferenceQrCodes(filters);
