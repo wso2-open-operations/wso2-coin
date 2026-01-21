@@ -168,7 +168,7 @@ public isolated function updateConferenceEventType(string typeName, AddConferenc
 #
 # + qrInfo - QR code info to determine event type
 # + return - Default coins amount or error
-public isolated function getDefaultCoinsForQrInfo(QrCodeInfo qrInfo) returns decimal|error? {
+public isolated function getDefaultCoinsForQrInfo(QrCodeInfo qrInfo) returns EventTypeCoinsInfo|error? {
     string eventTypeName;
     if qrInfo is QrCodeInfoSession {
         eventTypeName = "SESSION";

@@ -226,3 +226,9 @@ public type AddConferenceEventTypePayload record {|
     # Default coin amount
     decimal defaultCoins;
 |};
+
+# Default coins information for an event type.
+public type EventTypeCoinsInfo record {|
+    # Default coin amount for the event type
+    decimal coins;
+|};

@@ -189,24 +189,24 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         decimal coins = payload.coins;
         if isEmployee || (isSessionAdmin && !isGeneralAdmin && !isSessionQr) || (isGeneralAdmin && isSessionQr) {
-            decimal|error? defaultCoins = database:getDefaultCoinsForQrInfo(payload.info);
-            if defaultCoins is error {
+            database:EventTypeCoinsInfo|error? eventTypeCoinsInfo = database:getDefaultCoinsForQrInfo(payload.info);
+            if eventTypeCoinsInfo is error {
                 string customError = "Error occurred while fetching default coins for event type!";
-                log:printError(customError, defaultCoins);
+                log:printError(customError, eventTypeCoinsInfo);
                 return <http:InternalServerError>{
                     body: {
                         message: customError
                     }
                 };
             }
-            if defaultCoins is () {
+            if eventTypeCoinsInfo is () {
                 return <http:BadRequest>{
                     body: {
                         message: "Event type not found"
                     }
                 };
             }
-            coins = defaultCoins;
+            coins = eventTypeCoinsInfo.coins;
         }
 
         string qrId = uuid:createType4AsString();
