@@ -188,10 +188,11 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         decimal coins = payload.coins;
+        // Employee without admin privileges
         boolean isEmployeeOnly = isEmployee && !isGeneralAdmin && !isSessionAdmin;
-        boolean isSessionAdminAndNonSessionQr = isSessionAdmin && !isGeneralAdmin && !isSessionQr;
-        boolean isGeneralAdminAndSessionQr = isGeneralAdmin && isSessionQr;
-        if isEmployeeOnly || isSessionAdminAndNonSessionQr || isGeneralAdminAndSessionQr {
+        // Session admin creating an O2BAR QR
+        boolean isSessionAdminAndO2BarQr = isSessionAdmin && !isGeneralAdmin && isO2BarQr;
+        if isEmployeeOnly || isSessionAdminAndO2BarQr {
             database:EventTypeCoinsInfo|error? eventTypeCoinsInfo = database:getDefaultCoinsForQrInfo(payload.info);
             if eventTypeCoinsInfo is error {
                 string customError = "Error occurred while fetching default coins for event type!";
@@ -206,6 +207,13 @@ service http:InterceptableService / on new http:Listener(9090) {
                 return <http:BadRequest>{
                     body: {
                         message: "Event type not found"
+                    }
+                };
+            }
+            if payload.coins != eventTypeCoinsInfo.coins {
+                return <http:BadRequest>{
+                    body: {
+                        message: string `You cannot override the default coin amount for this event type.`
                     }
                 };
             }
