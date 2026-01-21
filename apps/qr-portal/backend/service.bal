@@ -188,7 +188,10 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         decimal coins = payload.coins;
-        if isEmployee || (isSessionAdmin && !isGeneralAdmin && !isSessionQr) || (isGeneralAdmin && isSessionQr) {
+        boolean isEmployeeOnly = isEmployee && !isGeneralAdmin && !isSessionAdmin;
+        boolean isSessionAdminAndNonSessionQr = isSessionAdmin && !isGeneralAdmin && !isSessionQr;
+        boolean isGeneralAdminAndSessionQr = isGeneralAdmin && isSessionQr;
+        if isEmployeeOnly || isSessionAdminAndNonSessionQr || isGeneralAdminAndSessionQr {
             database:EventTypeCoinsInfo|error? eventTypeCoinsInfo = database:getDefaultCoinsForQrInfo(payload.info);
             if eventTypeCoinsInfo is error {
                 string customError = "Error occurred while fetching default coins for event type!";
