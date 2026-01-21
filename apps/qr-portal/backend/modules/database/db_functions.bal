@@ -171,9 +171,9 @@ public isolated function updateConferenceEventType(string typeName, AddConferenc
 public isolated function getDefaultCoinsForQrInfo(QrCodeInfo qrInfo) returns EventTypeCoinsInfo|error? {
     string eventTypeName;
     if qrInfo is QrCodeInfoSession {
-        eventTypeName = "SESSION";
+        eventTypeName = SESSION.toString();
     } else if qrInfo is QrCodeInfoO2Bar {
-        eventTypeName = "O2BAR";
+        eventTypeName = O2BAR.toString();
     } else {
         eventTypeName = qrInfo.eventTypeName;
     }
@@ -183,7 +183,7 @@ public isolated function getDefaultCoinsForQrInfo(QrCodeInfo qrInfo) returns Eve
         return eventType is sql:NoRowsError ? () : eventType;
     }
     
-    return eventType.defaultCoins;
+    return {coins: eventType.defaultCoins};
 }
 
 # Delete event type.
