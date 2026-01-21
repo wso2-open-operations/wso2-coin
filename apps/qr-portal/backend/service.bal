@@ -304,9 +304,6 @@ service http:InterceptableService / on new http:Listener(9090) {
         } else if isEmployee {
             filters.email = userInfo.email;
             filters.eventTypes = [database:O2BAR];
-        } else {
-            filters.email = userInfo.email;
-            filters.eventTypes = [database:O2BAR];
         }
 
         database:ConferenceQrCodesResponse|error qrsResponse = database:fetchConferenceQrCodes(filters);
