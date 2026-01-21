@@ -99,7 +99,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + payload - Payload containing the QR details
     # + return - Created QR ID or error
     resource function post qr\-codes(http:RequestContext ctx, CreateQrCodePayload payload)
-        returns http:Created|http:InternalServerError|http:BadRequest|http:Forbidden {
+        returns http:Created|http:InternalServerError|http:BadRequest|http:Conflict|http:Forbidden {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
@@ -179,7 +179,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
             if isQrExists {
                 string identifier = database:getQrCodeIdentifier(payload.info);
-                return <http:BadRequest>{
+                return <http:Conflict>{
                     body: {
                         message: string `QR code already exists for: ${identifier}`
                     }
