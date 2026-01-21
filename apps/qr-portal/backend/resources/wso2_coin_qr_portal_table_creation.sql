@@ -14,11 +14,29 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
+-- Create table for conference event type table
+CREATE TABLE `conference_event_type` (
+  `type` varchar(100) NOT NULL,
+  `category` enum('SESSION', 'O2BAR', 'GENERAL') NOT NULL,
+  `description` varchar(500) DEFAULT NULL,
+  `default_coins` decimal(10,2) NOT NULL,
+  PRIMARY KEY (`type`),
+  KEY `idx_category` (`category`),
+  CONSTRAINT `chk_session_type_match` CHECK (`category` != 'SESSION' OR `type` = 'SESSION'),
+  CONSTRAINT `chk_o2bar_type_match` CHECK (`category` != 'O2BAR' OR `type` = 'O2BAR')
+);
+
+-- Insert system event types (SESSION and O2BAR)
+INSERT INTO `conference_event_type` (`type`, `category`, `description`, `default_coins`) VALUES
+('SESSION', 'SESSION', 'Session QR code', 10.00),
+('O2BAR', 'O2BAR', 'O2 Bar QR code', 5.00);
+
 -- Create table to store conference QR codes
 CREATE TABLE `conference_qr` (
   `qr_id` char(36) NOT NULL,
   `info` json NOT NULL,
   `description` varchar(500) DEFAULT NULL,
+  `coins` decimal(10,2) NOT NULL,
   `created_by` varchar(100) NOT NULL,
   `created_on` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `status` enum('ACTIVE', 'DELETED') NOT NULL DEFAULT 'ACTIVE',

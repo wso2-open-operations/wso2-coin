@@ -28,6 +28,7 @@ isolated function addConferenceQrCodeQuery(string qrId, AddConferenceQrCodePaylo
             qr_id,
             info,
             description,
+            coins,
             created_by
         )
         VALUES
@@ -35,6 +36,7 @@ isolated function addConferenceQrCodeQuery(string qrId, AddConferenceQrCodePaylo
             ${qrId},
             ${payload.info.toJsonString()},
             ${payload.description},
+            ${payload.coins},
             ${createdBy}
         );
     `;
@@ -48,6 +50,7 @@ isolated function fetchConferenceQrCodeQuery(string qrId) returns sql:Parameteri
             qr_id,
             info,
             description,
+            coins,
             created_by,
             created_on,
             status
@@ -69,6 +72,7 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
             qr_id,
             info,
             description,
+            coins,
             created_by,
             created_on,
             status,
@@ -81,25 +85,65 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
     filterQueries.push(` status = ${ACTIVE}`);
 
     // Setting the filters based on the inputs.
-    if filters.email is string && filters.eventType is QrCodeType {
-        if filters.eventType == SESSION {
-            filterQueries.push(`
-                (
-                    JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION}
-                    OR (
+    QrCodeType[]? eventTypesOpt = filters.eventTypes;
+    if eventTypesOpt is QrCodeType[] {
+        QrCodeType[] eventTypes = eventTypesOpt;
+        if eventTypes.length() > 0 {
+            boolean hasSession = false;
+            boolean hasO2Bar = false;
+            boolean hasGeneral = false;
+            foreach QrCodeType eventType in eventTypes {
+                if eventType == SESSION {
+                    hasSession = true;
+                } else if eventType == O2BAR {
+                    hasO2Bar = true;
+                } else if eventType == GENERAL {
+                    hasGeneral = true;
+                }
+            }
+            
+            if filters.email is string {
+                // When email is provided with SESSION, show SESSION OR (O2BAR with matching email)
+                if hasSession && hasO2Bar {
+                    filterQueries.push(`
+                        (
+                            JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION}
+                            OR (
+                                JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}
+                                AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}
+                            )
+                        )
+                    `);
+                } else if hasO2Bar {
+                    // O2BAR with email filter
+                    filterQueries.push(`
                         JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}
                         AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}
-                    )
-                )
-            `);
-        } else if filters.eventType == O2BAR {
-            filterQueries.push(`
-                JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}
-                AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}
-            `);
+                    `);
+                } else if hasSession {
+                    // SESSION only (no email filter for SESSION)
+                    filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION}`);
+                }
+                
+                // GENERAL has no email filter
+                if hasGeneral {
+                    if hasSession || hasO2Bar {
+                        filterQueries.push(` OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${GENERAL}`);
+                    } else {
+                        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${GENERAL}`);
+                    }
+                }
+            } else {
+                // No email filter - build OR clause for event types
+                if eventTypes.length() == 1 {
+                    filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]}`);
+                } else if eventTypes.length() == 2 {
+                    filterQueries.push(` (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[1]})`);
+                } else if eventTypes.length() == 3 {
+                    filterQueries.push(` (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[1]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[2]})`);
+                }
+            }
         }
-    } else if filters.eventType is QrCodeType {
-        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${filters.eventType}`);
     }
 
     if filterQueries.length() > 0 {
@@ -132,9 +176,14 @@ isolated function checkIsQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:Parame
         FROM conference_qr
         WHERE `;
 
-    sql:ParameterizedQuery whereClause = qrInfo is QrCodeInfoO2Bar
-        ? `JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${qrInfo.email}`
-        : `JSON_UNQUOTE(JSON_EXTRACT(info, '$.sessionId')) = ${qrInfo.sessionId}`;
+    sql:ParameterizedQuery whereClause;
+    if qrInfo is QrCodeInfoO2Bar {
+        whereClause = `JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${qrInfo.email}`;
+    } else if qrInfo is QrCodeInfoGeneral {
+        whereClause = `JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventTypeName')) = ${qrInfo.eventTypeName}`;
+    } else {
+        whereClause = `JSON_UNQUOTE(JSON_EXTRACT(info, '$.sessionId')) = ${qrInfo.sessionId}`;
+    }
 
     return sql:queryConcat(mainQuery, whereClause, ` AND status = ${ACTIVE} LIMIT 1`);
 }
@@ -151,4 +200,80 @@ isolated function deleteConferenceQrCodeQuery(string qrId, string deletedBy) ret
             updated_on = CURRENT_TIMESTAMP(6)
         WHERE qr_id = ${qrId}
             AND status = ${ACTIVE}
+    `;
+
+# Build query to fetch all event types.
+#
+# + return - sql:ParameterizedQuery - Select query for all event types
+isolated function fetchConferenceEventTypesQuery() returns sql:ParameterizedQuery => `
+        SELECT
+            type,
+            category,
+            description,
+            default_coins
+        FROM 
+            conference_event_type
+        ORDER BY category, type;
+    `;
+
+# Build query to fetch event type by name.
+#
+# + typeName - Event type name to fetch
+# + return - sql:ParameterizedQuery - Select query for the event type
+isolated function fetchConferenceEventTypeByNameQuery(string typeName) returns sql:ParameterizedQuery => `
+        SELECT
+            type,
+            category,
+            description,
+            default_coins
+        FROM 
+            conference_event_type
+        WHERE 
+            type = ${typeName};
+    `;
+
+# Build query to add a new event type.
+#
+# + payload - Payload containing the event type details
+# + return - sql:ParameterizedQuery - Insert query for the new event type
+isolated function addConferenceEventTypeQuery(AddConferenceEventTypePayload payload) returns sql:ParameterizedQuery
+    => `
+        INSERT INTO conference_event_type
+        (
+            type,
+            category,
+            description,
+            default_coins
+        )
+        VALUES
+        (
+            ${payload.eventTypeName},
+            ${payload.category},
+            ${payload.description},
+            ${payload.defaultCoins}
+        );
+    `;
+
+# Build query to update an event type.
+#
+# + typeName - Event type name to update
+# + payload - Payload containing the updated event type details
+# + return - sql:ParameterizedQuery - Update query for event type
+isolated function updateConferenceEventTypeQuery(string typeName, AddConferenceEventTypePayload payload) returns sql:ParameterizedQuery
+    => `
+        UPDATE conference_event_type
+        SET
+            description = ${payload.description},
+            default_coins = ${payload.defaultCoins}
+        WHERE 
+            type = ${typeName};
+    `;
+
+# Build query to delete an event type.
+#
+# + typeName - Event type name to delete
+# + return - sql:ParameterizedQuery - Delete query for the event type
+isolated function deleteConferenceEventTypeQuery(string typeName) returns sql:ParameterizedQuery => `
+        DELETE FROM conference_event_type
+        WHERE type = ${typeName};
     `;

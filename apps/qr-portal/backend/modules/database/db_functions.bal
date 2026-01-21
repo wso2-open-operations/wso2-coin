@@ -39,6 +39,7 @@ public isolated function fetchConferenceQrCode(string qrId) returns ConferenceQr
         qrId: qr.qrId,
         info: check qr.info.fromJsonStringWithType(),
         description: qr.description,
+        coins: qr.coins,
         createdBy: qr.createdBy,
         createdOn: qr.createdOn
     };
@@ -60,12 +61,27 @@ public isolated function fetchConferenceQrCodes(ConferenceQrCodeFilters filters)
                 qrId: qr.qrId,
                 info: check qr.info.fromJsonStringWithType(),
                 description: qr.description,
+                coins: qr.coins,
                 createdBy: qr.createdBy,
                 createdOn: qr.createdOn
             });
         };
 
     return {totalCount, qrs};
+}
+
+# Extract identifier from QR info based on type.
+#
+# + qrInfo - QR info to extract identifier from
+# + return - Identifier string (email, eventTypeName, or sessionId)
+public isolated function getQrCodeIdentifier(QrCodeInfo qrInfo) returns string {
+    if qrInfo is QrCodeInfoO2Bar {
+        return qrInfo.email;
+    }
+    if qrInfo is QrCodeInfoGeneral {
+        return qrInfo.eventTypeName;
+    }
+    return qrInfo.sessionId;
 }
 
 # Check if QR code already exists.
@@ -95,5 +111,92 @@ public isolated function deleteConferenceQrCode(string qrId, string deletedBy) r
 
     if deleteResult.affectedRowCount <= 0 {
         return error("QR code not found or already deleted");
+    }
+}
+
+# Fetch all event types.
+#
+# + return - Array of event types or error
+public isolated function fetchConferenceEventTypes() returns ConferenceEventType[]|error {
+    stream<ConferenceEventTypeRecord, sql:Error?> resultStream = databaseClient->query(fetchConferenceEventTypesQuery());
+
+    return check from ConferenceEventTypeRecord eventType in resultStream
+        select {
+            ...eventType
+        };
+}
+
+# Fetch event type by name.
+#
+# + typeName - Event type name
+# + return - ConferenceEventType or error
+public isolated function fetchConferenceEventTypeByName(string typeName) returns ConferenceEventType|error? {
+    ConferenceEventTypeRecord|error eventType = databaseClient->queryRow(fetchConferenceEventTypeByNameQuery(typeName));
+    if eventType is error {
+        return eventType is sql:NoRowsError ? () : eventType;
+    }
+
+    return {
+        ...eventType
+    };
+}
+
+# Add new event type.
+#
+# + payload - Payload containing the event type details
+# + return - Error if the insertion failed
+public isolated function addConferenceEventType(AddConferenceEventTypePayload payload) returns error? {
+    _ = check databaseClient->execute(addConferenceEventTypeQuery(payload));
+}
+
+# Update event type.
+#
+# + typeName - Event type name to update
+# + payload - Payload containing the updated event type details
+# + return - Error if the update failed
+public isolated function updateConferenceEventType(string typeName, AddConferenceEventTypePayload payload) returns error? {
+    sql:ExecutionResult|sql:Error updateResult = databaseClient->execute(updateConferenceEventTypeQuery(typeName, payload));
+    if updateResult is sql:Error {
+        return updateResult;
+    }
+    if updateResult.affectedRowCount <= 0 {
+        return error("Event type not found");
+    }
+}
+
+# Get default coins for an event type based on QR info.
+#
+# + qrInfo - QR code info to determine event type
+# + return - Default coins amount or error
+public isolated function getDefaultCoinsForQrInfo(QrCodeInfo qrInfo) returns EventTypeCoinsInfo|error? {
+    string eventTypeName;
+    if qrInfo is QrCodeInfoSession {
+        eventTypeName = SESSION.toString();
+    } else if qrInfo is QrCodeInfoO2Bar {
+        eventTypeName = O2BAR.toString();
+    } else {
+        eventTypeName = qrInfo.eventTypeName;
+    }
+    
+    ConferenceEventTypeRecord|error eventType = databaseClient->queryRow(fetchConferenceEventTypeByNameQuery(eventTypeName));
+    if eventType is error {
+        return eventType is sql:NoRowsError ? () : eventType;
+    }
+    
+    return {coins: eventType.defaultCoins};
+}
+
+# Delete event type.
+#
+# + typeName - Event type name to delete
+# + return - Error if the deletion failed
+public isolated function deleteConferenceEventType(string typeName) returns error? {
+    sql:ExecutionResult|sql:Error deleteResult = databaseClient->execute(deleteConferenceEventTypeQuery(typeName));
+    if deleteResult is sql:Error {
+        return deleteResult;
+    }
+
+    if deleteResult.affectedRowCount <= 0 {
+        return error("Event type not found");
     }
 }
