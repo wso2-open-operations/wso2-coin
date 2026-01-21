@@ -18,6 +18,9 @@ export const SnackMessage = {
   success: {
     qrCodeCreated: "QR code created successfully!",
     qrCodeDeleted: "QR code deleted successfully!",
+    eventTypeCreated: "Event type created successfully!",
+    eventTypeUpdated: "Event type updated successfully!",
+    eventTypeDeleted: "Event type deleted successfully!",
   },
   error: {
     fetchPrivileges: "Error while fetching user privileges",
@@ -27,13 +30,18 @@ export const SnackMessage = {
     createQrCode: "Failed to create QR code",
     deleteQrCode: "Failed to delete QR code",
     fetchSessions: "Failed to fetch sessions",
-    duplicateQrCode: "QR code already exists for this email/session",
+    duplicateQrCode: "QR code already exists",
+    fetchEventTypes: "Failed to fetch event types",
+    createEventType: "Failed to create event type",
+    updateEventType: "Failed to update event type",
+    deleteEventType: "Failed to delete event type",
+    duplicateEventType: "Event type already exists",
   },
   warning: {},
 };
 
 export const PRIVILEGES = {
-  O2_BAR_ADMIN: 191,
+  GENERAL_ADMIN: 191,
   SESSION_ADMIN: 181,
   EMPLOYEE: 171,
 };
