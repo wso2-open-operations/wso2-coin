@@ -61,6 +61,7 @@ export interface AuthData {
 }
 
 export interface UserInfoInterface {
+  employeeId: string;
   firstName: string;
   lastName: string;
   workEmail: string;

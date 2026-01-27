@@ -94,21 +94,6 @@ const Header = () => {
           {user && (
             <>
               <Stack flexDirection={"row"} alignItems={"center"} gap={1}>
-                <Tooltip title="Open settings">
-                  <Avatar
-                    onClick={handleOpenUserMenu}
-                    sx={{
-                      width: 48,
-                      height: 48,
-                      border: 1,
-                      borderColor: theme.palette.customBorder.territory.active,
-                    }}
-                    src={user.employeeThumbnail || ""}
-                    alt={user.firstName || "Avatar"}
-                  >
-                    {user.workEmail?.charAt(0).toUpperCase()}
-                  </Avatar>
-                </Tooltip>
                 <Box sx={{ width: "fit-content" }}>
                   <Typography
                     noWrap
@@ -117,18 +102,9 @@ const Header = () => {
                       color: theme.palette.customText.primary.p2.active,
                     }}
                   >
-                    {user.workEmail}
-                  </Typography>
-                  {/* <Typography
-                    noWrap
-                    variant="body1"
-                    sx={{
-                      color: theme.palette.customText.primary.p2.active,
-                    }}
-                  >
                     {[user.firstName, user.lastName].filter(Boolean).join(" ")}
-                  </Typography> */}
-                  {/* <Typography
+                  </Typography>
+                  <Typography
                     noWrap
                     variant="body2"
                     sx={{
@@ -136,8 +112,24 @@ const Header = () => {
                     }}
                   >
                     {user.jobRole}
-                  </Typography> */}
+                  </Typography>
                 </Box>
+                <Tooltip title="Open settings">
+                  <Avatar
+                    onClick={handleOpenUserMenu}
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      border: 1,
+                      borderColor: theme.palette.customBorder.territory.active,
+                      cursor: "pointer",
+                    }}
+                    src={user.employeeThumbnail || ""}
+                    alt={user.firstName || "Avatar"}
+                  >
+                    {user.firstName?.charAt(0).toUpperCase()}
+                  </Avatar>
+                </Tooltip>
               </Stack>
 
               <Menu
