@@ -17,7 +17,7 @@ import qr_portal.database;
 import qr_portal.people;
 
 # Response for fetching user information.
-type UserInfo record {|
+public type UserInfo record {|
     *people:Employee;
     # Array of privileges assigned to the user
     int[] privileges;
