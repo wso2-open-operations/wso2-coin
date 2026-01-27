@@ -243,7 +243,7 @@ export default function QrPortal() {
 
       return false;
     });
-  }, [qrCodes, searchQuery, sessions]);
+  }, [qrCodes, searchQuery, sessions, employees]);
 
   const handleCreateSuccess = () => {
     setCreateModalOpen(false);
