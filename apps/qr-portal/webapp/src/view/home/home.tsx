@@ -98,11 +98,14 @@ export default function QrPortal() {
     dispatch(fetchSessions());
     // Fetch event types for display
     dispatch(fetchEventTypes());
-    // Fetch employees if general admin
-    if (isGeneralAdmin) {
+  }, [dispatch, limit, offset]);
+
+  // Fetch employees if general admin; not dependent on QR pagination
+  useEffect(() => {
+    if (isGeneralAdmin && employees.length === 0) {
       dispatch(fetchEmployees());
     }
-  }, [dispatch, limit, offset, isGeneralAdmin]);
+  }, [dispatch, isGeneralAdmin, employees.length]);
 
   // Update page when offset changes
   useEffect(() => {
