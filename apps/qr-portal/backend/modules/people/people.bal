@@ -37,3 +37,30 @@ public isolated function fetchEmployee(string workEmail) returns Employee|error?
 
     return employee;
 }
+
+# Retrieve all employees with only email, firstName, and lastName.
+#
+# + return - Array of Employee objects or Error if so
+public isolated function fetchAllEmployees() returns Employee[]|error {
+    string document = string `
+        query employeesQuery ($filter: EmployeeFilter, $limit: Int, $offset: Int) {
+            employees(filter: $filter, limit: $limit, offset: $offset) {
+                workEmail
+                firstName
+                lastName
+            }
+        }
+    `;
+
+    map<json> variables = {
+        "filter": {},
+        "limit": 1000,
+        "offset": 0
+    };
+
+    json response = check hrClient->execute(document, variables);
+    EmployeesResponse employeesResponse = check response.cloneWithType(EmployeesResponse);
+    Employee[] employees = employeesResponse.data.employees;
+    
+    return employees;
+}

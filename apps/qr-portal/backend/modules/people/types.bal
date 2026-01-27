@@ -63,3 +63,15 @@ public type EmployeeResponse record {|
     # Employee data fetched
     EmployeeData data;
 |};
+
+# Employees information.
+public type EmployeesData record {|
+    # Array of employee objects
+    Employee[] employees;
+|};
+
+# Response when fetching multiple employees.
+public type EmployeesResponse record {|
+    # Employees data fetched
+    EmployeesData data;
+|};
