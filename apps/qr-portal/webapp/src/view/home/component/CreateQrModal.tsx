@@ -15,6 +15,7 @@
 // under the License.
 import { CheckCircle as CheckCircleIcon, Download as DownloadIcon } from "@mui/icons-material";
 import {
+  Autocomplete,
   Box,
   Button,
   CircularProgress,
@@ -35,8 +36,9 @@ import * as Yup from "yup";
 
 import React, { useEffect, useMemo, useState } from "react";
 
-import { CreateQrCodePayload, QrCodeEventType, State } from "@/types/types";
+import { CreateQrCodePayload, EmployeeListItem, QrCodeEventType, State } from "@/types/types";
 import { Role } from "@slices/authSlice/auth";
+import { fetchEmployees } from "@slices/employeesSlice/employees";
 import { fetchEventTypes } from "@slices/eventTypesSlice/eventTypes";
 import { createQrCode } from "@slices/qrSlice/qr";
 import { fetchSessions } from "@slices/sessionSlice/session";
@@ -64,6 +66,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
   const { userInfo } = useAppSelector((state: RootState) => state.user);
   const { sessions } = useAppSelector((state: RootState) => state.session);
   const { eventTypes } = useAppSelector((state: RootState) => state.eventTypes);
+  const { employees } = useAppSelector((state: RootState) => state.employees);
   const { state } = useAppSelector((state: RootState) => state.qr);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [createdQrId, setCreatedQrId] = useState<string | null>(null);
@@ -73,6 +76,9 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       dispatch(fetchEventTypes());
       if (roles.includes(Role.SESSION_ADMIN)) {
         dispatch(fetchSessions());
+      }
+      if (roles.includes(Role.GENERAL_ADMIN)) {
+        dispatch(fetchEmployees());
       }
     }
   }, [open, dispatch, roles]);
@@ -196,6 +202,30 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     return `${presenters[0]} & ${presenters.length - 1} more`;
   };
 
+  const getEmployeeDisplayName = (employee: EmployeeListItem): string => {
+    const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(" ");
+    return fullName || employee.workEmail;
+  };
+
+  const filterEmployeeOptions = (
+    options: EmployeeListItem[],
+    { inputValue }: { inputValue: string },
+  ): EmployeeListItem[] => {
+    if (!inputValue || inputValue.length < 2) {
+      return options.slice(0, 50);
+    }
+    const searchTerm = inputValue.toLowerCase();
+    const filtered = options.filter((option) => {
+      const fullName = [option.firstName, option.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      const email = option.workEmail.toLowerCase();
+      return fullName.includes(searchTerm) || email.includes(searchTerm);
+    });
+    return filtered.slice(0, 100);
+  };
+
   const handleSubmit = async (values: CreateQrFormValues) => {
     let info;
     if (values.eventType === QrCodeEventType.SESSION) {
@@ -297,6 +327,10 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
         {({ values, errors, touched, handleChange, handleBlur, setFieldValue }) => {
           const canEditCoins =
             isGeneralAdmin || (isSessionAdmin && values.eventType === QrCodeEventType.SESSION);
+
+          const selectedEmployee = useMemo(() => {
+            return employees.find((e) => e.workEmail === values.email) || null;
+          }, [employees, values.email]);
 
           const handleEventTypeChange = (
             e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -484,25 +518,61 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
                     )}
 
                     {values.eventType === QrCodeEventType.O2BAR && (
-                      <TextField
-                        fullWidth
-                        label="Email"
-                        name="email"
-                        type="email"
-                        value={values.email}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={touched.email && !!errors.email}
-                        helperText={
-                          touched.email && errors.email
-                            ? errors.email
-                            : isGeneralAdmin
-                              ? "Enter the email address for this O2 Bar QR code"
-                              : "Your email address (cannot be changed)"
-                        }
-                        disabled={!isGeneralAdmin}
-                        sx={{ mb: 2 }}
-                      />
+                      <>
+                        {isGeneralAdmin ? (
+                          <Autocomplete<EmployeeListItem>
+                            fullWidth
+                            options={employees}
+                            getOptionLabel={getEmployeeDisplayName}
+                            value={selectedEmployee}
+                            onChange={(_, newValue) => {
+                              setFieldValue("email", newValue?.workEmail || "");
+                            }}
+                            onBlur={handleBlur}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Employee"
+                                name="email"
+                                error={touched.email && !!errors.email}
+                                helperText={
+                                  touched.email && errors.email
+                                    ? errors.email
+                                    : "Search and select an employee for this O2 Bar QR code"
+                                }
+                                sx={{ mb: 2 }}
+                              />
+                            )}
+                            renderOption={(props, option) => (
+                              <Box component="li" {...props} key={option.workEmail}>
+                                <Box>
+                                  <Typography variant="body1">
+                                    {getEmployeeDisplayName(option)}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {option.workEmail}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            )}
+                            filterOptions={filterEmployeeOptions}
+                            isOptionEqualToValue={(option, value) => option.workEmail === value.workEmail}
+                            ListboxProps={{
+                              style: { maxHeight: "300px" },
+                            }}
+                          />
+                        ) : (
+                          <TextField
+                            fullWidth
+                            label="Employee"
+                            name="email"
+                            value={values.email}
+                            disabled
+                            helperText="Your email address (cannot be changed)"
+                            sx={{ mb: 2 }}
+                          />
+                        )}
+                      </>
                     )}
 
                     {values.eventType === QrCodeEventType.SESSION && (

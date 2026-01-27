@@ -16,7 +16,7 @@
 import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
 import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
-import { State } from "@/types/types";
+import { State, UserInfoInterface } from "@/types/types";
 import { PRIVILEGES, SnackMessage } from "@config/constant";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { RootState } from "@slices/store";
@@ -52,16 +52,6 @@ export interface UserState {
   stateMessage: string | null;
   errorMessage: string | null;
   userInfo: UserInfoInterface | null;
-}
-
-export interface UserInfoInterface {
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-  workEmail: string;
-  employeeThumbnail: string | null;
-  jobRole: string;
-  privileges: number[];
 }
 
 const initialState: AuthState = {

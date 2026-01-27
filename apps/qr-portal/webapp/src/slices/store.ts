@@ -23,6 +23,7 @@ import commonReducer from "@slices/commonSlice/common";
 import appConfigReducer from "@slices/configSlice/config";
 import userReducer from "@slices/userSlice/user";
 
+import employeesReducer from "./employeesSlice/employees";
 import eventTypesReducer from "./eventTypesSlice/eventTypes";
 import qrReducer from "./qrSlice/qr";
 import sessionReducer from "./sessionSlice/session";
@@ -38,6 +39,7 @@ export const store = configureStore({
     qr: qrReducer,
     session: sessionReducer,
     eventTypes: eventTypesReducer,
+    employees: employeesReducer,
 
     // RTK Query API reducers
     [configApi.reducerPath]: configApi.reducer,

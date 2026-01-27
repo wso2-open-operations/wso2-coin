@@ -59,6 +59,8 @@ import { ConferenceQrCode, State } from "@/types/types";
 import NoSearchResults from "@assets/images/no-search-results.svg";
 import StateWithImage from "@component/ui/StateWithImage";
 import { useConfirmationModalContext } from "@context/DialogContext";
+import { Role } from "@slices/authSlice/auth";
+import { fetchEmployees } from "@slices/employeesSlice/employees";
 import { fetchEventTypes } from "@slices/eventTypesSlice/eventTypes";
 import { deleteQrCode, fetchQrCodes, setLimit, setOffset } from "@slices/qrSlice/qr";
 import { fetchSessions } from "@slices/sessionSlice/session";
@@ -79,6 +81,7 @@ export default function QrPortal() {
   );
   const { sessions } = useAppSelector((state: RootState) => state.session);
   const { eventTypes } = useAppSelector((state: RootState) => state.eventTypes);
+  const { employees } = useAppSelector((state: RootState) => state.employees);
   const { userInfo } = useAppSelector((state: RootState) => state.user);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [qrImages, setQrImages] = useState<Record<string, string>>({});
@@ -86,13 +89,20 @@ export default function QrPortal() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [page, setPage] = useState(0);
 
+  const { roles } = useAppSelector((state: RootState) => state.auth);
+  const isGeneralAdmin = roles.includes(Role.GENERAL_ADMIN);
+
   useEffect(() => {
     dispatch(fetchQrCodes({ limit, offset }));
     // Fetch sessions for search functionality
     dispatch(fetchSessions());
     // Fetch event types for display
     dispatch(fetchEventTypes());
-  }, [dispatch, limit, offset]);
+    // Fetch employees if general admin
+    if (isGeneralAdmin) {
+      dispatch(fetchEmployees());
+    }
+  }, [dispatch, limit, offset, isGeneralAdmin]);
 
   // Update page when offset changes
   useEffect(() => {
@@ -188,10 +198,14 @@ export default function QrPortal() {
         return true;
       }
 
-      // Search in email (for O2BAR)
+      // Search in email and name (for O2BAR)
       if (qr.info.eventType === "O2BAR") {
         const o2barInfo = qr.info as { eventType: "O2BAR"; email: string };
         if (o2barInfo.email?.toLowerCase().includes(query)) {
+          return true;
+        }
+        const employeeDisplayName = getEmployeeDisplayName(o2barInfo.email).toLowerCase();
+        if (employeeDisplayName.includes(query.toLowerCase())) {
           return true;
         }
       }
@@ -285,6 +299,15 @@ export default function QrPortal() {
     return "Unknown";
   };
 
+  const getEmployeeDisplayName = (email: string): string => {
+    const employee = employees.find((e) => e.workEmail === email);
+    if (employee) {
+      const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(" ");
+      return fullName || email;
+    }
+    return email;
+  };
+
   // DataGrid columns for list view
   const loggedInEmail = userInfo?.workEmail?.toLowerCase() ?? "";
 
@@ -305,7 +328,7 @@ export default function QrPortal() {
           return generalInfo.eventTypeName;
         } else {
           const o2barInfo = row.info as { eventType: "O2BAR"; email: string };
-          return o2barInfo.email;
+          return getEmployeeDisplayName(o2barInfo.email);
         }
       },
       renderCell: (params) => {
@@ -319,7 +342,7 @@ export default function QrPortal() {
           return generalInfo.eventTypeName;
         } else {
           const o2barInfo = qr.info as { eventType: "O2BAR"; email: string };
-          return o2barInfo.email;
+          return getEmployeeDisplayName(o2barInfo.email);
         }
       },
     },
@@ -678,7 +701,7 @@ export default function QrPortal() {
                           ) : isGeneral ? (
                             <>{generalInfo?.eventTypeName}</>
                           ) : (
-                            <>{o2barInfo?.email}</>
+                            <>{o2barInfo ? getEmployeeDisplayName(o2barInfo.email) : ""}</>
                           )}
                         </Typography>
                         {qr.description && (

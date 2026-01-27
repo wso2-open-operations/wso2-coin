@@ -60,13 +60,23 @@ export interface AuthData {
   decodedIdToken: ExtendedDecodedIDTokenPayload;
 }
 
-export interface UserInfoInterface {
+export interface Employee {
   employeeId: string;
   firstName: string;
   lastName: string;
   workEmail: string;
-  employeeThumbnail: string | null;
+  employeeThumbnail?: string | null;
   jobRole: string;
+}
+
+// Employee information for listing.
+export interface EmployeeListItem {
+  firstName: string;
+  lastName: string;
+  workEmail: string;
+}
+
+export interface UserInfoInterface extends Employee {
   privileges: number[];
 }
 

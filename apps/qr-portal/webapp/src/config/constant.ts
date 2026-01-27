@@ -30,6 +30,7 @@ export const SnackMessage = {
     createQrCode: "Failed to create QR code",
     deleteQrCode: "Failed to delete QR code",
     fetchSessions: "Failed to fetch sessions",
+    fetchEmployees: "Failed to fetch employees",
     duplicateQrCode: "QR code already exists",
     fetchEventTypes: "Failed to fetch event types",
     createEventType: "Failed to create event type",
