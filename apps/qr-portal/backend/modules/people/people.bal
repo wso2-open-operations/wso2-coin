@@ -54,7 +54,7 @@ public isolated function fetchAllEmployees() returns EmployeeListItem[]|error {
 
     map<json> variables = {
         "filter": {},
-        "limit": 1000,
+        "limit": MAX_EMPLOYEES_LIMIT,
         "offset": 0
     };
 
