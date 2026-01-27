@@ -70,6 +70,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
   const { state } = useAppSelector((state: RootState) => state.qr);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [createdQrId, setCreatedQrId] = useState<string | null>(null);
+  const [selectedEmployeeEmail, setSelectedEmployeeEmail] = useState<string>(userInfo?.workEmail ?? "");
 
   useEffect(() => {
     if (open) {
@@ -80,12 +81,15 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       if (roles.includes(Role.GENERAL_ADMIN)) {
         dispatch(fetchEmployees());
       }
+      // Sync selectedEmployeeEmail with initial email value when modal opens
+      setSelectedEmployeeEmail(userInfo?.workEmail ?? "");
     }
-  }, [open, dispatch, roles]);
+  }, [open, dispatch, roles, userInfo?.workEmail]);
 
   const handleExited = () => {
     setQrImageUrl(null);
     setCreatedQrId(null);
+    setSelectedEmployeeEmail(userInfo?.workEmail ?? "");
   };
 
   const isGeneralAdmin = roles.includes(Role.GENERAL_ADMIN);
@@ -226,6 +230,10 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     return filtered.slice(0, 100);
   };
 
+  const selectedEmployee = useMemo(() => {
+    return employees.find((e) => e.workEmail === selectedEmployeeEmail) || null;
+  }, [employees, selectedEmployeeEmail]);
+
   const handleSubmit = async (values: CreateQrFormValues) => {
     let info;
     if (values.eventType === QrCodeEventType.SESSION) {
@@ -328,10 +336,6 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
           const canEditCoins =
             isGeneralAdmin || (isSessionAdmin && values.eventType === QrCodeEventType.SESSION);
 
-          const selectedEmployee = useMemo(() => {
-            return employees.find((e) => e.workEmail === values.email) || null;
-          }, [employees, values.email]);
-
           const handleEventTypeChange = (
             e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
           ) => {
@@ -339,6 +343,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
             handleChange(e);
             if (newEventType === QrCodeEventType.O2BAR && !isGeneralAdmin && userInfo) {
               setFieldValue("email", userInfo.workEmail);
+              setSelectedEmployeeEmail(userInfo.workEmail);
             }
             if (newEventType === QrCodeEventType.GENERAL) {
               const firstGeneralType = availableEventTypes.find((et) => et.category === "GENERAL");
@@ -526,7 +531,9 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
                             getOptionLabel={getEmployeeDisplayName}
                             value={selectedEmployee}
                             onChange={(_, newValue) => {
-                              setFieldValue("email", newValue?.workEmail || "");
+                              const email = newValue?.workEmail || "";
+                              setFieldValue("email", email);
+                              setSelectedEmployeeEmail(email);
                             }}
                             onBlur={handleBlur}
                             renderInput={(params) => (
