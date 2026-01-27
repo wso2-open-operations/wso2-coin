@@ -64,10 +64,20 @@ public type EmployeeResponse record {|
     EmployeeData data;
 |};
 
+# Employee information for listing.
+public type EmployeeListItem record {|
+    # Employee first name
+    string firstName;
+    # Employee last name
+    string lastName;
+    # Employee work email
+    string workEmail;
+|};
+
 # Employees information.
 public type EmployeesData record {|
-    # Array of employee objects
-    Employee[] employees;
+    # Array of employee list items
+    EmployeeListItem[] employees;
 |};
 
 # Response when fetching multiple employees.

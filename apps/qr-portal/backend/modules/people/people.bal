@@ -40,8 +40,8 @@ public isolated function fetchEmployee(string workEmail) returns Employee|error?
 
 # Retrieve all employees with only email, firstName, and lastName.
 #
-# + return - Array of Employee objects or Error if so
-public isolated function fetchAllEmployees() returns Employee[]|error {
+# + return - Array of EmployeeListItem objects or Error if so
+public isolated function fetchAllEmployees() returns EmployeeListItem[]|error {
     string document = string `
         query employeesQuery ($filter: EmployeeFilter, $limit: Int, $offset: Int) {
             employees(filter: $filter, limit: $limit, offset: $offset) {
@@ -60,7 +60,7 @@ public isolated function fetchAllEmployees() returns Employee[]|error {
 
     json response = check hrClient->execute(document, variables);
     EmployeesResponse employeesResponse = check response.cloneWithType(EmployeesResponse);
-    Employee[] employees = employeesResponse.data.employees;
+    EmployeeListItem[] employees = employeesResponse.data.employees;
     
     return employees;
 }

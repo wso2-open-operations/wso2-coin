@@ -137,7 +137,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request context
     # + return - Array of employees or error
     resource function get employees(http:RequestContext ctx)
-        returns people:Employee[]|http:InternalServerError|http:Forbidden {
+        returns people:EmployeeListItem[]|http:InternalServerError|http:Forbidden {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
@@ -161,13 +161,13 @@ service http:InterceptableService / on new http:Listener(9090) {
         // Check if employees are already cached
         string cacheKey = "all_employees";
         if cache.hasKey(cacheKey) {
-            people:Employee[]|error cachedEmployees = cache.get(cacheKey).ensureType();
-            if cachedEmployees is people:Employee[] {
+            people:EmployeeListItem[]|error cachedEmployees = cache.get(cacheKey).ensureType();
+            if cachedEmployees is people:EmployeeListItem[] {
                 return cachedEmployees;
             }
         }
 
-        people:Employee[]|error employees = people:fetchAllEmployees();
+        people:EmployeeListItem[]|error employees = people:fetchAllEmployees();
         if employees is error {
             string customError = "Error occurred while fetching employees!";
             log:printError(customError, employees);
