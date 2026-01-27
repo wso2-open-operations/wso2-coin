@@ -18,6 +18,14 @@ generalAdminRole = ""
 sessionAdminRole = ""
 employeeRole = ""
 
+[qr_portal.people.client]
+peopleEndpoint = ""
+
+[qr_portal.people.client.clientAuthConfig]
+tokenUrl = ""
+clientId = ""
+clientSecret = ""
+
 [qr_portal.conference.client]
 conferenceEndpoint = ""
 

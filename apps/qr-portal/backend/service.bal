@@ -16,10 +16,17 @@
 import qr_portal.authorization;
 import qr_portal.conference;
 import qr_portal.database;
+import qr_portal.people;
 
+import ballerina/cache;
 import ballerina/http;
 import ballerina/log;
 import ballerina/uuid;
+
+final cache:Cache cache = new ({
+    defaultMaxAge: 86400.0,
+    evictionFactor: 0.2
+});
 
 @display {
     label: "QR Portal Service",
@@ -37,10 +44,10 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - Request context
     # + return - User information or error
-    resource function get user\-info(http:RequestContext ctx) returns UserInfo|http:InternalServerError {
-        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
-        if invokerInfo is error {
-            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+    resource function get user\-info(http:RequestContext ctx) returns UserInfo|http:InternalServerError|http:NotFound {
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, userInfo);
             return <http:InternalServerError>{
                 body: {
                     message: USER_INFO_HEADER_NOT_FOUND_ERROR
@@ -48,21 +55,52 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        // Check if the employees are already cached
+        if cache.hasKey(userInfo.email) {
+            UserInfo|error cachedUserInfo = cache.get(userInfo.email).ensureType();
+            if cachedUserInfo is UserInfo {
+                return cachedUserInfo;
+            }
+        }
+
+        people:Employee|error? employee = people:fetchEmployee(userInfo.email);
+        if employee is error {
+            string customError = string `Error occurred while fetching user information for user : ${userInfo.email}`;
+            log:printError(customError, employee);
+            return <http:InternalServerError>{
+                body: customError
+            };
+        }
+
+        if employee is () {
+            log:printError(string `No employee information found for the user: ${userInfo.email}`);
+            return <http:NotFound>{
+                body: {
+                    message: "No user found!"
+                }
+            };
+        }
+
         int[] privileges = [];
-        if authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], invokerInfo.groups) {
+        if authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], userInfo.groups) {
             privileges.push(authorization:GENERAL_ADMIN_PRIVILEGE);
         }
-        if authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], invokerInfo.groups) {
+        if authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], userInfo.groups) {
             privileges.push(authorization:SESSION_ADMIN_PRIVILEGE);
         }
-        if authorization:checkPermissions([authorization:authorizedRoles.employeeRole], invokerInfo.groups) {
+        if authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups) {
             privileges.push(authorization:EMPLOYEE_PRIVILEGE);
         }
 
-        return {
-            workEmail: invokerInfo.email,
-            privileges
-        };
+        UserInfo userInfoResponse = {...employee, privileges};
+
+        error? cacheError = cache.put(userInfo.email, userInfoResponse);
+        if cacheError is error {
+            string customError = string `An error occurred while writing user info to the cache for user: ${userInfo.email}`;
+            log:printError(customError, cacheError);
+        }
+
+        return userInfoResponse;
     }
 
     # Fetch all active sessions from the conference backend.
@@ -148,9 +186,12 @@ service http:InterceptableService / on new http:Listener(9090) {
         if isO2BarQr {
             database:QrCodeInfoO2Bar o2BarInfo = <database:QrCodeInfoO2Bar>payload.info;
             if o2BarInfo.email == invokerInfo.email {
-                if !authorization:checkAnyPermissions([authorization:authorizedRoles.generalAdminRole,
-                 authorization:authorizedRoles.sessionAdminRole, authorization:authorizedRoles.employeeRole],
-                 invokerInfo.groups) {
+                if !authorization:checkAnyPermissions([
+                            authorization:authorizedRoles.generalAdminRole,
+                            authorization:authorizedRoles.sessionAdminRole,
+                            authorization:authorizedRoles.employeeRole
+                        ],
+                        invokerInfo.groups) {
                     return <http:Forbidden>{
                         body: {
                             message: "You don't have permission to create O2 Bar QR codes!"
