@@ -32,9 +32,9 @@
 ```
 
 **Privilege Codes:**
-- `101` - General Admin
-- `102` - Session Admin
-- `103` - Employee
+- `191` - General Admin
+- `181` - Session Admin
+- `171` - O2 Bar Admin
 
 ---
 
@@ -78,8 +78,8 @@
 
 **Authorization:**
 - **Session QR**: Requires Session Admin role
-- **O2 Bar QR**: Requires General Admin or Employee role (employees can only create for their own email)
-- **General QR**: Requires any authenticated role (General Admin, Session Admin, or Employee)
+- **O2 Bar QR**: Requires General Admin or O2 Bar Admin role (O2 Bar Admins can only create for their own email)
+- **General QR**: Requires any authenticated role (General Admin, Session Admin, or O2 Bar Admin)
 
 **Request Body Example (Session):**
 
@@ -188,7 +188,7 @@
 - **General Admin + Session Admin**: Sees all QR codes (no filters)
 - **General Admin only**: Sees all O2 Bar QR codes
 - **Session Admin**: Sees all Session QR codes
-- **Employee**: Sees only their own O2 Bar QR code
+- **O2 Bar Admin**: Sees only their own O2 Bar QR code
 
 **Query Parameters:**
 
@@ -446,9 +446,9 @@
 **Fields:**
 - `email`: User's email address (string)
 - `privileges`: Array of privilege codes (integer array)
-  - `101` = General Admin privilege (formerly O2 Bar Admin)
-  - `102` = Session Admin privilege
-  - `103` = Employee privilege
+  - `191` = General Admin privilege
+  - `181` = Session Admin privilege
+  - `171` = O2 Bar Admin privilege
 
 ---
 

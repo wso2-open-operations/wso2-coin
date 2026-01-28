@@ -44,7 +44,7 @@ export const SnackMessage = {
 export const PRIVILEGES = {
   GENERAL_ADMIN: 191,
   SESSION_ADMIN: 181,
-  EMPLOYEE: 171,
+  O2BAR_ADMIN: 171,
 };
 
 export const APP_DESC = "QR Portal";

@@ -94,7 +94,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
 
   const isGeneralAdmin = roles.includes(Role.GENERAL_ADMIN);
   const isSessionAdmin = roles.includes(Role.SESSION_ADMIN);
-  const isEmployee = roles.includes(Role.EMPLOYEE);
+  const isO2BarAdmin = roles.includes(Role.O2BAR_ADMIN);
 
   // Filter event types based on user role
   const availableEventTypes = useMemo(() => {
@@ -103,14 +103,14 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
         return isSessionAdmin;
       }
       if (eventType.category === "O2BAR") {
-        return isGeneralAdmin || isSessionAdmin || isEmployee;
+        return isGeneralAdmin || isSessionAdmin || isO2BarAdmin;
       }
       if (eventType.category === "GENERAL") {
         return isGeneralAdmin;
       }
       return false;
     });
-  }, [eventTypes, isSessionAdmin, isGeneralAdmin, isEmployee]);
+  }, [eventTypes, isSessionAdmin, isGeneralAdmin, isO2BarAdmin]);
 
   // Group event types by category for dropdown
   const eventTypeOptions = useMemo(() => {
@@ -125,7 +125,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     }
 
     if (
-      (isGeneralAdmin || isSessionAdmin || isEmployee) &&
+      (isGeneralAdmin || isSessionAdmin || isO2BarAdmin) &&
       eventTypes.some((et) => et.category === "O2BAR")
     ) {
       options.push({ value: QrCodeEventType.O2BAR, label: "O2 Bar", category: "O2BAR" });
@@ -139,7 +139,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     }
 
     return options;
-  }, [eventTypes, isSessionAdmin, isGeneralAdmin, isEmployee]);
+  }, [eventTypes, isSessionAdmin, isGeneralAdmin, isO2BarAdmin]);
 
   const eventTypeSelectDisabled = eventTypeOptions.length === 1;
 
@@ -148,7 +148,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       return QrCodeEventType.SESSION;
     }
     if (
-      (isGeneralAdmin || isSessionAdmin || isEmployee) &&
+      (isGeneralAdmin || isSessionAdmin || isO2BarAdmin) &&
       eventTypes.some((et) => et.category === "O2BAR")
     ) {
       return QrCodeEventType.O2BAR;

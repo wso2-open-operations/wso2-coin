@@ -88,8 +88,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         if authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], userInfo.groups) {
             privileges.push(authorization:SESSION_ADMIN_PRIVILEGE);
         }
-        if authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups) {
-            privileges.push(authorization:EMPLOYEE_PRIVILEGE);
+        if authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], userInfo.groups) {
+            privileges.push(authorization:O2BAR_ADMIN_PRIVILEGE);
         }
 
         UserInfo userInfoResponse = {...employee, privileges};
@@ -207,7 +207,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         boolean isGeneralAdmin = authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], invokerInfo.groups);
         boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], invokerInfo.groups);
-        boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], invokerInfo.groups);
+        boolean isO2BarAdmin = authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], invokerInfo.groups);
 
         if (payload.info is database:QrCodeInfoSession && payload.info.eventType != database:SESSION) ||
             (payload.info is database:QrCodeInfoO2Bar && payload.info.eventType != database:O2BAR) ||
@@ -245,7 +245,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 if !authorization:checkAnyPermissions([
                             authorization:authorizedRoles.generalAdminRole,
                             authorization:authorizedRoles.sessionAdminRole,
-                            authorization:authorizedRoles.employeeRole
+                            authorization:authorizedRoles.o2BarAdminRole
                         ],
                         invokerInfo.groups) {
                     return <http:Forbidden>{
@@ -285,11 +285,11 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         decimal coins = payload.coins;
-        // Employee without admin privileges
-        boolean isEmployeeOnly = isEmployee && !isGeneralAdmin && !isSessionAdmin;
+        // O2 Bar Admin only 
+        boolean isO2BarAdminOnly = isO2BarAdmin && !isGeneralAdmin && !isSessionAdmin;
         // Session admin creating an O2BAR QR
         boolean isSessionAdminAndO2BarQr = isSessionAdmin && !isGeneralAdmin && isO2BarQr;
-        if isEmployeeOnly || isSessionAdminAndO2BarQr {
+        if isO2BarAdminOnly || isSessionAdminAndO2BarQr {
             database:EventTypeCoinsInfo|error? eventTypeCoinsInfo = database:getDefaultCoinsForQrInfo(payload.info);
             if eventTypeCoinsInfo is error {
                 string customError = "Error occurred while fetching default coins for event type!";
@@ -400,7 +400,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         boolean isGeneralAdmin = authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], userInfo.groups);
         boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], userInfo.groups);
-        boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups);
+        boolean isO2BarAdmin = authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], userInfo.groups);
 
         if isGeneralAdmin && isSessionAdmin {
             filters.eventTypes = [database:SESSION, database:O2BAR, database:GENERAL];
@@ -409,7 +409,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         } else if isSessionAdmin {
             filters.email = userInfo.email;
             filters.eventTypes = [database:SESSION, database:O2BAR];
-        } else if isEmployee {
+        } else if isO2BarAdmin {
             filters.email = userInfo.email;
             filters.eventTypes = [database:O2BAR];
         }

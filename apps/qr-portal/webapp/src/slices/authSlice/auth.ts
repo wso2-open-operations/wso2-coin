@@ -24,7 +24,7 @@ import { RootState } from "@slices/store";
 export enum Role {
   GENERAL_ADMIN = "GENERAL_ADMIN",
   SESSION_ADMIN = "SESSION_ADMIN",
-  EMPLOYEE = "EMPLOYEE",
+  O2BAR_ADMIN = "O2BAR_ADMIN",
 }
 
 // Custom extended interface
@@ -87,8 +87,8 @@ export const loadPrivileges = createAsyncThunk(
     if (userPrivileges.includes(PRIVILEGES.SESSION_ADMIN)) {
       roles.push(Role.SESSION_ADMIN);
     }
-    if (userPrivileges.includes(PRIVILEGES.EMPLOYEE)) {
-      roles.push(Role.EMPLOYEE);
+    if (userPrivileges.includes(PRIVILEGES.O2BAR_ADMIN)) {
+      roles.push(Role.O2BAR_ADMIN);
     }
 
     if (roles.length === 0) {

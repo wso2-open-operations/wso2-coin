@@ -8,7 +8,7 @@ Web application for managing conference QR codes for sessions and O2 Bar events.
 - View and manage QR codes in grid or list view
 - Download QR codes as PNG images
 - Search and filter QR codes
-- Role-based access control (O2 Bar Admin, Session Admin, Employee)
+- Role-based access control (General Admin, Session Admin, O2 Bar Admin)
 
 ## Setup
 

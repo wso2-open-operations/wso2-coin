@@ -29,6 +29,6 @@ public type AppRoles record {|
     string generalAdminRole;
     # Role for the session admin
     string sessionAdminRole;
-    # Role for the employee
-    string employeeRole;
+    # Role for the O2 Bar admin
+    string o2BarAdminRole;
 |};

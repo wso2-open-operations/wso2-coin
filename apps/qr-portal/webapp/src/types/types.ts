@@ -31,7 +31,7 @@ export enum State {
 
 export enum Role {
   ADMIN = "ADMIN",
-  EMPLOYEE = "EMPLOYEE",
+  O2BAR_ADMIN = "O2BAR_ADMIN",
   GENERAL_ADMIN = "GENERAL_ADMIN",
   SESSION_ADMIN = "SESSION_ADMIN",
 }
