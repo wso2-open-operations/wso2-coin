@@ -36,7 +36,7 @@ import * as Yup from "yup";
 
 import React, { useEffect, useMemo, useState } from "react";
 
-import { CreateQrCodePayload, EmployeeListItem, QrCodeEventType, State } from "@/types/types";
+import { CreateQrCodePayload, EmployeeBase, QrCodeEventType, State } from "@/types/types";
 import { Role } from "@slices/authSlice/auth";
 import { fetchEmployees } from "@slices/employeesSlice/employees";
 import { fetchEventTypes } from "@slices/eventTypesSlice/eventTypes";
@@ -206,15 +206,15 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     return `${presenters[0]} & ${presenters.length - 1} more`;
   };
 
-  const getEmployeeDisplayName = (employee: EmployeeListItem): string => {
+  const getEmployeeDisplayName = (employee: EmployeeBase): string => {
     const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(" ");
     return fullName || employee.workEmail;
   };
 
   const filterEmployeeOptions = (
-    options: EmployeeListItem[],
+    options: EmployeeBase[],
     { inputValue }: { inputValue: string },
-  ): EmployeeListItem[] => {
+  ): EmployeeBase[] => {
     if (!inputValue || inputValue.length < 2) {
       return options.slice(0, 50);
     }
@@ -525,7 +525,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
                     {values.eventType === QrCodeEventType.O2BAR && (
                       <>
                         {isGeneralAdmin ? (
-                          <Autocomplete<EmployeeListItem>
+                          <Autocomplete<EmployeeBase>
                             fullWidth
                             options={employees}
                             getOptionLabel={getEmployeeDisplayName}

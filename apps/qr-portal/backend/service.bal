@@ -44,7 +44,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - Request context
     # + return - User information or error
-    resource function get user\-info(http:RequestContext ctx) returns UserInfo|http:InternalServerError|http:NotFound {
+    resource function get user\-info(http:RequestContext ctx) returns UserInfo|http:NotFound|http:InternalServerError {
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, userInfo);
@@ -137,7 +137,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request context
     # + return - Array of employees or error
     resource function get employees(http:RequestContext ctx)
-        returns people:EmployeeListItem[]|http:InternalServerError|http:Forbidden {
+        returns people:EmployeeBase[]|http:Forbidden|http:InternalServerError {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
@@ -159,15 +159,14 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         // Check if employees are already cached
-        string cacheKey = "all_employees";
-        if cache.hasKey(cacheKey) {
-            people:EmployeeListItem[]|error cachedEmployees = cache.get(cacheKey).ensureType();
-            if cachedEmployees is people:EmployeeListItem[] {
+        if cache.hasKey(people:CACHE_KEY_ALL_EMPLOYEES) {
+            people:EmployeeBase[]|error cachedEmployees = cache.get(people:CACHE_KEY_ALL_EMPLOYEES).ensureType();
+            if cachedEmployees is people:EmployeeBase[] {
                 return cachedEmployees;
             }
         }
 
-        people:EmployeeListItem[]|error employees = people:fetchAllEmployees();
+        people:EmployeeBase[]|error employees = people:fetchAllEmployees();
         if employees is error {
             string customError = "Error occurred while fetching employees!";
             log:printError(customError, employees);
@@ -179,7 +178,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         // Cache the employees list 
-        error? cacheError = cache.put(cacheKey, employees);
+        error? cacheError = cache.put(people:CACHE_KEY_ALL_EMPLOYEES, employees);
         if cacheError is error {
             string customError = "An error occurred while writing employees to the cache";
             log:printError(customError, cacheError);

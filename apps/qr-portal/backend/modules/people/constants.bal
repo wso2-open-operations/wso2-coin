@@ -26,5 +26,5 @@ public const float RETRY_BACKOFF_FACTOR = 2.0;
 # client retry configuration for maximum wait interval in seconds.
 public const decimal RETRY_MAX_INTERVAL = 20.0;
 
-# Maximum number of employees to fetch in a single query.
-public const int MAX_EMPLOYEES_LIMIT = 1000;
+# Cache key for all employees list.
+public const string CACHE_KEY_ALL_EMPLOYEES = "all_employees";

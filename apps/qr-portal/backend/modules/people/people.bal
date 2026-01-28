@@ -32,16 +32,16 @@ public isolated function fetchEmployee(string workEmail) returns Employee|error?
         }
     `;
 
-    EmployeeResponse employeeResponse = check hrClient->execute(document, {workEmail});
-    Employee? employee = employeeResponse.data.employee;
-
+    SingleEmployeeResponse response = check hrClient->execute(document, {workEmail});
+    Employee? employee = response.data.employee;
+    
     return employee;
 }
 
 # Retrieve all employees with only email, firstName, and lastName.
 #
-# + return - Array of EmployeeListItem objects or Error if so
-public isolated function fetchAllEmployees() returns EmployeeListItem[]|error {
+# + return - Array of EmployeeBase objects or Error if so
+public isolated function fetchAllEmployees() returns EmployeeBase[]|error {
     string document = string `
         query employeesQuery ($filter: EmployeeFilter, $limit: Int, $offset: Int) {
             employees(filter: $filter, limit: $limit, offset: $offset) {
@@ -52,15 +52,21 @@ public isolated function fetchAllEmployees() returns EmployeeListItem[]|error {
         }
     `;
 
-    map<json> variables = {
-        "filter": {},
-        "limit": MAX_EMPLOYEES_LIMIT,
-        "offset": 0
-    };
+    EmployeeBase[] employees = [];
+    boolean fetchMore = true;
+    int offset = 0;
+    int defaultLimit = 500;
 
-    json response = check hrClient->execute(document, variables);
-    EmployeesResponse employeesResponse = check response.cloneWithType(EmployeesResponse);
-    EmployeeListItem[] employees = employeesResponse.data.employees;
+    while fetchMore {
+        MultipleEmployeesResponse response = check hrClient->execute(
+            document,
+            {filter: {}, 'limit: defaultLimit, offset: offset}
+        );
+        EmployeeBase[] batch = response.data.employees;
+        employees.push(...batch);
+        fetchMore = batch.length() > 0;
+        offset += defaultLimit;
+    }
     
     return employees;
 }

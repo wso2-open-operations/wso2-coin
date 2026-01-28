@@ -60,17 +60,14 @@ export interface AuthData {
   decodedIdToken: ExtendedDecodedIDTokenPayload;
 }
 
-export interface Employee {
+export interface Employee extends EmployeeBase {
   employeeId: string;
-  firstName: string;
-  lastName: string;
-  workEmail: string;
   employeeThumbnail?: string | null;
   jobRole: string;
 }
 
-// Employee information for listing.
-export interface EmployeeListItem {
+// Base employee information.
+export interface EmployeeBase {
   firstName: string;
   lastName: string;
   workEmail: string;

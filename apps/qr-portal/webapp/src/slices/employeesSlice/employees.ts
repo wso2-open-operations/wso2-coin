@@ -17,7 +17,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
 import { State } from "@/types/types";
-import { EmployeeListItem } from "@/types/types";
+import { EmployeeBase } from "@/types/types";
 import { AppConfig } from "@config/config";
 import { SnackMessage } from "@config/constant";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
@@ -27,7 +27,7 @@ interface EmployeesState {
   state: State;
   stateMessage: string | null;
   errorMessage: string | null;
-  employees: EmployeeListItem[];
+  employees: EmployeeBase[];
 }
 
 const initialState: EmployeesState = {
@@ -44,7 +44,7 @@ export const fetchEmployees = createAsyncThunk(
       APIService.getCancelToken().cancel();
       const newCancelTokenSource = APIService.updateCancelToken();
 
-      const response = await APIService.getInstance().get<EmployeeListItem[]>(
+      const response = await APIService.getInstance().get<EmployeeBase[]>(
         AppConfig.serviceUrls.employees,
         {
           cancelToken: newCancelTokenSource.token,

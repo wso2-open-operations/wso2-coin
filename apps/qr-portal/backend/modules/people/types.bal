@@ -36,36 +36,8 @@ public type GraphQlRetryConfig record {|
     decimal maxWaitInterval = RETRY_MAX_INTERVAL;
 |};
 
-# Employee information.
-public type Employee record {|
-    # Employee first name
-    string firstName;
-    # Employee last name
-    string lastName;
-    # Employee ID
-    string employeeId;
-    # Employee thumbnail
-    string? employeeThumbnail?;
-    # Employee work emails
-    string workEmail;
-    # Employee job role
-    string jobRole;
-|};
-
-# Employee information.
-public type EmployeeData record {|
-    # Employee object
-    Employee employee;
-|};
-
-# Response when fetching employee.
-public type EmployeeResponse record {|
-    # Employee data fetched
-    EmployeeData data;
-|};
-
-# Employee information for listing.
-public type EmployeeListItem record {|
+# Base employee information.
+public type EmployeeBase record {|
     # Employee first name
     string firstName;
     # Employee last name
@@ -74,14 +46,31 @@ public type EmployeeListItem record {|
     string workEmail;
 |};
 
-# Employees information.
-public type EmployeesData record {|
-    # Array of employee list items
-    EmployeeListItem[] employees;
+# Employee information.
+public type Employee record {|
+    *EmployeeBase;
+    # Employee ID
+    string employeeId;
+    # Employee thumbnail
+    string? employeeThumbnail?;
+    # Employee job role
+    string jobRole;
 |};
 
-# Response when fetching multiple employees.
-public type EmployeesResponse record {|
-    # Employees data fetched
-    EmployeesData data;
+# GraphQL single employee response.
+type SingleEmployeeResponse record {|
+    # Response data wrapper
+    record {|
+        # Employee data
+        Employee? employee;
+    |} data;
+|};
+
+# GraphQL multiple employees response.
+type MultipleEmployeesResponse record {|
+    # Response data wrapper
+    record {|
+        # Employees data array
+        EmployeeBase[] employees;
+    |} data;
 |};
