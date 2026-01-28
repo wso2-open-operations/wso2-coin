@@ -349,12 +349,12 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + id - UUID of the QR code
     # + return - QR details or error
     resource function get qr\-codes/[string id](http:RequestContext ctx)
-        returns database:ConferenceQrCode|http:NotFound|http:Unauthorized|http:Forbidden|http:InternalServerError {
+        returns database:ConferenceQrCode|http:NotFound|http:Forbidden|http:InternalServerError {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, userInfo);
-            return <http:Unauthorized>{
+            return <http:InternalServerError>{
                 body: {
                     message: USER_INFO_HEADER_NOT_FOUND_ERROR
                 }
