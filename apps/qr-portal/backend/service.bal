@@ -349,7 +349,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + id - UUID of the QR code
     # + return - QR details or error
     resource function get qr\-codes/[string id](http:RequestContext ctx)
-        returns database:ConferenceQrCode|http:NotFound|http:Unauthorized|http:InternalServerError {
+        returns database:ConferenceQrCode|http:NotFound|http:Unauthorized|http:Forbidden|http:InternalServerError {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
@@ -357,6 +357,17 @@ service http:InterceptableService / on new http:Listener(9090) {
             return <http:Unauthorized>{
                 body: {
                     message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isConAttendee = authorization:checkPermissions([authorization:authorizedRoles.conAttendeeRole], userInfo.groups);
+        if !isConAttendee {
+            string customError = string `User is not a member of the ${authorization:authorizedRoles.conAttendeeRole} group`;
+            log:printError(customError);
+            return <http:Forbidden>{
+                body: {
+                    message: customError
                 }
             };
         }
