@@ -16,7 +16,7 @@ connectTimeout = 10.0
 [qr_portal.authorization.authorizedRoles]
 generalAdminRole = ""
 sessionAdminRole = ""
-employeeRole = ""
+o2BarAdminRole = ""
 
 [qr_portal.people.client]
 peopleEndpoint = ""
