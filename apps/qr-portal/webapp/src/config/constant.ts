@@ -47,8 +47,8 @@ export const PRIVILEGES = {
   O2BAR_ADMIN: 171,
 };
 
-export const APP_DESC = "QR Portal";
+export const APP_DESC = "O2C Portal";
 
-export const redirectUrl = "qr-portal-redirect-url";
+export const redirectUrl = "o2c-portal-redirect-url";
 
-export const localStorageTheme = "qr-portal-theme";
+export const localStorageTheme = "o2c-portal-theme";

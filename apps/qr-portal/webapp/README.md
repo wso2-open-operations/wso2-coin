@@ -1,4 +1,4 @@
-# QR Portal Webapp
+# O2C Portal Webapp
 
 Web application for managing conference QR codes for sessions and O2 Bar events.
 

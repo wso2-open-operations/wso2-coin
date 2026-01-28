@@ -29,7 +29,7 @@ final cache:Cache cache = new ({
 });
 
 @display {
-    label: "QR Portal Service",
+    label: "O2C Portal Service",
     id: "wso2/qr-portal-service"
 }
 

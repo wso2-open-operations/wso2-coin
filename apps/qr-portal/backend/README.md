@@ -1,4 +1,4 @@
-# QR Portal API
+# O2C Portal API
 
 ## Version: 1.0.0
 
