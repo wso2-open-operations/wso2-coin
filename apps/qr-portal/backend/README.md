@@ -157,7 +157,6 @@
 | Status | Description         | Schema                        |
 | ------ | ------------------- | ----------------------------- |
 | 200    | OK                  | [ConferenceQrCode](#conferenceqrcode) |
-| 401    | Unauthorized        | -                             |
 | 403    | Forbidden           | -                             |
 | 404    | NotFound            | -                             |
 | 500    | InternalServerError | -                             |
