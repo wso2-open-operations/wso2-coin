@@ -361,17 +361,6 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isConAttendee = authorization:checkAnyPermissions(authorization:authorizedRoles.conAttendeeRole, userInfo.groups);
-        if !isConAttendee {
-            string customError = string `User is not a member of the ${authorization:authorizedRoles.conAttendeeRole.toBalString()}`;
-            log:printError(customError);
-            return <http:Forbidden>{
-                body: {
-                    message: customError
-                }
-            };
-        }
-
         database:ConferenceQrCode|error? qr = database:fetchConferenceQrCode(id);
         if qr is error {
             string customError = "Error occurred while fetching QR code!";
