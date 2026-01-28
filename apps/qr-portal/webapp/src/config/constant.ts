@@ -30,6 +30,7 @@ export const SnackMessage = {
     createQrCode: "Failed to create QR code",
     deleteQrCode: "Failed to delete QR code",
     fetchSessions: "Failed to fetch sessions",
+    fetchEmployees: "Failed to fetch employees",
     duplicateQrCode: "QR code already exists",
     fetchEventTypes: "Failed to fetch event types",
     createEventType: "Failed to create event type",
@@ -43,11 +44,11 @@ export const SnackMessage = {
 export const PRIVILEGES = {
   GENERAL_ADMIN: 191,
   SESSION_ADMIN: 181,
-  EMPLOYEE: 171,
+  O2BAR_ADMIN: 171,
 };
 
-export const APP_DESC = "QR Portal";
+export const APP_DESC = "O2C Portal";
 
-export const redirectUrl = "qr-portal-redirect-url";
+export const redirectUrl = "o2c-portal-redirect-url";
 
-export const localStorageTheme = "qr-portal-theme";
+export const localStorageTheme = "o2c-portal-theme";

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -14,21 +14,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-# User info custom type for Asgardeo token.
-public type CustomJwtPayload record {|
-    # User email 
-    string email;
-    # User groups
-    string[] groups;
-    json...;
-|};
+# client retry configuration for max retry attempts.
+public const int RETRY_COUNT = 3;
 
-# Application specific role mapping.
-public type AppRoles record {|
-    # Role for the general admin
-    string generalAdminRole;
-    # Role for the session admin
-    string sessionAdminRole;
-    # Role for the O2 Bar admin
-    string o2BarAdminRole;
-|};
+# client retry configuration for wait interval in seconds.
+public const decimal RETRY_INTERVAL = 3.0;
+
+# client retry configuration for interval increment in seconds.
+public const float RETRY_BACKOFF_FACTOR = 2.0;
+
+# client retry configuration for maximum wait interval in seconds.
+public const decimal RETRY_MAX_INTERVAL = 20.0;
+
+# Cache key for all employees list.
+public const string CACHE_KEY_ALL_EMPLOYEES = "all_employees";

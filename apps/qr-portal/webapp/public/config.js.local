@@ -1,5 +1,5 @@
 window.config = {
-  APP_NAME: "QR Portal",
+  APP_NAME: "O2C Portal",
   ASGARDEO_BASE_URL: "",
   ASGARDEO_CLIENT_ID: "",
   AUTH_SIGN_IN_REDIRECT_URL: "",

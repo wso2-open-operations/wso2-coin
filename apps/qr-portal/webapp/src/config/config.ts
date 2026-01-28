@@ -47,5 +47,6 @@ export const AppConfig = {
     qrCodes: SERVICE_BASE_URL + "/qr-codes",
     appConfig: SERVICE_BASE_URL + "/app-config",
     eventTypes: SERVICE_BASE_URL + "/event-types",
+    employees: SERVICE_BASE_URL + "/employees",
   },
 };

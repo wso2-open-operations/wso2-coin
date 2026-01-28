@@ -31,7 +31,7 @@ export const routes: RouteObjectWithRole[] = [
     text: "Conference QR",
     icon: React.createElement(QrCode2Icon),
     element: React.createElement(View.home),
-    allowRoles: [Role.GENERAL_ADMIN, Role.SESSION_ADMIN, Role.EMPLOYEE],
+    allowRoles: [Role.GENERAL_ADMIN, Role.SESSION_ADMIN, Role.O2BAR_ADMIN],
   },
   {
     path: "/EventTypes",
@@ -59,7 +59,7 @@ export const routes: RouteObjectWithRole[] = [
     text: "Help",
     icon: React.createElement(HelpOutlineIcon),
     element: React.createElement(View.help),
-    allowRoles: [Role.ADMIN, Role.EMPLOYEE],
+    allowRoles: [Role.ADMIN, Role.O2BAR_ADMIN],
     bottomNav: true,
   }
   */

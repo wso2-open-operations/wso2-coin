@@ -1,4 +1,4 @@
-// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -12,16 +12,18 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License. 
+// under the License.
+import ballerina/graphql;
 
-# Authorization Constants.
-public const HEADER_USER_INFO = "user-info";
-public const JWT_ASSERTION_HEADER = "x-jwt-assertion";
+configurable ClientAuthConfig clientAuthConfig = ?;
+configurable GraphQlRetryConfig retryConfig = ?;
+configurable string peopleEndpoint = ?;
 
-# Public endpoint paths.
-public const PATH_QR_CODES = "qr-codes";
-
-# Privileges.
-public const GENERAL_ADMIN_PRIVILEGE = 191;
-public const SESSION_ADMIN_PRIVILEGE = 181;
-public const O2BAR_ADMIN_PRIVILEGE = 171;
+@display {
+    label: "People GraphQL Service",
+    id: "hris/entity-graphql-service"
+}
+final graphql:Client hrClient = check new (peopleEndpoint, {
+    auth: {...clientAuthConfig},
+    retryConfig: {...retryConfig}
+});

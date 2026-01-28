@@ -14,13 +14,14 @@
 // specific language governing permissions and limitations
 // under the License. 
 import qr_portal.database;
+import qr_portal.people;
 
 # Response for fetching user information.
 public type UserInfo record {|
-    # User work email
-    string workEmail;
+    *people:Employee;
     # Array of privileges assigned to the user
     int[] privileges;
+    json...;
 |};
 
 # Payload for creating a new QR code.

@@ -16,13 +16,20 @@
 import qr_portal.authorization;
 import qr_portal.conference;
 import qr_portal.database;
+import qr_portal.people;
 
+import ballerina/cache;
 import ballerina/http;
 import ballerina/log;
 import ballerina/uuid;
 
+final cache:Cache cache = new ({
+    defaultMaxAge: 86400.0,
+    evictionFactor: 0.2
+});
+
 @display {
-    label: "QR Portal Service",
+    label: "O2C Portal Service",
     id: "wso2/qr-portal-service"
 }
 
@@ -37,10 +44,10 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - Request context
     # + return - User information or error
-    resource function get user\-info(http:RequestContext ctx) returns UserInfo|http:InternalServerError {
-        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
-        if invokerInfo is error {
-            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+    resource function get user\-info(http:RequestContext ctx) returns UserInfo|http:NotFound|http:InternalServerError {
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, userInfo);
             return <http:InternalServerError>{
                 body: {
                     message: USER_INFO_HEADER_NOT_FOUND_ERROR
@@ -48,21 +55,52 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        int[] privileges = [];
-        if authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], invokerInfo.groups) {
-            privileges.push(authorization:GENERAL_ADMIN_PRIVILEGE);
-        }
-        if authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], invokerInfo.groups) {
-            privileges.push(authorization:SESSION_ADMIN_PRIVILEGE);
-        }
-        if authorization:checkPermissions([authorization:authorizedRoles.employeeRole], invokerInfo.groups) {
-            privileges.push(authorization:EMPLOYEE_PRIVILEGE);
+        // Check if the employees are already cached
+        if cache.hasKey(userInfo.email) {
+            UserInfo|error cachedUserInfo = cache.get(userInfo.email).ensureType();
+            if cachedUserInfo is UserInfo {
+                return cachedUserInfo;
+            }
         }
 
-        return {
-            workEmail: invokerInfo.email,
-            privileges
-        };
+        people:Employee|error? employee = people:fetchEmployee(userInfo.email);
+        if employee is error {
+            string customError = string `Error occurred while fetching user information for user : ${userInfo.email}`;
+            log:printError(customError, employee);
+            return <http:InternalServerError>{
+                body: customError
+            };
+        }
+
+        if employee is () {
+            log:printError(string `No employee information found for the user: ${userInfo.email}`);
+            return <http:NotFound>{
+                body: {
+                    message: "No user found!"
+                }
+            };
+        }
+
+        int[] privileges = [];
+        if authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], userInfo.groups) {
+            privileges.push(authorization:GENERAL_ADMIN_PRIVILEGE);
+        }
+        if authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], userInfo.groups) {
+            privileges.push(authorization:SESSION_ADMIN_PRIVILEGE);
+        }
+        if authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], userInfo.groups) {
+            privileges.push(authorization:O2BAR_ADMIN_PRIVILEGE);
+        }
+
+        UserInfo userInfoResponse = {...employee, privileges};
+
+        error? cacheError = cache.put(userInfo.email, userInfoResponse);
+        if cacheError is error {
+            string customError = string `An error occurred while writing user info to the cache for user: ${userInfo.email}`;
+            log:printError(customError, cacheError);
+        }
+
+        return userInfoResponse;
     }
 
     # Fetch all active sessions from the conference backend.
@@ -94,6 +132,61 @@ service http:InterceptableService / on new http:Listener(9090) {
         return sessions;
     }
 
+    # Fetch all employees.
+    #
+    # + ctx - Request context
+    # + return - Array of employees or error
+    resource function get employees(http:RequestContext ctx)
+        returns people:EmployeeBase[]|http:Forbidden|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isGeneralAdmin = authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], invokerInfo.groups);
+        if !isGeneralAdmin {
+            return <http:Forbidden>{
+                body: {
+                    message: "Only General Admins can fetch all employees!"
+                }
+            };
+        }
+
+        // Check if employees are already cached
+        if cache.hasKey(people:CACHE_KEY_ALL_EMPLOYEES) {
+            people:EmployeeBase[]|error cachedEmployees = cache.get(people:CACHE_KEY_ALL_EMPLOYEES).ensureType();
+            if cachedEmployees is people:EmployeeBase[] {
+                return cachedEmployees;
+            }
+        }
+
+        people:EmployeeBase[]|error employees = people:fetchAllEmployees();
+        if employees is error {
+            string customError = "Error occurred while fetching employees!";
+            log:printError(customError, employees);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        // Cache the employees list 
+        error? cacheError = cache.put(people:CACHE_KEY_ALL_EMPLOYEES, employees);
+        if cacheError is error {
+            string customError = "An error occurred while writing employees to the cache";
+            log:printError(customError, cacheError);
+        }
+
+        return employees;
+    }
+
     # Create a new QR code.
     #
     # + payload - Payload containing the QR details
@@ -113,7 +206,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         boolean isGeneralAdmin = authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], invokerInfo.groups);
         boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], invokerInfo.groups);
-        boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], invokerInfo.groups);
+        boolean isO2BarAdmin = authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], invokerInfo.groups);
 
         if (payload.info is database:QrCodeInfoSession && payload.info.eventType != database:SESSION) ||
             (payload.info is database:QrCodeInfoO2Bar && payload.info.eventType != database:O2BAR) ||
@@ -148,9 +241,12 @@ service http:InterceptableService / on new http:Listener(9090) {
         if isO2BarQr {
             database:QrCodeInfoO2Bar o2BarInfo = <database:QrCodeInfoO2Bar>payload.info;
             if o2BarInfo.email == invokerInfo.email {
-                if !authorization:checkAnyPermissions([authorization:authorizedRoles.generalAdminRole,
-                 authorization:authorizedRoles.sessionAdminRole, authorization:authorizedRoles.employeeRole],
-                 invokerInfo.groups) {
+                if !authorization:checkAnyPermissions([
+                            authorization:authorizedRoles.generalAdminRole,
+                            authorization:authorizedRoles.sessionAdminRole,
+                            authorization:authorizedRoles.o2BarAdminRole
+                        ],
+                        invokerInfo.groups) {
                     return <http:Forbidden>{
                         body: {
                             message: "You don't have permission to create O2 Bar QR codes!"
@@ -188,11 +284,11 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         decimal coins = payload.coins;
-        // Employee without admin privileges
-        boolean isEmployeeOnly = isEmployee && !isGeneralAdmin && !isSessionAdmin;
+        // O2 Bar Admin only 
+        boolean isO2BarAdminOnly = isO2BarAdmin && !isGeneralAdmin && !isSessionAdmin;
         // Session admin creating an O2BAR QR
         boolean isSessionAdminAndO2BarQr = isSessionAdmin && !isGeneralAdmin && isO2BarQr;
-        if isEmployeeOnly || isSessionAdminAndO2BarQr {
+        if isO2BarAdminOnly || isSessionAdminAndO2BarQr {
             database:EventTypeCoinsInfo|error? eventTypeCoinsInfo = database:getDefaultCoinsForQrInfo(payload.info);
             if eventTypeCoinsInfo is error {
                 string customError = "Error occurred while fetching default coins for event type!";
@@ -303,7 +399,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         boolean isGeneralAdmin = authorization:checkPermissions([authorization:authorizedRoles.generalAdminRole], userInfo.groups);
         boolean isSessionAdmin = authorization:checkPermissions([authorization:authorizedRoles.sessionAdminRole], userInfo.groups);
-        boolean isEmployee = authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups);
+        boolean isO2BarAdmin = authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], userInfo.groups);
 
         if isGeneralAdmin && isSessionAdmin {
             filters.eventTypes = [database:SESSION, database:O2BAR, database:GENERAL];
@@ -312,7 +408,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         } else if isSessionAdmin {
             filters.email = userInfo.email;
             filters.eventTypes = [database:SESSION, database:O2BAR];
-        } else if isEmployee {
+        } else if isO2BarAdmin {
             filters.email = userInfo.email;
             filters.eventTypes = [database:O2BAR];
         }

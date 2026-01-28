@@ -31,7 +31,7 @@ export enum State {
 
 export enum Role {
   ADMIN = "ADMIN",
-  EMPLOYEE = "EMPLOYEE",
+  O2BAR_ADMIN = "O2BAR_ADMIN",
   GENERAL_ADMIN = "GENERAL_ADMIN",
   SESSION_ADMIN = "SESSION_ADMIN",
 }
@@ -60,12 +60,20 @@ export interface AuthData {
   decodedIdToken: ExtendedDecodedIDTokenPayload;
 }
 
-export interface UserInfoInterface {
+export interface Employee extends EmployeeBase {
+  employeeId: string;
+  employeeThumbnail?: string | null;
+  jobRole: string;
+}
+
+// Base employee information.
+export interface EmployeeBase {
   firstName: string;
   lastName: string;
   workEmail: string;
-  employeeThumbnail: string | null;
-  jobRole: string;
+}
+
+export interface UserInfoInterface extends Employee {
   privileges: number[];
 }
 
