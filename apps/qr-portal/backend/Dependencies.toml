@@ -29,6 +29,9 @@ dependencies = [
 	{org = "ballerina", name = "task"},
 	{org = "ballerina", name = "time"}
 ]
+modules = [
+	{org = "ballerina", packageName = "cache", moduleName = "cache"}
+]
 
 [[package]]
 org = "ballerina"
@@ -380,6 +383,7 @@ org = "wso2"
 name = "qr_portal"
 version = "1.0.0"
 dependencies = [
+	{org = "ballerina", name = "cache"},
 	{org = "ballerina", name = "constraint"},
 	{org = "ballerina", name = "http"},
 	{org = "ballerina", name = "jwt"},
@@ -394,6 +398,7 @@ modules = [
 	{org = "wso2", packageName = "qr_portal", moduleName = "qr_portal"},
 	{org = "wso2", packageName = "qr_portal", moduleName = "qr_portal.authorization"},
 	{org = "wso2", packageName = "qr_portal", moduleName = "qr_portal.conference"},
-	{org = "wso2", packageName = "qr_portal", moduleName = "qr_portal.database"}
+	{org = "wso2", packageName = "qr_portal", moduleName = "qr_portal.database"},
+	{org = "wso2", packageName = "qr_portal", moduleName = "qr_portal.people"}
 ]
 

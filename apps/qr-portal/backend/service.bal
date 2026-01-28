@@ -361,9 +361,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isConAttendee = authorization:checkPermissions([authorization:authorizedRoles.conAttendeeRole], userInfo.groups);
+        boolean isConAttendee = authorization:checkAnyPermissions(authorization:authorizedRoles.conAttendeeRole, userInfo.groups);
         if !isConAttendee {
-            string customError = string `User is not a member of the ${authorization:authorizedRoles.conAttendeeRole} group`;
+            string customError = string `User is not a member of the ${authorization:authorizedRoles.conAttendeeRole.toBalString()}`;
             log:printError(customError);
             return <http:Forbidden>{
                 body: {
