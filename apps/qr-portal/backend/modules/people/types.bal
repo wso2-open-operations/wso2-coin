@@ -66,6 +66,12 @@ type SingleEmployeeResponse record {|
     |} data;
 |};
 
+# GraphQL Employee filter record.
+type GraphQLEmployeeFilter record {|
+    # Employee is active or not
+    boolean isActive = true;
+|};
+
 # GraphQL multiple employees response.
 type MultipleEmployeesResponse record {|
     # Response data wrapper
