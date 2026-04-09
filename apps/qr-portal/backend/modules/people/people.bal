@@ -52,6 +52,10 @@ public isolated function fetchAllEmployees() returns EmployeeBase[]|error {
         }
     `;
 
+    GraphQLEmployeeFilter filter = {
+        isActive: true
+    };
+
     EmployeeBase[] employees = [];
     boolean fetchMore = true;
     int offset = 0;
@@ -60,7 +64,7 @@ public isolated function fetchAllEmployees() returns EmployeeBase[]|error {
     while fetchMore {
         MultipleEmployeesResponse response = check hrClient->execute(
             document,
-            {filter: {}, 'limit: defaultLimit, offset: offset}
+            {filter: filter, 'limit: defaultLimit, offset: offset}
         );
         EmployeeBase[] batch = response.data.employees;
         employees.push(...batch);
