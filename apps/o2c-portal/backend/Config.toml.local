@@ -1,0 +1,35 @@
+[o2c_portal.database.dbConfig]
+host = ""
+user = ""
+password = ""
+database = "o2c_portal"
+port = 3306
+
+[o2c_portal.database.dbConfig.connectionPool]
+maxOpenConnections = 10
+maxConnectionLifeTime = 100.0
+minIdleConnections = 5
+
+[o2c_portal.database.dbConfig.options]
+connectTimeout = 10.0
+
+[o2c_portal.authorization.authorizedRoles]
+generalAdminRole = ""
+sessionAdminRole = ""
+o2BarAdminRole = ""
+
+[o2c_portal.people.client]
+peopleEndpoint = ""
+
+[o2c_portal.people.client.clientAuthConfig]
+tokenUrl = ""
+clientId = ""
+clientSecret = ""
+
+[o2c_portal.conference.client]
+conferenceEndpoint = ""
+
+[o2c_portal.conference.client.clientAuthConfig]
+tokenUrl = ""
+clientId = ""
+clientSecret = ""
