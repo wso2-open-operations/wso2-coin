@@ -41,7 +41,7 @@ import { State, UserWalletDetail } from "@/types/types";
 import NoDataImage from "@assets/images/no-data.svg";
 import NoSearchResults from "@assets/images/no-search-results.svg";
 import StateWithImage from "@component/ui/StateWithImage";
-import { fetchWallets } from "@slices/walletSlice/wallet";
+import { fetchWalletBalances, fetchWallets } from "@slices/walletSlice/wallet";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
 
 function truncateAddress(address: string): string {
@@ -83,7 +83,7 @@ function WalletAddressCell({ wallet }: { wallet: UserWalletDetail }) {
 export default function Wallets() {
   const dispatch = useAppDispatch();
   const theme = useTheme();
-  const { wallets, state } = useAppSelector((root: RootState) => root.wallet);
+  const { wallets, state, balances } = useAppSelector((root: RootState) => root.wallet);
   const [searchQuery, setSearchQuery] = useState("");
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
 
@@ -101,6 +101,19 @@ export default function Wallets() {
     );
   }, [wallets, searchQuery]);
 
+  // Fetch balances for the current page's wallets
+  useEffect(() => {
+    const { page, pageSize } = paginationModel;
+    const pageWallets = filteredWallets.slice(page * pageSize, (page + 1) * pageSize);
+    const addressesNeedingBalance = pageWallets
+      .map((w) => w.walletAddress)
+      .filter((addr) => !(addr in balances));
+
+    if (addressesNeedingBalance.length > 0) {
+      dispatch(fetchWalletBalances(addressesNeedingBalance));
+    }
+  }, [paginationModel, filteredWallets, balances, dispatch]);
+
   const columns: GridColDef[] = [
     {
       field: "walletAddress",
@@ -117,6 +130,24 @@ export default function Wallets() {
       renderCell: (params) => {
         const wallet = params.row as UserWalletDetail;
         return <Typography variant="body2">{wallet.userEmail}</Typography>;
+      },
+    },
+    {
+      field: "balance",
+      headerName: "Balance",
+      flex: 0.8,
+      minWidth: 100,
+      renderCell: (params) => {
+        const wallet = params.row as UserWalletDetail;
+        const balance = balances[wallet.walletAddress];
+        if (balance === undefined) {
+          return <Skeleton variant="text" width={60} height={24} />;
+        }
+        return (
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {balance}
+          </Typography>
+        );
       },
     },
     {

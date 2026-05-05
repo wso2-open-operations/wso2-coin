@@ -178,6 +178,11 @@ export interface UserWalletDetail {
   createdOn: string;
 }
 
+export interface WalletBalance {
+  walletAddress: string;
+  balance: string;
+}
+
 export interface TransactionSearchRequest {
   senderAddress?: string;
   receiverAddress?: string;

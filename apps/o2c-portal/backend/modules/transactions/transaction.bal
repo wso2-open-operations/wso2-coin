@@ -87,3 +87,23 @@ public isolated function searchTransactions(TransactionSearchRequest request) re
         transactions: enriched
     };
 }
+
+# Fetch token balance for a single wallet address.
+#
+# + walletAddress - Wallet address to check balance for
+# + return - WalletBalance or error
+public isolated function fetchWalletBalance(string walletAddress) returns WalletBalance|error {
+    http:Response response = check transactionClient->get("/api/v1/blockchain/get-balance/" + walletAddress);
+
+    if response.statusCode != http:STATUS_OK {
+        return error(string `Transaction service returned status ${response.statusCode}`);
+    }
+
+    json responseJson = check response.getJsonPayload();
+    BalanceServiceEnvelope envelope = check responseJson.fromJsonWithType();
+
+    return {
+        walletAddress: walletAddress,
+        balance: envelope.payload.balance
+    };
+}

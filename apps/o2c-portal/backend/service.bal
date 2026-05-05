@@ -779,6 +779,52 @@ service http:InterceptableService / on new http:Listener(9090) {
         return wallets;
     }
 
+    # Fetch token balances for a list of wallet addresses.
+    #
+    # + ctx - Request context
+    # + payload - Array of wallet addresses
+    # + return - Array of wallet balances or error
+    resource function post wallets/balances(http:RequestContext ctx, @http:Payload string[] payload)
+        returns transactions:WalletBalance[]|http:Forbidden|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isAuthorized = authorization:checkAnyPermissions([
+                    authorization:authorizedRoles.generalAdminRole,
+                    authorization:authorizedRoles.sessionAdminRole,
+                    authorization:authorizedRoles.o2BarAdminRole
+                ],
+                invokerInfo.groups);
+        if !isAuthorized {
+            return <http:Forbidden>{
+                body: {
+                    message: "You don't have permission to view wallet balances!"
+                }
+            };
+        }
+
+        transactions:WalletBalance[] balances = [];
+        foreach string address in payload {
+            transactions:WalletBalance|error balance = transactions:fetchWalletBalance(address);
+            if balance is transactions:WalletBalance {
+                balances.push(balance);
+            } else {
+                log:printError(string `Failed to fetch balance for ${address}`, balance);
+                balances.push({walletAddress: address, balance: "N/A"});
+            }
+        }
+
+        return balances;
+    }
+
     # Fetch distinct wallet email addresses.
     #
     # + ctx - Request context

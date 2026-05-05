@@ -16,19 +16,21 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios, { CancelTokenSource } from "axios";
 
-import { State, UserWalletDetail } from "@/types/types";
+import { State, UserWalletDetail, WalletBalance } from "@/types/types";
 import { AppConfig } from "@config/config";
 import { SnackMessage } from "@config/constant";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { APIService } from "@utils/apiService";
 
 let fetchCancelSource: CancelTokenSource | null = null;
+let balanceCancelSource: CancelTokenSource | null = null;
 
 interface WalletState {
   state: State;
   stateMessage: string | null;
   errorMessage: string | null;
   wallets: UserWalletDetail[];
+  balances: Record<string, string>;
 }
 
 const initialState: WalletState = {
@@ -36,6 +38,7 @@ const initialState: WalletState = {
   stateMessage: null,
   errorMessage: null,
   wallets: [],
+  balances: {},
 };
 
 export const fetchWallets = createAsyncThunk(
@@ -70,6 +73,30 @@ export const fetchWallets = createAsyncThunk(
   },
 );
 
+export const fetchWalletBalances = createAsyncThunk(
+  "wallet/fetchWalletBalances",
+  async (addresses: string[], { rejectWithValue }) => {
+    try {
+      if (balanceCancelSource) {
+        balanceCancelSource.cancel();
+      }
+      balanceCancelSource = axios.CancelToken.source();
+
+      const response = await APIService.getInstance().post<WalletBalance[]>(
+        AppConfig.serviceUrls.walletBalances,
+        addresses,
+        { cancelToken: balanceCancelSource.token },
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        return rejectWithValue("Request Cancelled");
+      }
+      return rejectWithValue("Failed to fetch balances");
+    }
+  },
+);
+
 export const walletSlice = createSlice({
   name: "wallet",
   initialState,
@@ -88,6 +115,11 @@ export const walletSlice = createSlice({
       .addCase(fetchWallets.rejected, (state, action) => {
         state.state = State.failed;
         state.errorMessage = action.payload as string;
+      })
+      .addCase(fetchWalletBalances.fulfilled, (state, action) => {
+        for (const walletBalance of action.payload) {
+          state.balances[walletBalance.walletAddress] = walletBalance.balance;
+        }
       });
   },
 });

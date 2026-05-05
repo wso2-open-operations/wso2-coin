@@ -50,6 +50,7 @@ export const AppConfig = {
     employees: SERVICE_BASE_URL + "/employees",
     transactionSearch: SERVICE_BASE_URL + "/transactions/search",
     wallets: SERVICE_BASE_URL + "/wallets",
+    walletBalances: SERVICE_BASE_URL + "/wallets/balances",
     walletEmails: SERVICE_BASE_URL + "/wallets/emails",
   },
 };

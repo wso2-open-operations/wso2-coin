@@ -151,6 +151,31 @@ type TransactionServiceRequest record {
     int offset?;
 };
 
+# Wallet balance result.
+public type WalletBalance record {|
+    # Wallet address
+    string walletAddress;
+    # Human-readable token balance
+    string balance;
+|};
+
+# Balance response envelope from the transaction service.
+type BalanceServiceEnvelope record {|
+    # Response message
+    string message;
+    # HTTP status code
+    int httpCode;
+    # Response payload
+    record {|
+        # Human-readable balance
+        string balance;
+        # Raw unformatted balance
+        string tokenBalanceUnFormatted;
+        # Token decimal places
+        int decimals;
+    |} payload;
+|};
+
 # Full response envelope from the transaction service.
 type TransactionServiceEnvelope record {|
     # Response message
