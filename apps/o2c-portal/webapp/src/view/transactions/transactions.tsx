@@ -65,10 +65,12 @@ function truncateAddress(address: string): string {
 function CopyableCell({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* clipboard not available */ }
   };
 
   return (
@@ -166,6 +168,9 @@ export default function TransactionBrowser() {
     if (transactionHash && !txHashRegex.test(transactionHash)) {
       newErrors.transactionHash = "Please enter a valid transaction hash (0x followed by 64 hex characters)";
     }
+    if (startTime && endTime && startTime.isAfter(endTime)) {
+      newErrors.startTime = "Start date must be before end date";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -248,20 +253,6 @@ export default function TransactionBrowser() {
       flex: 1.4,
       minWidth: 200,
       renderCell: (params) => <AddressCell tx={params.row as Transaction} field="receiver" />,
-    },
-    {
-      field: "amount",
-      headerName: "Amount",
-      flex: 0.6,
-      minWidth: 80,
-      renderCell: (params) => {
-        const tx = params.row as Transaction;
-        return (
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {tx.amount}
-          </Typography>
-        );
-      },
     },
     {
       field: "timestamp",
@@ -450,12 +441,6 @@ export default function TransactionBrowser() {
                     display: "flex",
                     alignItems: "center",
                     py: 1,
-                  },
-                  "& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within": {
-                    outline: "none",
-                  },
-                  "& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within": {
-                    outline: "none",
                   },
                 }}
               />

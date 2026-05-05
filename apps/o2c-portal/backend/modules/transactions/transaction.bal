@@ -36,9 +36,9 @@ public isolated function searchTransactions(TransactionSearchRequest request) re
     string? senderEmail = request.senderEmail;
     if senderEmail is string {
         string[] addresses = check database:fetchWalletAddressesByEmail(senderEmail);
-        if addresses.length() > 0 {
-            serviceRequest.senderAddresses = addresses;
-        }
+        serviceRequest.senderAddresses = addresses.length() > 0
+            ? addresses
+            : ["0x0000000000000000000000000000000000000000"];
     } else if senderAddress is string {
         serviceRequest.senderAddresses = [senderAddress];
     }
@@ -48,9 +48,9 @@ public isolated function searchTransactions(TransactionSearchRequest request) re
     string? receiverEmail = request.receiverEmail;
     if receiverEmail is string {
         string[] addresses = check database:fetchWalletAddressesByEmail(receiverEmail);
-        if addresses.length() > 0 {
-            serviceRequest.receiverAddresses = addresses;
-        }
+        serviceRequest.receiverAddresses = addresses.length() > 0
+            ? addresses
+            : ["0x0000000000000000000000000000000000000000"];
     } else if receiverAddress is string {
         serviceRequest.receiverAddresses = [receiverAddress];
     }
@@ -64,12 +64,31 @@ public isolated function searchTransactions(TransactionSearchRequest request) re
     json responseJson = check response.getJsonPayload();
     TransactionServiceEnvelope envelope = check responseJson.fromJsonWithType();
 
-    // Enrich transactions with email info
+    // Collect unique addresses and batch-lookup email info
+    string[] uniqueAddresses = [];
+    foreach Transaction tx in envelope.payload.transactions {
+        if uniqueAddresses.indexOf(tx.senderAddress) is () {
+            uniqueAddresses.push(tx.senderAddress);
+        }
+        if uniqueAddresses.indexOf(tx.receiverAddress) is () {
+            uniqueAddresses.push(tx.receiverAddress);
+        }
+    }
+
+    map<database:WalletUserRecord> addressInfoMap = {};
+    foreach string addr in uniqueAddresses {
+        database:WalletUserRecord? info = check database:fetchEmailByAddress(addr);
+        if info is database:WalletUserRecord {
+            addressInfoMap[addr] = info;
+        }
+    }
+
+    // Enrich transactions from the map
     EnrichedTransaction[] enriched = [];
 
     foreach Transaction tx in envelope.payload.transactions {
-        database:WalletUserRecord? senderInfo = check database:fetchEmailByAddress(tx.senderAddress);
-        database:WalletUserRecord? receiverInfo = check database:fetchEmailByAddress(tx.receiverAddress);
+        database:WalletUserRecord? senderInfo = addressInfoMap[tx.senderAddress];
+        database:WalletUserRecord? receiverInfo = addressInfoMap[tx.receiverAddress];
 
         enriched.push({
             ...tx,
@@ -93,6 +112,10 @@ public isolated function searchTransactions(TransactionSearchRequest request) re
 # + walletAddress - Wallet address to check balance for
 # + return - WalletBalance or error
 public isolated function fetchWalletBalance(string walletAddress) returns WalletBalance|error {
+    if !ETH_ADDRESS_REGEX.isFullMatch(walletAddress) {
+        return error("Invalid wallet address format");
+    }
+
     http:Response response = check transactionClient->get("/api/v1/blockchain/get-balance/" + walletAddress);
 
     if response.statusCode != http:STATUS_OK {

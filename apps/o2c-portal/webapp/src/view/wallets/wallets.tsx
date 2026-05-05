@@ -52,10 +52,12 @@ function truncateAddress(address: string): string {
 function WalletAddressCell({ wallet }: { wallet: UserWalletDetail }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(wallet.walletAddress);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(wallet.walletAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* clipboard not available */ }
   };
 
   return (
@@ -201,7 +203,7 @@ export default function Wallets() {
             ),
             endAdornment: searchQuery && (
               <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setSearchQuery("")} edge="end">
+                <IconButton size="small" onClick={() => { setSearchQuery(""); setPaginationModel((prev) => ({ ...prev, page: 0 })); }} edge="end">
                   <ClearIcon />
                 </IconButton>
               </InputAdornment>
@@ -254,12 +256,6 @@ export default function Wallets() {
               borderColor: "divider",
               display: "flex",
               alignItems: "center",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within": {
-              outline: "none",
             },
           }}
         />

@@ -145,6 +145,7 @@ export const transactionSlice = createSlice({
         state.stateMessage = null;
       })
       .addCase(searchTransactions.rejected, (state, action) => {
+        if (action.payload === "Request Cancelled") return;
         state.state = State.failed;
         state.errorMessage = action.payload as string;
       })

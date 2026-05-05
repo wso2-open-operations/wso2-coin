@@ -75,7 +75,7 @@ export const fetchWallets = createAsyncThunk(
 
 export const fetchWalletBalances = createAsyncThunk(
   "wallet/fetchWalletBalances",
-  async (addresses: string[], { rejectWithValue }) => {
+  async (addresses: string[], { dispatch, rejectWithValue }) => {
     try {
       if (balanceCancelSource) {
         balanceCancelSource.cancel();
@@ -91,6 +91,15 @@ export const fetchWalletBalances = createAsyncThunk(
     } catch (error) {
       if (axios.isCancel(error)) {
         return rejectWithValue("Request Cancelled");
+      }
+      if (axios.isAxiosError(error)) {
+        dispatch(
+          enqueueSnackbarMessage({
+            message: SnackMessage.error.fetchWallets,
+            type: "error",
+          }),
+        );
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch balances");
       }
       return rejectWithValue("Failed to fetch balances");
     }
@@ -120,6 +129,10 @@ export const walletSlice = createSlice({
         for (const walletBalance of action.payload) {
           state.balances[walletBalance.walletAddress] = walletBalance.balance;
         }
+      })
+      .addCase(fetchWalletBalances.rejected, (state, action) => {
+        if (action.payload === "Request Cancelled") return;
+        state.errorMessage = action.payload as string;
       });
   },
 });
