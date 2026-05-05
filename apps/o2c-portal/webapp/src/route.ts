@@ -47,14 +47,14 @@ export const routes: RouteObjectWithRole[] = [
     text: "Transactions",
     icon: React.createElement(ReceiptLongIcon),
     element: React.createElement(View.transactions),
-    allowRoles: [Role.GENERAL_ADMIN, Role.SESSION_ADMIN, Role.O2BAR_ADMIN],
+    allowRoles: [Role.O2C_ADMIN],
   },
   {
     path: "/Wallets",
     text: "Wallets",
     icon: React.createElement(AccountBalanceWalletIcon),
     element: React.createElement(View.wallets),
-    allowRoles: [Role.GENERAL_ADMIN, Role.SESSION_ADMIN, Role.O2BAR_ADMIN],
+    allowRoles: [Role.O2C_ADMIN],
   },
   /*
    TODO: Implement App Config page when the content is ready.

@@ -17,6 +17,7 @@ connectTimeout = 10.0
 generalAdminRole = ""
 sessionAdminRole = ""
 o2BarAdminRole = ""
+o2cAdminRole = ""
 
 [o2c_portal.people.client]
 peopleEndpoint = ""

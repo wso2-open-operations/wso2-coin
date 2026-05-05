@@ -25,3 +25,4 @@ public const PATH_QR_CODES = "qr-codes";
 public const GENERAL_ADMIN_PRIVILEGE = 191;
 public const SESSION_ADMIN_PRIVILEGE = 181;
 public const O2BAR_ADMIN_PRIVILEGE = 171;
+public const O2C_ADMIN_PRIVILEGE = 161;

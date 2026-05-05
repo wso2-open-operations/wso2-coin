@@ -92,6 +92,9 @@ service http:InterceptableService / on new http:Listener(9090) {
         if authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], userInfo.groups) {
             privileges.push(authorization:O2BAR_ADMIN_PRIVILEGE);
         }
+        if authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole], userInfo.groups) {
+            privileges.push(authorization:O2C_ADMIN_PRIVILEGE);
+        }
 
         UserInfo userInfoResponse = {...employee, privileges};
 
@@ -751,12 +754,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAuthorized = authorization:checkAnyPermissions([
-                    authorization:authorizedRoles.generalAdminRole,
-                    authorization:authorizedRoles.sessionAdminRole,
-                    authorization:authorizedRoles.o2BarAdminRole
-                ],
-                invokerInfo.groups);
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole], invokerInfo.groups);
         if !isAuthorized {
             return <http:Forbidden>{
                 body: {
@@ -797,12 +795,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAuthorized = authorization:checkAnyPermissions([
-                    authorization:authorizedRoles.generalAdminRole,
-                    authorization:authorizedRoles.sessionAdminRole,
-                    authorization:authorizedRoles.o2BarAdminRole
-                ],
-                invokerInfo.groups);
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole], invokerInfo.groups);
         if !isAuthorized {
             return <http:Forbidden>{
                 body: {
@@ -842,12 +835,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAuthorized = authorization:checkAnyPermissions([
-                    authorization:authorizedRoles.generalAdminRole,
-                    authorization:authorizedRoles.sessionAdminRole,
-                    authorization:authorizedRoles.o2BarAdminRole
-                ],
-                invokerInfo.groups);
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole], invokerInfo.groups);
         if !isAuthorized {
             return <http:Forbidden>{
                 body: {
@@ -888,12 +876,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAuthorized = authorization:checkAnyPermissions([
-                    authorization:authorizedRoles.generalAdminRole,
-                    authorization:authorizedRoles.sessionAdminRole,
-                    authorization:authorizedRoles.o2BarAdminRole
-                ],
-                invokerInfo.groups);
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole], invokerInfo.groups);
         if !isAuthorized {
             return <http:Forbidden>{
                 body: {

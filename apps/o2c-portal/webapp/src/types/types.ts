@@ -34,6 +34,7 @@ export enum Role {
   O2BAR_ADMIN = "O2BAR_ADMIN",
   GENERAL_ADMIN = "GENERAL_ADMIN",
   SESSION_ADMIN = "SESSION_ADMIN",
+  O2C_ADMIN = "O2C_ADMIN",
 }
 
 export enum UpdateAction {

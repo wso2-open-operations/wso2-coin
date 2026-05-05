@@ -48,6 +48,7 @@ export const PRIVILEGES = {
   GENERAL_ADMIN: 191,
   SESSION_ADMIN: 181,
   O2BAR_ADMIN: 171,
+  O2C_ADMIN: 161,
 };
 
 export const APP_DESC = "O2C Portal";
