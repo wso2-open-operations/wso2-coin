@@ -48,5 +48,8 @@ export const AppConfig = {
     appConfig: SERVICE_BASE_URL + "/app-config",
     eventTypes: SERVICE_BASE_URL + "/event-types",
     employees: SERVICE_BASE_URL + "/employees",
+    transactionSearch: SERVICE_BASE_URL + "/transactions/search",
+    wallets: SERVICE_BASE_URL + "/wallets",
+    walletEmails: SERVICE_BASE_URL + "/wallets/emails",
   },
 };

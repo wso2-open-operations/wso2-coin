@@ -277,3 +277,37 @@ isolated function deleteConferenceEventTypeQuery(string typeName) returns sql:Pa
         DELETE FROM conference_event_type
         WHERE type = ${typeName};
     `;
+
+# Build query to fetch all wallets.
+#
+# + return - sql:ParameterizedQuery
+isolated function fetchAllWalletsQuery() returns sql:ParameterizedQuery => `
+        SELECT wallet_address, user_email, default_wallet, created_on
+        FROM user_wallet ORDER BY created_on DESC
+    `;
+
+# Build query to fetch distinct emails.
+#
+# + return - sql:ParameterizedQuery
+isolated function fetchDistinctEmailsQuery() returns sql:ParameterizedQuery => `
+        SELECT DISTINCT user_email
+        FROM user_wallet ORDER BY user_email
+    `;
+
+# Build query to fetch wallet addresses by email.
+#
+# + email - User email address
+# + return - sql:ParameterizedQuery
+isolated function fetchWalletAddressesByEmailQuery(string email) returns sql:ParameterizedQuery => `
+        SELECT wallet_address
+        FROM user_wallet WHERE user_email = ${email}
+    `;
+
+# Build query to fetch email info by wallet address.
+#
+# + walletAddress - Wallet address to look up
+# + return - sql:ParameterizedQuery
+isolated function fetchEmailByAddressQuery(string walletAddress) returns sql:ParameterizedQuery => `
+        SELECT user_email, default_wallet
+        FROM user_wallet WHERE wallet_address = ${walletAddress}
+    `;

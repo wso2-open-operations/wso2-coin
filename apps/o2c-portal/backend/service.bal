@@ -17,6 +17,7 @@ import o2c_portal.authorization;
 import o2c_portal.conference;
 import o2c_portal.database;
 import o2c_portal.people;
+import o2c_portal.transactions;
 
 import ballerina/cache;
 import ballerina/http;
@@ -731,5 +732,141 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         return http:NO_CONTENT;
+    }
+
+    # Fetch all wallet records.
+    #
+    # + ctx - Request context
+    # + return - Array of wallet details or error
+    resource function get wallets(http:RequestContext ctx)
+        returns database:UserWalletDetail[]|http:Forbidden|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isAuthorized = authorization:checkAnyPermissions([
+                    authorization:authorizedRoles.generalAdminRole,
+                    authorization:authorizedRoles.sessionAdminRole,
+                    authorization:authorizedRoles.o2BarAdminRole
+                ],
+                invokerInfo.groups);
+        if !isAuthorized {
+            return <http:Forbidden>{
+                body: {
+                    message: "You don't have permission to view wallets!"
+                }
+            };
+        }
+
+        database:UserWalletDetail[]|error wallets = database:fetchAllWallets();
+        if wallets is error {
+            string customError = "Error occurred while fetching wallets!";
+            log:printError(customError, wallets);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return wallets;
+    }
+
+    # Fetch distinct wallet email addresses.
+    #
+    # + ctx - Request context
+    # + return - Array of distinct emails or error
+    resource function get wallets/emails(http:RequestContext ctx)
+        returns string[]|http:Forbidden|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isAuthorized = authorization:checkAnyPermissions([
+                    authorization:authorizedRoles.generalAdminRole,
+                    authorization:authorizedRoles.sessionAdminRole,
+                    authorization:authorizedRoles.o2BarAdminRole
+                ],
+                invokerInfo.groups);
+        if !isAuthorized {
+            return <http:Forbidden>{
+                body: {
+                    message: "You don't have permission to access wallet emails!"
+                }
+            };
+        }
+
+        string[]|error emails = database:fetchDistinctEmails();
+        if emails is error {
+            string customError = "Error occurred while fetching wallet emails!";
+            log:printError(customError, emails);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return emails;
+    }
+
+    # Search transactions from the transaction service.
+    #
+    # + ctx - Request context
+    # + payload - Transaction search filters
+    # + return - Transaction search results or error
+    resource function post transactions/search(http:RequestContext ctx, transactions:TransactionSearchRequest payload)
+        returns transactions:TransactionSearchResponse|http:BadRequest|http:Forbidden|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isAuthorized = authorization:checkAnyPermissions([
+                    authorization:authorizedRoles.generalAdminRole,
+                    authorization:authorizedRoles.sessionAdminRole,
+                    authorization:authorizedRoles.o2BarAdminRole
+                ],
+                invokerInfo.groups);
+        if !isAuthorized {
+            return <http:Forbidden>{
+                body: {
+                    message: "You don't have permission to search transactions!"
+                }
+            };
+        }
+
+        transactions:TransactionSearchResponse|error result = transactions:searchTransactions(payload);
+        if result is error {
+            string customError = "Error occurred while searching transactions!";
+            log:printError(customError, result);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return result;
     }
 }

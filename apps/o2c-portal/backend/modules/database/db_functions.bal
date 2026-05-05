@@ -22,7 +22,7 @@ import ballerina/sql;
 # + createdBy - Person who is creating the QR
 # + return - Error if the insertion failed
 public isolated function addConferenceQrCode(string qrId, AddConferenceQrCodePayload payload, string createdBy) returns error? {
-    _ = check databaseClient->execute(addConferenceQrCodeQuery(qrId, payload, createdBy));
+    _ = check o2cClient->execute(addConferenceQrCodeQuery(qrId, payload, createdBy));
 }
 
 # Fetch QR by ID.
@@ -30,7 +30,7 @@ public isolated function addConferenceQrCode(string qrId, AddConferenceQrCodePay
 # + qrId - UUID of the QR code
 # + return - ConferenceQR object or error
 public isolated function fetchConferenceQrCode(string qrId) returns ConferenceQrCode|error? {
-    ConferenceQrCodeRecord|error qr = databaseClient->queryRow(fetchConferenceQrCodeQuery(qrId));
+    ConferenceQrCodeRecord|error qr = o2cClient->queryRow(fetchConferenceQrCodeQuery(qrId));
     if qr is error {
         return qr is sql:NoRowsError ? () : qr;
     }
@@ -50,7 +50,7 @@ public isolated function fetchConferenceQrCode(string qrId) returns ConferenceQr
 # + filters - Filters for fetching QRs
 # + return - ConferenceQRsResponse object or error
 public isolated function fetchConferenceQrCodes(ConferenceQrCodeFilters filters) returns ConferenceQrCodesResponse|error {
-    stream<ConferenceQrCodeRecord, sql:Error?> resultStream = databaseClient->query(fetchConferenceQrCodesQuery(filters));
+    stream<ConferenceQrCodeRecord, sql:Error?> resultStream = o2cClient->query(fetchConferenceQrCodesQuery(filters));
 
     int totalCount = 0;
     ConferenceQrCode[] qrs = [];
@@ -89,7 +89,7 @@ public isolated function getQrCodeIdentifier(QrCodeInfo qrInfo) returns string {
 # + qrInfo - QR info to check
 # + return - true if exists, false otherwise
 public isolated function isQrCodeExists(QrCodeInfo qrInfo) returns boolean|error {
-    CountRecord|error result = databaseClient->queryRow(checkIsQrCodeExistsQuery(qrInfo));
+    CountRecord|error result = o2cClient->queryRow(checkIsQrCodeExistsQuery(qrInfo));
     
     if result is error {
         return result is sql:NoRowsError ? false : result;
@@ -104,7 +104,7 @@ public isolated function isQrCodeExists(QrCodeInfo qrInfo) returns boolean|error
 # + deletedBy - Email of the user performing the deletion
 # + return - Error if the deletion failed or no rows were affected
 public isolated function deleteConferenceQrCode(string qrId, string deletedBy) returns error? {
-    sql:ExecutionResult|sql:Error deleteResult = databaseClient->execute(deleteConferenceQrCodeQuery(qrId, deletedBy));
+    sql:ExecutionResult|sql:Error deleteResult = o2cClient->execute(deleteConferenceQrCodeQuery(qrId, deletedBy));
     if deleteResult is sql:Error {
         return deleteResult;
     }
@@ -118,7 +118,7 @@ public isolated function deleteConferenceQrCode(string qrId, string deletedBy) r
 #
 # + return - Array of event types or error
 public isolated function fetchConferenceEventTypes() returns ConferenceEventType[]|error {
-    stream<ConferenceEventTypeRecord, sql:Error?> resultStream = databaseClient->query(fetchConferenceEventTypesQuery());
+    stream<ConferenceEventTypeRecord, sql:Error?> resultStream = o2cClient->query(fetchConferenceEventTypesQuery());
 
     return check from ConferenceEventTypeRecord eventType in resultStream
         select {
@@ -131,7 +131,7 @@ public isolated function fetchConferenceEventTypes() returns ConferenceEventType
 # + typeName - Event type name
 # + return - ConferenceEventType or error
 public isolated function fetchConferenceEventTypeByName(string typeName) returns ConferenceEventType|error? {
-    ConferenceEventTypeRecord|error eventType = databaseClient->queryRow(fetchConferenceEventTypeByNameQuery(typeName));
+    ConferenceEventTypeRecord|error eventType = o2cClient->queryRow(fetchConferenceEventTypeByNameQuery(typeName));
     if eventType is error {
         return eventType is sql:NoRowsError ? () : eventType;
     }
@@ -146,7 +146,7 @@ public isolated function fetchConferenceEventTypeByName(string typeName) returns
 # + payload - Payload containing the event type details
 # + return - Error if the insertion failed
 public isolated function addConferenceEventType(AddConferenceEventTypePayload payload) returns error? {
-    _ = check databaseClient->execute(addConferenceEventTypeQuery(payload));
+    _ = check o2cClient->execute(addConferenceEventTypeQuery(payload));
 }
 
 # Update event type.
@@ -155,7 +155,7 @@ public isolated function addConferenceEventType(AddConferenceEventTypePayload pa
 # + payload - Payload containing the updated event type details
 # + return - Error if the update failed
 public isolated function updateConferenceEventType(string typeName, AddConferenceEventTypePayload payload) returns error? {
-    sql:ExecutionResult|sql:Error updateResult = databaseClient->execute(updateConferenceEventTypeQuery(typeName, payload));
+    sql:ExecutionResult|sql:Error updateResult = o2cClient->execute(updateConferenceEventTypeQuery(typeName, payload));
     if updateResult is sql:Error {
         return updateResult;
     }
@@ -178,7 +178,7 @@ public isolated function getDefaultCoinsForQrInfo(QrCodeInfo qrInfo) returns Eve
         eventTypeName = qrInfo.eventTypeName;
     }
     
-    ConferenceEventTypeRecord|error eventType = databaseClient->queryRow(fetchConferenceEventTypeByNameQuery(eventTypeName));
+    ConferenceEventTypeRecord|error eventType = o2cClient->queryRow(fetchConferenceEventTypeByNameQuery(eventTypeName));
     if eventType is error {
         return eventType is sql:NoRowsError ? () : eventType;
     }
@@ -191,7 +191,7 @@ public isolated function getDefaultCoinsForQrInfo(QrCodeInfo qrInfo) returns Eve
 # + typeName - Event type name to delete
 # + return - Error if the deletion failed
 public isolated function deleteConferenceEventType(string typeName) returns error? {
-    sql:ExecutionResult|sql:Error deleteResult = databaseClient->execute(deleteConferenceEventTypeQuery(typeName));
+    sql:ExecutionResult|sql:Error deleteResult = o2cClient->execute(deleteConferenceEventTypeQuery(typeName));
     if deleteResult is sql:Error {
         return deleteResult;
     }
@@ -199,4 +199,48 @@ public isolated function deleteConferenceEventType(string typeName) returns erro
     if deleteResult.affectedRowCount <= 0 {
         return error("Event type not found");
     }
+}
+
+# Fetch all wallet records.
+#
+# + return - Array of wallet details or error
+public isolated function fetchAllWallets() returns UserWalletDetail[]|error {
+    stream<UserWalletDetail, sql:Error?> resultStream = walletClient->query(fetchAllWalletsQuery());
+
+    return from UserWalletDetail wallet in resultStream
+        select wallet;
+}
+
+# Fetch all distinct email addresses from the user_wallet table.
+#
+# + return - Array of distinct email strings or error
+public isolated function fetchDistinctEmails() returns string[]|error {
+    stream<WalletEmailRecord, sql:Error?> resultStream = walletClient->query(fetchDistinctEmailsQuery());
+
+    return from WalletEmailRecord emailRecord in resultStream
+        select emailRecord.userEmail;
+}
+
+# Fetch wallet addresses associated with a given email.
+#
+# + email - User email address
+# + return - Array of wallet address strings or error
+public isolated function fetchWalletAddressesByEmail(string email) returns string[]|error {
+    stream<WalletAddressRecord, sql:Error?> resultStream = walletClient->query(fetchWalletAddressesByEmailQuery(email));
+
+    return from WalletAddressRecord addressRecord in resultStream
+        select addressRecord.walletAddress;
+}
+
+# Fetch email and default wallet info for a given wallet address.
+#
+# + walletAddress - Wallet address to look up
+# + return - WalletUserRecord or nil if not found, or error
+public isolated function fetchEmailByAddress(string walletAddress) returns WalletUserRecord|error? {
+    WalletUserRecord|error result = walletClient->queryRow(fetchEmailByAddressQuery(walletAddress));
+    if result is error {
+        return result is sql:NoRowsError ? () : result;
+    }
+
+    return result;
 }

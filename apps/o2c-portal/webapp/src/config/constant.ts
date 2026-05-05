@@ -37,6 +37,9 @@ export const SnackMessage = {
     updateEventType: "Failed to update event type",
     deleteEventType: "Failed to delete event type",
     duplicateEventType: "Event type already exists",
+    searchTransactions: "Failed to search transactions",
+    fetchWallets: "Failed to fetch wallets",
+    fetchWalletEmails: "Failed to fetch wallet emails",
   },
   warning: {},
 };

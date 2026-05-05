@@ -18,9 +18,13 @@ import { lazy } from "react";
 const home = lazy(() => import("@view/home/home"));
 const appConfig = lazy(() => import("@view/appConfig/appConfig"));
 const eventTypes = lazy(() => import("@view/eventTypes/eventTypes"));
+const transactions = lazy(() => import("@view/transactions/transactions"));
+const wallets = lazy(() => import("@view/wallets/wallets"));
 
 export const View = {
   home,
   appConfig,
   eventTypes,
+  transactions,
+  wallets,
 };
