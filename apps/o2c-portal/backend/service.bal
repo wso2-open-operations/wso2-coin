@@ -784,7 +784,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request context
     # + payload - Array of wallet addresses
     # + return - Array of wallet balances or error
-    resource function post wallets/balances(http:RequestContext ctx, @http:Payload string[] payload)
+    resource function post wallets/balances/search(http:RequestContext ctx, @http:Payload string[] payload)
         returns transactions:WalletBalance[]|http:BadRequest|http:Forbidden|http:InternalServerError {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
