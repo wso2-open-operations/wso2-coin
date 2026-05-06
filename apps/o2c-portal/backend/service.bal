@@ -785,7 +785,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + payload - Array of wallet addresses
     # + return - Array of wallet balances or error
     resource function post wallets/balances(http:RequestContext ctx, @http:Payload string[] payload)
-        returns transactions:WalletBalance[]|http:Forbidden|http:InternalServerError {
+        returns transactions:WalletBalance[]|http:BadRequest|http:Forbidden|http:InternalServerError {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
@@ -804,6 +804,14 @@ service http:InterceptableService / on new http:Listener(9090) {
             return <http:Forbidden>{
                 body: {
                     message: "You don't have permission to view wallet balances!"
+                }
+            };
+        }
+
+        if payload.length() > 50 {
+            return <http:BadRequest>{
+                body: {
+                    message: "Maximum 50 wallet addresses per request"
                 }
             };
         }

@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 import ballerina/http;
+import ballerina/time;
 
 import o2c_portal.database;
 
@@ -22,6 +23,23 @@ import o2c_portal.database;
 # + request - Transaction search filters
 # + return - Enriched transaction search response or error
 public isolated function searchTransactions(TransactionSearchRequest request) returns TransactionSearchResponse|error {
+    // Validate time range if both provided
+    string? startTime = request.startTime;
+    string? endTime = request.endTime;
+    if startTime is string && endTime is string {
+        time:Utc|error startUtc = time:utcFromString(startTime);
+        time:Utc|error endUtc = time:utcFromString(endTime);
+        if startUtc is error {
+            return error("Invalid startTime format. Use ISO-8601 (e.g. 2026-01-01T00:00:00Z)");
+        }
+        if endUtc is error {
+            return error("Invalid endTime format. Use ISO-8601 (e.g. 2026-01-01T00:00:00Z)");
+        }
+        if time:utcDiffSeconds(endUtc, startUtc) < 0d {
+            return error("startTime must be before endTime");
+        }
+    }
+
     // Build the service request, resolving emails to wallet addresses
     TransactionServiceRequest serviceRequest = {
         transactionHash: request.transactionHash,
