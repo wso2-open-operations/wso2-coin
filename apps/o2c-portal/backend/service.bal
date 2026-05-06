@@ -816,14 +816,18 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        // Fetch balances in parallel
+        future<transactions:WalletBalance|error>[] futures = from string address in payload
+            select start transactions:fetchWalletBalance(address);
+
         transactions:WalletBalance[] balances = [];
-        foreach string address in payload {
-            transactions:WalletBalance|error balance = transactions:fetchWalletBalance(address);
+        foreach int i in 0 ..< futures.length() {
+            transactions:WalletBalance|error balance = wait futures[i];
             if balance is transactions:WalletBalance {
                 balances.push(balance);
             } else {
-                log:printError(string `Failed to fetch balance for ${address}`, balance);
-                balances.push({walletAddress: address, balance: "N/A"});
+                log:printError(string `Failed to fetch balance for ${payload[i]}`, balance);
+                balances.push({walletAddress: payload[i], balance: "N/A"});
             }
         }
 
