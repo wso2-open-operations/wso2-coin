@@ -254,6 +254,20 @@ export default function TransactionBrowser() {
       renderCell: (params) => <AddressCell tx={params.row as Transaction} field="receiver" />,
     },
     {
+      field: "amount",
+      headerName: "Amount",
+      flex: 0.6,
+      minWidth: 80,
+      renderCell: (params) => {
+        const tx = params.row as Transaction;
+        return (
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {tx.amount}
+          </Typography>
+        );
+      },
+    },
+    {
       field: "timestamp",
       headerName: "Time",
       flex: 1,
