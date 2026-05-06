@@ -36,9 +36,10 @@ public isolated function searchTransactions(TransactionSearchRequest request) re
     string? senderEmail = request.senderEmail;
     if senderEmail is string {
         string[] addresses = check database:fetchWalletAddressesByEmail(senderEmail);
-        serviceRequest.senderAddresses = addresses.length() > 0
-            ? addresses
-            : ["0x0000000000000000000000000000000000000000"];
+        if addresses.length() == 0 {
+            return {hasMore: false, offset: request.offset ?: 0, 'limit: request.'limit ?: 10, transactions: []};
+        }
+        serviceRequest.senderAddresses = addresses;
     } else if senderAddress is string {
         serviceRequest.senderAddresses = [senderAddress];
     }
@@ -48,9 +49,10 @@ public isolated function searchTransactions(TransactionSearchRequest request) re
     string? receiverEmail = request.receiverEmail;
     if receiverEmail is string {
         string[] addresses = check database:fetchWalletAddressesByEmail(receiverEmail);
-        serviceRequest.receiverAddresses = addresses.length() > 0
-            ? addresses
-            : ["0x0000000000000000000000000000000000000000"];
+        if addresses.length() == 0 {
+            return {hasMore: false, offset: request.offset ?: 0, 'limit: request.'limit ?: 10, transactions: []};
+        }
+        serviceRequest.receiverAddresses = addresses;
     } else if receiverAddress is string {
         serviceRequest.receiverAddresses = [receiverAddress];
     }
@@ -116,7 +118,7 @@ public isolated function fetchWalletBalance(string walletAddress) returns Wallet
         return error("Invalid wallet address format");
     }
 
-    http:Response response = check transactionClient->get("/api/v1/blockchain/get-balance/" + walletAddress);
+    http:Response response = check transactionClient->/api/v1/blockchain/get\-balance/[walletAddress].get();
 
     if response.statusCode != http:STATUS_OK {
         return error(string `Transaction service returned status ${response.statusCode}`);

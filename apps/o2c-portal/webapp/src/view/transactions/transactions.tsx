@@ -139,8 +139,7 @@ export default function TransactionBrowser() {
   useEffect(() => {
     dispatch(searchTransactions({ limit, offset: 0 }));
     dispatch(fetchWalletEmails());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch]);
+  }, [dispatch, limit]);
 
   const buildSearchRequest = (overrideOffset?: number) => ({
     ...(senderAddress && { senderAddress }),

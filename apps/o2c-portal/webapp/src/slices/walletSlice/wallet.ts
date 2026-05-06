@@ -95,7 +95,7 @@ export const fetchWalletBalances = createAsyncThunk(
       if (axios.isAxiosError(error)) {
         dispatch(
           enqueueSnackbarMessage({
-            message: SnackMessage.error.fetchWallets,
+            message: SnackMessage.error.fetchWalletBalances,
             type: "error",
           }),
         );

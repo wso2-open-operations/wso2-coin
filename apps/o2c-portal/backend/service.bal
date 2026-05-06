@@ -754,8 +754,10 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole], invokerInfo.groups);
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
+            invokerInfo.groups);
         if !isAuthorized {
+            log:printWarn(string `Unauthorized wallet access attempt by: ${invokerInfo.email}`);
             return <http:Forbidden>{
                 body: {
                     message: "You don't have permission to view wallets!"
@@ -795,8 +797,10 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole], invokerInfo.groups);
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
+            invokerInfo.groups);
         if !isAuthorized {
+            log:printWarn(string `Unauthorized wallet balance access attempt by: ${invokerInfo.email}`);
             return <http:Forbidden>{
                 body: {
                     message: "You don't have permission to view wallet balances!"
@@ -835,8 +839,10 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole], invokerInfo.groups);
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
+            invokerInfo.groups);
         if !isAuthorized {
+            log:printWarn(string `Unauthorized wallet emails access attempt by: ${invokerInfo.email}`);
             return <http:Forbidden>{
                 body: {
                     message: "You don't have permission to access wallet emails!"
@@ -876,8 +882,10 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole], invokerInfo.groups);
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
+            invokerInfo.groups);
         if !isAuthorized {
+            log:printWarn(string `Unauthorized transaction search attempt by: ${invokerInfo.email}`);
             return <http:Forbidden>{
                 body: {
                     message: "You don't have permission to search transactions!"

@@ -60,3 +60,6 @@ port = 3306
 maxOpenConnections = 5
 maxConnectionLifeTime = 100.0
 minIdleConnections = 2
+
+[o2c_portal.database.walletDbConfig.options]
+connectTimeout = 10.0

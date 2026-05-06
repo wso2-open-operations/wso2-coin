@@ -43,14 +43,14 @@ export const routes: RouteObjectWithRole[] = [
     allowRoles: [Role.GENERAL_ADMIN],
   },
   {
-    path: "/Transactions",
+    path: "/transactions",
     text: "Transactions",
     icon: React.createElement(ReceiptLongIcon),
     element: React.createElement(View.transactions),
     allowRoles: [Role.O2C_ADMIN],
   },
   {
-    path: "/Wallets",
+    path: "/wallets",
     text: "Wallets",
     icon: React.createElement(AccountBalanceWalletIcon),
     element: React.createElement(View.wallets),
