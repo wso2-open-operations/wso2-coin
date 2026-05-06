@@ -808,7 +808,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        if payload.length() > 50 {
+        if payload.length() > MAX_BALANCE_BATCH_SIZE {
             return <http:BadRequest>{
                 body: {
                     message: "Maximum 50 wallet addresses per request"

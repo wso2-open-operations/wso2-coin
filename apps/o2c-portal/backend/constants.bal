@@ -15,3 +15,6 @@
 // under the License.
 
 public const USER_INFO_HEADER_NOT_FOUND_ERROR = "User information header not found!";
+
+# Maximum number of wallet addresses per balance request.
+public const MAX_BALANCE_BATCH_SIZE = 50;
