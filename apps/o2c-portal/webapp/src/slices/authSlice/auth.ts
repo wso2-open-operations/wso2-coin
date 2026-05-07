@@ -25,6 +25,7 @@ export enum Role {
   GENERAL_ADMIN = "GENERAL_ADMIN",
   SESSION_ADMIN = "SESSION_ADMIN",
   O2BAR_ADMIN = "O2BAR_ADMIN",
+  O2C_ADMIN = "O2C_ADMIN",
 }
 
 // Custom extended interface
@@ -89,6 +90,9 @@ export const loadPrivileges = createAsyncThunk(
     }
     if (userPrivileges.includes(PRIVILEGES.O2BAR_ADMIN)) {
       roles.push(Role.O2BAR_ADMIN);
+    }
+    if (userPrivileges.includes(PRIVILEGES.O2C_ADMIN)) {
+      roles.push(Role.O2C_ADMIN);
     }
 
     if (roles.length === 0) {

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -13,17 +13,17 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import ballerinax/mysql;
-import ballerinax/mysql.driver as _;
+import ballerina/http;
 
-# O2C Database Client Configuration.
-configurable DatabaseConfig o2cDbConfig = ?;
+configurable ClientAuthConfig clientAuthConfig = ?;
+configurable RetryConfig retryConfig = ?;
+configurable string transactionServiceEndpoint = ?;
 
-# Wallet Database Client Configuration.
-configurable DatabaseConfig walletDbConfig = ?;
-
-# O2C Database Client.
-final mysql:Client o2cClient = check new (...o2cDbConfig);
-
-# Wallet Database Client.
-final mysql:Client walletClient = check new (...walletDbConfig);
+@display {
+    label: "Transaction Service",
+    id: "digiops-currency/transaction-service"
+}
+final http:Client transactionClient = check new (transactionServiceEndpoint, {
+    auth: {...clientAuthConfig},
+    retryConfig: {...retryConfig}
+});

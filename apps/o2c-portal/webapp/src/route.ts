@@ -15,6 +15,8 @@
 // under the License.
 import EventIcon from "@mui/icons-material/Event";
 import QrCode2Icon from "@mui/icons-material/QrCode2";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import type { RouteObject } from "react-router-dom";
 
 import React from "react";
@@ -39,6 +41,20 @@ export const routes: RouteObjectWithRole[] = [
     icon: React.createElement(EventIcon),
     element: React.createElement(View.eventTypes),
     allowRoles: [Role.GENERAL_ADMIN],
+  },
+  {
+    path: "/transactions",
+    text: "Transactions",
+    icon: React.createElement(ReceiptLongIcon),
+    element: React.createElement(View.transactions),
+    allowRoles: [Role.O2C_ADMIN],
+  },
+  {
+    path: "/wallets",
+    text: "Wallets",
+    icon: React.createElement(AccountBalanceWalletIcon),
+    element: React.createElement(View.wallets),
+    allowRoles: [Role.O2C_ADMIN],
   },
   /*
    TODO: Implement App Config page when the content is ready.

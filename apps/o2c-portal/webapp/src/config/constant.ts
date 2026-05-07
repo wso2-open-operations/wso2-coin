@@ -37,6 +37,10 @@ export const SnackMessage = {
     updateEventType: "Failed to update event type",
     deleteEventType: "Failed to delete event type",
     duplicateEventType: "Event type already exists",
+    searchTransactions: "Failed to search transactions",
+    fetchWallets: "Failed to fetch wallets",
+    fetchWalletBalances: "Failed to fetch wallet balances",
+    fetchWalletEmails: "Failed to fetch wallet emails",
   },
   warning: {},
 };
@@ -45,6 +49,7 @@ export const PRIVILEGES = {
   GENERAL_ADMIN: 191,
   SESSION_ADMIN: 181,
   O2BAR_ADMIN: 171,
+  O2C_ADMIN: 161,
 };
 
 export const APP_DESC = "O2C Portal";

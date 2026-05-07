@@ -1,4 +1,4 @@
-// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -13,17 +13,15 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import ballerinax/mysql;
-import ballerinax/mysql.driver as _;
 
-# O2C Database Client Configuration.
-configurable DatabaseConfig o2cDbConfig = ?;
+# Default retry count.
+public const RETRY_COUNT = 3;
 
-# Wallet Database Client Configuration.
-configurable DatabaseConfig walletDbConfig = ?;
+# Default retry interval in seconds.
+public const RETRY_INTERVAL = 3.0d;
 
-# O2C Database Client.
-final mysql:Client o2cClient = check new (...o2cDbConfig);
+# Default retry backoff factor.
+public const RETRY_BACKOFF_FACTOR = 2.0;
 
-# Wallet Database Client.
-final mysql:Client walletClient = check new (...walletDbConfig);
+# Default retry max wait interval in seconds.
+public const RETRY_MAX_INTERVAL = 20.0d;

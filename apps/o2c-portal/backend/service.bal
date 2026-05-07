@@ -17,6 +17,7 @@ import o2c_portal.authorization;
 import o2c_portal.conference;
 import o2c_portal.database;
 import o2c_portal.people;
+import o2c_portal.transactions;
 
 import ballerina/cache;
 import ballerina/http;
@@ -90,6 +91,9 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         if authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], userInfo.groups) {
             privileges.push(authorization:O2BAR_ADMIN_PRIVILEGE);
+        }
+        if authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole], userInfo.groups) {
+            privileges.push(authorization:O2C_ADMIN_PRIVILEGE);
         }
 
         UserInfo userInfoResponse = {...employee, privileges};
@@ -731,5 +735,187 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         return http:NO_CONTENT;
+    }
+
+    # Fetch all wallet records.
+    #
+    # + ctx - Request context
+    # + return - Array of wallet details or error
+    resource function get wallets(http:RequestContext ctx)
+        returns database:UserWalletDetail[]|http:Forbidden|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
+            invokerInfo.groups);
+        if !isAuthorized {
+            log:printWarn(string `Unauthorized wallet access attempt by: ${invokerInfo.email}`);
+            return <http:Forbidden>{
+                body: {
+                    message: "You don't have permission to view wallets!"
+                }
+            };
+        }
+
+        database:UserWalletDetail[]|error wallets = database:fetchAllWallets();
+        if wallets is error {
+            string customError = "Error occurred while fetching wallets!";
+            log:printError(customError, wallets);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return wallets;
+    }
+
+    # Fetch token balances for a list of wallet addresses.
+    #
+    # + ctx - Request context
+    # + payload - Array of wallet addresses
+    # + return - Array of wallet balances or error
+    resource function post wallets/balances/search(http:RequestContext ctx, @http:Payload string[] payload)
+        returns transactions:WalletBalance[]|http:BadRequest|http:Forbidden|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
+            invokerInfo.groups);
+        if !isAuthorized {
+            log:printWarn(string `Unauthorized wallet balance access attempt by: ${invokerInfo.email}`);
+            return <http:Forbidden>{
+                body: {
+                    message: "You don't have permission to view wallet balances!"
+                }
+            };
+        }
+
+        if payload.length() > MAX_BALANCE_BATCH_SIZE {
+            return <http:BadRequest>{
+                body: {
+                    message: "Maximum 50 wallet addresses per request"
+                }
+            };
+        }
+
+        // Fetch balances in parallel
+        future<transactions:WalletBalance|error>[] futures = from string address in payload
+            select start transactions:fetchWalletBalance(address);
+
+        transactions:WalletBalance[] balances = [];
+        foreach int i in 0 ..< futures.length() {
+            transactions:WalletBalance|error balance = wait futures[i];
+            if balance is transactions:WalletBalance {
+                balances.push(balance);
+            } else {
+                log:printError(string `Failed to fetch balance for ${payload[i]}`, balance);
+                balances.push({walletAddress: payload[i], balance: "N/A"});
+            }
+        }
+
+        return balances;
+    }
+
+    # Fetch distinct wallet email addresses.
+    #
+    # + ctx - Request context
+    # + return - Array of distinct emails or error
+    resource function get wallets/emails(http:RequestContext ctx)
+        returns string[]|http:Forbidden|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
+            invokerInfo.groups);
+        if !isAuthorized {
+            log:printWarn(string `Unauthorized wallet emails access attempt by: ${invokerInfo.email}`);
+            return <http:Forbidden>{
+                body: {
+                    message: "You don't have permission to access wallet emails!"
+                }
+            };
+        }
+
+        string[]|error emails = database:fetchDistinctEmails();
+        if emails is error {
+            string customError = "Error occurred while fetching wallet emails!";
+            log:printError(customError, emails);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return emails;
+    }
+
+    # Search transactions from the transaction service.
+    #
+    # + ctx - Request context
+    # + payload - Transaction search filters
+    # + return - Transaction search results or error
+    resource function post transactions/search(http:RequestContext ctx, transactions:TransactionSearchRequest payload)
+        returns transactions:TransactionSearchResponse|http:BadRequest|http:Forbidden|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
+            invokerInfo.groups);
+        if !isAuthorized {
+            log:printWarn(string `Unauthorized transaction search attempt by: ${invokerInfo.email}`);
+            return <http:Forbidden>{
+                body: {
+                    message: "You don't have permission to search transactions!"
+                }
+            };
+        }
+
+        transactions:TransactionSearchResponse|error result = transactions:searchTransactions(payload);
+        if result is error {
+            string customError = "Error occurred while searching transactions!";
+            log:printError(customError, result);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return result;
     }
 }

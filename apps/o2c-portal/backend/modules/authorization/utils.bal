@@ -28,7 +28,7 @@ public isolated function checkPermissions(string[] requiredRoles, string[] userR
     return requiredRoles.every(role => userRolesReadOnly.indexOf(role) !is ());
 }
 
-# Helper function to user has any role.
+# Check if the user has any of the required roles.
 #
 # + requiredRoles - Required Role list
 # + userRoles - Roles list, The user has

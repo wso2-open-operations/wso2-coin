@@ -109,7 +109,9 @@ export default function Layout() {
             sx={{
               flex: 1,
               height: "100%",
-              padding: theme.spacing(3),
+              pt: theme.spacing(1),
+              px: theme.spacing(3),
+              pb: theme.spacing(3),
               overflowY: "auto",
             }}
           >

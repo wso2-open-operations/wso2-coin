@@ -34,6 +34,7 @@ export enum Role {
   O2BAR_ADMIN = "O2BAR_ADMIN",
   GENERAL_ADMIN = "GENERAL_ADMIN",
   SESSION_ADMIN = "SESSION_ADMIN",
+  O2C_ADMIN = "O2C_ADMIN",
 }
 
 export enum UpdateAction {
@@ -169,4 +170,49 @@ export interface Session {
 export interface UserInfo {
   email: string;
   privileges: number[];
+}
+
+export interface UserWalletDetail {
+  walletAddress: string;
+  userEmail: string;
+  defaultWallet: boolean;
+  createdOn: string;
+}
+
+export interface WalletBalance {
+  walletAddress: string;
+  balance: string;
+}
+
+export interface TransactionSearchRequest {
+  senderAddress?: string;
+  receiverAddress?: string;
+  senderEmail?: string;
+  receiverEmail?: string;
+  transactionHash?: string;
+  startTime?: string;
+  endTime?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface Transaction {
+  txHash: string;
+  blockNumber: number;
+  senderAddress: string;
+  receiverAddress: string;
+  amount: string;
+  amountRaw: string;
+  timestamp: string;
+  senderEmail?: string | null;
+  senderDefaultWallet?: boolean | null;
+  receiverEmail?: string | null;
+  receiverDefaultWallet?: boolean | null;
+}
+
+export interface TransactionSearchResponse {
+  hasMore: boolean;
+  offset: number;
+  limit: number;
+  transactions: Transaction[];
 }

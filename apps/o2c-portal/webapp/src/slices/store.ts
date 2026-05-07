@@ -27,6 +27,8 @@ import employeesReducer from "./employeesSlice/employees";
 import eventTypesReducer from "./eventTypesSlice/eventTypes";
 import qrReducer from "./qrSlice/qr";
 import sessionReducer from "./sessionSlice/session";
+import transactionReducer from "./transactionSlice/transaction";
+import walletReducer from "./walletSlice/wallet";
 
 enableMapSet();
 
@@ -40,6 +42,8 @@ export const store = configureStore({
     session: sessionReducer,
     eventTypes: eventTypesReducer,
     employees: employeesReducer,
+    transaction: transactionReducer,
+    wallet: walletReducer,
 
     // RTK Query API reducers
     [configApi.reducerPath]: configApi.reducer,

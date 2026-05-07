@@ -31,4 +31,6 @@ public type AppRoles record {|
     string sessionAdminRole;
     # Role for the O2 Bar admin
     string o2BarAdminRole;
+    # Role for the O2C admin (transactions & wallets)
+    string o2cAdminRole;
 |};

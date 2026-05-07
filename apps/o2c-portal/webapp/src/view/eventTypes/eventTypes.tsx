@@ -152,7 +152,7 @@ export default function EventTypesManagement() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 } }}>
+    <Container maxWidth="lg" sx={{ mt: { xs: 1, sm: 2 }, mb: { xs: 1, sm: 2 } }}>
       <Box
         sx={{
           display: "flex",
