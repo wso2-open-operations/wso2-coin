@@ -116,9 +116,12 @@ export default function TransactionBrowser() {
     dispatch(fetchWalletAddresses());
   }, [dispatch, limit]);
 
+  const effectiveSenderAddress = senderAddress || senderAddressInput || "";
+  const effectiveReceiverAddress = receiverAddress || receiverAddressInput || "";
+
   const buildSearchRequest = (overrideOffset?: number) => ({
-    ...(senderAddress && { senderAddress }),
-    ...(receiverAddress && { receiverAddress }),
+    ...(effectiveSenderAddress && { senderAddress: effectiveSenderAddress }),
+    ...(effectiveReceiverAddress && { receiverAddress: effectiveReceiverAddress }),
     ...(transactionHash && { transactionHash }),
     ...(startTime && { startTime: startTime.startOf("day").toISOString() }),
     ...(endTime && { endTime: endTime.endOf("day").toISOString() }),
@@ -127,9 +130,16 @@ export default function TransactionBrowser() {
   });
 
   const validate = (): boolean => {
+    const ethAddressRegex = /^0x[0-9a-fA-F]{40}$/;
     const txHashRegex = /^0x[0-9a-fA-F]{64}$/;
     const newErrors: Record<string, string> = {};
 
+    if (effectiveSenderAddress && !ethAddressRegex.test(effectiveSenderAddress)) {
+      newErrors.senderAddress = "Please enter a valid Ethereum address (0x followed by 40 hex characters)";
+    }
+    if (effectiveReceiverAddress && !ethAddressRegex.test(effectiveReceiverAddress)) {
+      newErrors.receiverAddress = "Please enter a valid Ethereum address (0x followed by 40 hex characters)";
+    }
     if (transactionHash && !txHashRegex.test(transactionHash)) {
       newErrors.transactionHash = "Please enter a valid transaction hash (0x followed by 64 hex characters)";
     }
@@ -267,26 +277,28 @@ export default function TransactionBrowser() {
             {/* Row 1: Address & hash filters */}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <Autocomplete
+                freeSolo
                 options={walletAddresses}
                 value={senderAddress}
                 onChange={(_, value) => { setSenderAddress(value); setErrors((prev) => ({ ...prev, senderAddress: "" })); }}
                 inputValue={senderAddressInput}
-                onInputChange={(_, value) => setSenderAddressInput(value)}
+                onInputChange={(_, value) => { setSenderAddressInput(value); setErrors((prev) => ({ ...prev, senderAddress: "" })); }}
                 renderInput={(params) => (
-                  <TextField {...params} label="From Address" size="small" fullWidth />
+                  <TextField {...params} label="From Address" placeholder="0x..." size="small" fullWidth error={!!errors.senderAddress} helperText={errors.senderAddress} />
                 )}
                 size="small"
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <Autocomplete
+                freeSolo
                 options={walletAddresses}
                 value={receiverAddress}
                 onChange={(_, value) => { setReceiverAddress(value); setErrors((prev) => ({ ...prev, receiverAddress: "" })); }}
                 inputValue={receiverAddressInput}
-                onInputChange={(_, value) => setReceiverAddressInput(value)}
+                onInputChange={(_, value) => { setReceiverAddressInput(value); setErrors((prev) => ({ ...prev, receiverAddress: "" })); }}
                 renderInput={(params) => (
-                  <TextField {...params} label="To Address" size="small" fullWidth />
+                  <TextField {...params} label="To Address" placeholder="0x..." size="small" fullWidth error={!!errors.receiverAddress} helperText={errors.receiverAddress} />
                 )}
                 size="small"
               />
