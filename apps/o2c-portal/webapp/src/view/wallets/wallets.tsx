@@ -97,9 +97,7 @@ export default function Wallets() {
     if (!searchQuery.trim()) return wallets;
     const query = searchQuery.toLowerCase().trim();
     return wallets.filter(
-      (w) =>
-        w.walletAddress.toLowerCase().includes(query) ||
-        w.userEmail.toLowerCase().includes(query),
+      (w) => w.walletAddress.toLowerCase().includes(query),
     );
   }, [wallets, searchQuery]);
 
@@ -123,16 +121,6 @@ export default function Wallets() {
       flex: 2,
       minWidth: 250,
       renderCell: (params) => <WalletAddressCell wallet={params.row as UserWalletDetail} />,
-    },
-    {
-      field: "userEmail",
-      headerName: "Email",
-      flex: 1.5,
-      minWidth: 200,
-      renderCell: (params) => {
-        const wallet = params.row as UserWalletDetail;
-        return <Typography variant="body2">{wallet.userEmail}</Typography>;
-      },
     },
     {
       field: "balance",
@@ -185,12 +173,11 @@ export default function Wallets() {
       <Box sx={{ mb: 1.5, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 2 }}>
         {searchQuery && (
           <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-            Found {filteredWallets.length} wallet{filteredWallets.length !== 1 ? "s" : ""} matching
-            &quot;{searchQuery}&quot;
+            Found {filteredWallets.length} result{filteredWallets.length !== 1 ? "s" : ""}
           </Typography>
         )}
         <TextField
-          placeholder="Search by wallet address or email"
+          placeholder="Search by wallet address"
           sx={{ width: { xs: "100%", md: "40%" } }}
           value={searchQuery}
           onChange={(e) => { setSearchQuery(e.target.value); setPaginationModel((prev) => ({ ...prev, page: 0 })); }}

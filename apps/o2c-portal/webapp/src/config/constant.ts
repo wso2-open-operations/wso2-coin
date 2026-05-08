@@ -40,7 +40,7 @@ export const SnackMessage = {
     searchTransactions: "Failed to search transactions",
     fetchWallets: "Failed to fetch wallets",
     fetchWalletBalances: "Failed to fetch wallet balances",
-    fetchWalletEmails: "Failed to fetch wallet emails",
+    fetchWalletAddresses: "Failed to fetch wallet addresses",
   },
   warning: {},
 };
