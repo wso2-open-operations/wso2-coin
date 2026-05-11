@@ -238,31 +238,11 @@ type WalletAddressRecord record {|
     string walletAddress;
 |};
 
-# Record for distinct email query result.
-type WalletEmailRecord record {|
-    # User email address
-    @sql:Column {name: "user_email"}
-    string userEmail;
-|};
-
-# Wallet user record (email + default wallet flag).
-public type WalletUserRecord record {|
-    # User email address
-    @sql:Column {name: "user_email"}
-    string userEmail;
-    # Whether this is the default wallet
-    @sql:Column {name: "default_wallet"}
-    boolean defaultWallet;
-|};
-
 # Wallet detail record (used for both DB queries and API responses).
 public type UserWalletDetail record {|
     # Wallet address
     @sql:Column {name: "wallet_address"}
     string walletAddress;
-    # User email address
-    @sql:Column {name: "user_email"}
-    string userEmail;
     # Whether this is the default wallet
     @sql:Column {name: "default_wallet"}
     boolean defaultWallet;

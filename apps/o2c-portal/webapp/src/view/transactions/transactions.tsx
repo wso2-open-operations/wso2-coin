@@ -26,7 +26,6 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
   Container,
   Grid,
   IconButton,
@@ -48,7 +47,7 @@ import { State, Transaction } from "@/types/types";
 import NoSearchResults from "@assets/images/no-search-results.svg";
 import StateWithImage from "@component/ui/StateWithImage";
 import {
-  fetchWalletEmails,
+  fetchWalletAddresses,
   searchTransactions,
   setLimit,
   setOffset,
@@ -92,43 +91,19 @@ function CopyableCell({ value }: { value: string }) {
   );
 }
 
-function AddressCell({ tx, field }: { tx: Transaction; field: "sender" | "receiver" }) {
-  const address = field === "sender" ? tx.senderAddress : tx.receiverAddress;
-  const email = field === "sender" ? tx.senderEmail : tx.receiverEmail;
-  const isDefault = field === "sender" ? tx.senderDefaultWallet : tx.receiverDefaultWallet;
-
-  return (
-    <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 0.25, py: 0.5 }}>
-      <CopyableCell value={address} />
-      {email && (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-            {email}
-          </Typography>
-          {isDefault && (
-            <Chip label="Default" size="small" color="primary" variant="outlined" sx={{ height: 18, fontSize: 10 }} />
-          )}
-        </Box>
-      )}
-    </Box>
-  );
-}
-
 export default function TransactionBrowser() {
   const dispatch = useAppDispatch();
   const theme = useTheme();
-  const { transactions, state, hasMore, limit, offset, emails } = useAppSelector(
+  const { transactions, state, hasMore, limit, offset, walletAddresses } = useAppSelector(
     (root: RootState) => root.transaction,
   );
 
   // Local filter state
-  const [senderAddress, setSenderAddress] = useState("");
-  const [receiverAddress, setReceiverAddress] = useState("");
+  const [senderAddress, setSenderAddress] = useState<string | null>(null);
+  const [senderAddressInput, setSenderAddressInput] = useState("");
+  const [receiverAddress, setReceiverAddress] = useState<string | null>(null);
+  const [receiverAddressInput, setReceiverAddressInput] = useState("");
   const [transactionHash, setTransactionHash] = useState("");
-  const [senderEmail, setSenderEmail] = useState<string | null>(null);
-  const [senderEmailInput, setSenderEmailInput] = useState("");
-  const [receiverEmail, setReceiverEmail] = useState<string | null>(null);
-  const [receiverEmailInput, setReceiverEmailInput] = useState("");
   const [startTime, setStartTime] = useState<Dayjs | null>(null);
   const [endTime, setEndTime] = useState<Dayjs | null>(null);
 
@@ -138,14 +113,15 @@ export default function TransactionBrowser() {
   // Auto-load on mount
   useEffect(() => {
     dispatch(searchTransactions({ limit, offset: 0 }));
-    dispatch(fetchWalletEmails());
+    dispatch(fetchWalletAddresses());
   }, [dispatch, limit]);
 
+  const effectiveSenderAddress = senderAddress || senderAddressInput || "";
+  const effectiveReceiverAddress = receiverAddress || receiverAddressInput || "";
+
   const buildSearchRequest = (overrideOffset?: number) => ({
-    ...(senderAddress && { senderAddress }),
-    ...(receiverAddress && { receiverAddress }),
-    ...(senderEmail && { senderEmail }),
-    ...(receiverEmail && { receiverEmail }),
+    ...(effectiveSenderAddress && { senderAddress: effectiveSenderAddress }),
+    ...(effectiveReceiverAddress && { receiverAddress: effectiveReceiverAddress }),
     ...(transactionHash && { transactionHash }),
     ...(startTime && { startTime: startTime.startOf("day").toISOString() }),
     ...(endTime && { endTime: endTime.endOf("day").toISOString() }),
@@ -158,10 +134,10 @@ export default function TransactionBrowser() {
     const txHashRegex = /^0x[0-9a-fA-F]{64}$/;
     const newErrors: Record<string, string> = {};
 
-    if (senderAddress && !ethAddressRegex.test(senderAddress)) {
+    if (effectiveSenderAddress && !ethAddressRegex.test(effectiveSenderAddress)) {
       newErrors.senderAddress = "Please enter a valid Ethereum address (0x followed by 40 hex characters)";
     }
-    if (receiverAddress && !ethAddressRegex.test(receiverAddress)) {
+    if (effectiveReceiverAddress && !ethAddressRegex.test(effectiveReceiverAddress)) {
       newErrors.receiverAddress = "Please enter a valid Ethereum address (0x followed by 40 hex characters)";
     }
     if (transactionHash && !txHashRegex.test(transactionHash)) {
@@ -183,13 +159,11 @@ export default function TransactionBrowser() {
 
   const handleClear = () => {
     setErrors({});
-    setSenderAddress("");
-    setReceiverAddress("");
+    setSenderAddress(null);
+    setSenderAddressInput("");
+    setReceiverAddress(null);
+    setReceiverAddressInput("");
     setTransactionHash("");
-    setSenderEmail(null);
-    setSenderEmailInput("");
-    setReceiverEmail(null);
-    setReceiverEmailInput("");
     setStartTime(null);
     setEndTime(null);
     dispatch(setOffset(0));
@@ -244,14 +218,14 @@ export default function TransactionBrowser() {
       headerName: "From",
       flex: 1.4,
       minWidth: 200,
-      renderCell: (params) => <AddressCell tx={params.row as Transaction} field="sender" />,
+      renderCell: (params) => <CopyableCell value={(params.row as Transaction).senderAddress} />,
     },
     {
       field: "receiverAddress",
       headerName: "To",
       flex: 1.4,
       minWidth: 200,
-      renderCell: (params) => <AddressCell tx={params.row as Transaction} field="receiver" />,
+      renderCell: (params) => <CopyableCell value={(params.row as Transaction).receiverAddress} />,
     },
     {
       field: "amount",
@@ -300,57 +274,33 @@ export default function TransactionBrowser() {
       <Card sx={{ mb: 3 }} onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}>
         <CardContent>
           <Grid container spacing={2}>
-            {/* Row 1: Email filters */}
+            {/* Row 1: Address & hash filters */}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <Autocomplete
-                options={emails}
-                value={senderEmail}
-                onChange={(_, value) => setSenderEmail(value)}
-                inputValue={senderEmailInput}
-                onInputChange={(_, value) => setSenderEmailInput(value)}
-                renderInput={(params) => (
-                  <TextField {...params} label="From Email" size="small" fullWidth />
-                )}
-                size="small"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Autocomplete
-                options={emails}
-                value={receiverEmail}
-                onChange={(_, value) => setReceiverEmail(value)}
-                inputValue={receiverEmailInput}
-                onInputChange={(_, value) => setReceiverEmailInput(value)}
-                renderInput={(params) => (
-                  <TextField {...params} label="To Email" size="small" fullWidth />
-                )}
-                size="small"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} />
-            {/* Row 2: Address & hash filters */}
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <TextField
-                fullWidth
-                label="From Address"
-                placeholder="0x..."
+                freeSolo
+                options={walletAddresses}
                 value={senderAddress}
-                onChange={(e) => { setSenderAddress(e.target.value); setErrors((prev) => ({ ...prev, senderAddress: "" })); }}
+                onChange={(_, value) => { setSenderAddress(value); setErrors((prev) => ({ ...prev, senderAddress: "" })); }}
+                inputValue={senderAddressInput}
+                onInputChange={(_, value) => { setSenderAddressInput(value); setErrors((prev) => ({ ...prev, senderAddress: "" })); }}
+                renderInput={(params) => (
+                  <TextField {...params} label="From Address" placeholder="0x..." size="small" fullWidth error={!!errors.senderAddress} helperText={errors.senderAddress} />
+                )}
                 size="small"
-                error={!!errors.senderAddress}
-                helperText={errors.senderAddress}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <TextField
-                fullWidth
-                label="To Address"
-                placeholder="0x..."
+              <Autocomplete
+                freeSolo
+                options={walletAddresses}
                 value={receiverAddress}
-                onChange={(e) => { setReceiverAddress(e.target.value); setErrors((prev) => ({ ...prev, receiverAddress: "" })); }}
+                onChange={(_, value) => { setReceiverAddress(value); setErrors((prev) => ({ ...prev, receiverAddress: "" })); }}
+                inputValue={receiverAddressInput}
+                onInputChange={(_, value) => { setReceiverAddressInput(value); setErrors((prev) => ({ ...prev, receiverAddress: "" })); }}
+                renderInput={(params) => (
+                  <TextField {...params} label="To Address" placeholder="0x..." size="small" fullWidth error={!!errors.receiverAddress} helperText={errors.receiverAddress} />
+                )}
                 size="small"
-                error={!!errors.receiverAddress}
-                helperText={errors.receiverAddress}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -365,7 +315,7 @@ export default function TransactionBrowser() {
                 helperText={errors.transactionHash}
               />
             </Grid>
-            {/* Row 3: Date filters + buttons (right-aligned) */}
+            {/* Row 2: Date filters + buttons (right-aligned) */}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <DatePicker
                 label="Start Date"

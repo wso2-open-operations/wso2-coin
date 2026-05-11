@@ -69,10 +69,6 @@ public type TransactionSearchRequest record {
         }
     }
     string transactionHash?;
-    # Sender email (resolved to wallet addresses server-side)
-    string senderEmail?;
-    # Receiver email (resolved to wallet addresses server-side)
-    string receiverEmail?;
     # Start time filter (ISO-8601)
     string startTime?;
     # End time filter (ISO-8601)
@@ -108,19 +104,6 @@ public type Transaction record {|
     string timestamp;
 |};
 
-# A transaction enriched with wallet email info.
-public type EnrichedTransaction record {|
-    *Transaction;
-    # Sender email (if found in wallet DB)
-    string? senderEmail = ();
-    # Whether sender wallet is the default wallet
-    boolean? senderDefaultWallet = ();
-    # Receiver email (if found in wallet DB)
-    string? receiverEmail = ();
-    # Whether receiver wallet is the default wallet
-    boolean? receiverDefaultWallet = ();
-|};
-
 # Payload returned from a transaction search.
 public type TransactionSearchResponse record {|
     # Whether more results are available
@@ -129,8 +112,8 @@ public type TransactionSearchResponse record {|
     int offset;
     # Current limit
     int 'limit;
-    # Array of enriched transactions
-    EnrichedTransaction[] transactions;
+    # Array of transactions
+    Transaction[] transactions;
 |};
 
 # Internal request payload sent to the transaction service (arrays for addresses).

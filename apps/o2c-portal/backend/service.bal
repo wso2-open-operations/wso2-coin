@@ -834,11 +834,11 @@ service http:InterceptableService / on new http:Listener(9090) {
         return balances;
     }
 
-    # Fetch distinct wallet email addresses.
+    # Fetch distinct wallet addresses.
     #
     # + ctx - Request context
-    # + return - Array of distinct emails or error
-    resource function get wallets/emails(http:RequestContext ctx)
+    # + return - Array of distinct wallet addresses or error
+    resource function get wallets/addresses(http:RequestContext ctx)
         returns string[]|http:Forbidden|http:InternalServerError {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -854,18 +854,18 @@ service http:InterceptableService / on new http:Listener(9090) {
         boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
             invokerInfo.groups);
         if !isAuthorized {
-            log:printWarn(string `Unauthorized wallet emails access attempt by: ${invokerInfo.email}`);
+            log:printWarn(string `Unauthorized wallet addresses access attempt by: ${invokerInfo.email}`);
             return <http:Forbidden>{
                 body: {
-                    message: "You don't have permission to access wallet emails!"
+                    message: "You don't have permission to access wallet addresses!"
                 }
             };
         }
 
-        string[]|error emails = database:fetchDistinctEmails();
-        if emails is error {
-            string customError = "Error occurred while fetching wallet emails!";
-            log:printError(customError, emails);
+        string[]|error addresses = database:fetchDistinctAddresses();
+        if addresses is error {
+            string customError = "Error occurred while fetching wallet addresses!";
+            log:printError(customError, addresses);
             return <http:InternalServerError>{
                 body: {
                     message: customError
@@ -873,7 +873,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        return emails;
+        return addresses;
     }
 
     # Search transactions from the transaction service.

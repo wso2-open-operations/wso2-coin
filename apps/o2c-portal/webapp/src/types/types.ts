@@ -174,7 +174,6 @@ export interface UserInfo {
 
 export interface UserWalletDetail {
   walletAddress: string;
-  userEmail: string;
   defaultWallet: boolean;
   createdOn: string;
 }
@@ -187,8 +186,6 @@ export interface WalletBalance {
 export interface TransactionSearchRequest {
   senderAddress?: string;
   receiverAddress?: string;
-  senderEmail?: string;
-  receiverEmail?: string;
   transactionHash?: string;
   startTime?: string;
   endTime?: string;
@@ -204,10 +201,6 @@ export interface Transaction {
   amount: string;
   amountRaw: string;
   timestamp: string;
-  senderEmail?: string | null;
-  senderDefaultWallet?: boolean | null;
-  receiverEmail?: string | null;
-  receiverDefaultWallet?: boolean | null;
 }
 
 export interface TransactionSearchResponse {
