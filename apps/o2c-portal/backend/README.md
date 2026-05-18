@@ -144,7 +144,7 @@
 
 **Summary:** Fetch a specific QR code by its UUID.
 
-**Authorization:** Requires Con Attendee Role
+**Authorization:** None required (public endpoint)
 
 **Parameters:**
 
@@ -157,7 +157,6 @@
 | Status | Description         | Schema                        |
 | ------ | ------------------- | ----------------------------- |
 | 200    | OK                  | [ConferenceQrCode](#conferenceqrcode) |
-| 403    | Forbidden           | -                             |
 | 404    | NotFound            | -                             |
 | 500    | InternalServerError | -                             |
 
