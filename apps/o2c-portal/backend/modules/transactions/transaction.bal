@@ -16,12 +16,10 @@
 import ballerina/http;
 import ballerina/time;
 
-import o2c_portal.database;
-
-# Search transactions and enrich results with wallet email info.
+# Search transactions from the transaction service.
 #
 # + request - Transaction search filters
-# + return - Enriched transaction search response or error
+# + return - Transaction search response or error
 public isolated function searchTransactions(TransactionSearchRequest request) returns TransactionSearchResponse|error {
     // Validate time range if both provided
     string? startTime = request.startTime;
@@ -40,7 +38,7 @@ public isolated function searchTransactions(TransactionSearchRequest request) re
         }
     }
 
-    // Build the service request, resolving emails to wallet addresses
+    // Build the service request
     TransactionServiceRequest serviceRequest = {
         transactionHash: request.transactionHash,
         startTime: request.startTime,
@@ -49,29 +47,15 @@ public isolated function searchTransactions(TransactionSearchRequest request) re
         offset: request.offset
     };
 
-    // Resolve sender address(es)
+    // Set sender address filter
     string? senderAddress = request.senderAddress;
-    string? senderEmail = request.senderEmail;
-    if senderEmail is string {
-        string[] addresses = check database:fetchWalletAddressesByEmail(senderEmail);
-        if addresses.length() == 0 {
-            return {hasMore: false, offset: request.offset ?: 0, 'limit: request.'limit ?: 10, transactions: []};
-        }
-        serviceRequest.senderAddresses = addresses;
-    } else if senderAddress is string {
+    if senderAddress is string {
         serviceRequest.senderAddresses = [senderAddress];
     }
 
-    // Resolve receiver address(es)
+    // Set receiver address filter
     string? receiverAddress = request.receiverAddress;
-    string? receiverEmail = request.receiverEmail;
-    if receiverEmail is string {
-        string[] addresses = check database:fetchWalletAddressesByEmail(receiverEmail);
-        if addresses.length() == 0 {
-            return {hasMore: false, offset: request.offset ?: 0, 'limit: request.'limit ?: 10, transactions: []};
-        }
-        serviceRequest.receiverAddresses = addresses;
-    } else if receiverAddress is string {
+    if receiverAddress is string {
         serviceRequest.receiverAddresses = [receiverAddress];
     }
 
@@ -84,46 +68,11 @@ public isolated function searchTransactions(TransactionSearchRequest request) re
     json responseJson = check response.getJsonPayload();
     TransactionServiceEnvelope envelope = check responseJson.fromJsonWithType();
 
-    // Collect unique addresses and batch-lookup email info
-    string[] uniqueAddresses = [];
-    foreach Transaction tx in envelope.payload.transactions {
-        if uniqueAddresses.indexOf(tx.senderAddress) is () {
-            uniqueAddresses.push(tx.senderAddress);
-        }
-        if uniqueAddresses.indexOf(tx.receiverAddress) is () {
-            uniqueAddresses.push(tx.receiverAddress);
-        }
-    }
-
-    map<database:WalletUserRecord> addressInfoMap = {};
-    foreach string addr in uniqueAddresses {
-        database:WalletUserRecord? info = check database:fetchEmailByAddress(addr);
-        if info is database:WalletUserRecord {
-            addressInfoMap[addr] = info;
-        }
-    }
-
-    // Enrich transactions from the map
-    EnrichedTransaction[] enriched = [];
-
-    foreach Transaction tx in envelope.payload.transactions {
-        database:WalletUserRecord? senderInfo = addressInfoMap[tx.senderAddress];
-        database:WalletUserRecord? receiverInfo = addressInfoMap[tx.receiverAddress];
-
-        enriched.push({
-            ...tx,
-            senderEmail: senderInfo is database:WalletUserRecord ? senderInfo.userEmail : (),
-            senderDefaultWallet: senderInfo is database:WalletUserRecord ? senderInfo.defaultWallet : (),
-            receiverEmail: receiverInfo is database:WalletUserRecord ? receiverInfo.userEmail : (),
-            receiverDefaultWallet: receiverInfo is database:WalletUserRecord ? receiverInfo.defaultWallet : ()
-        });
-    }
-
     return {
         hasMore: envelope.payload.hasMore,
         offset: envelope.payload.offset,
         'limit: envelope.payload.'limit,
-        transactions: enriched
+        transactions: envelope.payload.transactions
     };
 }
 

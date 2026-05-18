@@ -211,36 +211,11 @@ public isolated function fetchAllWallets() returns UserWalletDetail[]|error {
         select wallet;
 }
 
-# Fetch all distinct email addresses from the user_wallet table.
+# Fetch all distinct wallet addresses from the user_wallet table.
 #
-# + return - Array of distinct email strings or error
-public isolated function fetchDistinctEmails() returns string[]|error {
-    stream<WalletEmailRecord, sql:Error?> resultStream = walletClient->query(fetchDistinctEmailsQuery());
-
-    return from WalletEmailRecord emailRecord in resultStream
-        select emailRecord.userEmail;
-}
-
-# Fetch wallet addresses associated with a given email.
-#
-# + email - User email address
-# + return - Array of wallet address strings or error
-public isolated function fetchWalletAddressesByEmail(string email) returns string[]|error {
-    stream<WalletAddressRecord, sql:Error?> resultStream = walletClient->query(fetchWalletAddressesByEmailQuery(email));
-
+# + return - Array of distinct wallet address strings or error
+public isolated function fetchDistinctAddresses() returns string[]|error {
+    stream<WalletAddressRecord, sql:Error?> resultStream = walletClient->query(fetchDistinctAddressesQuery());
     return from WalletAddressRecord addressRecord in resultStream
         select addressRecord.walletAddress;
-}
-
-# Fetch email and default wallet info for a given wallet address.
-#
-# + walletAddress - Wallet address to look up
-# + return - WalletUserRecord or nil if not found, or error
-public isolated function fetchEmailByAddress(string walletAddress) returns WalletUserRecord|error? {
-    WalletUserRecord|error result = walletClient->queryRow(fetchEmailByAddressQuery(walletAddress));
-    if result is error {
-        return result is sql:NoRowsError ? () : result;
-    }
-
-    return result;
 }

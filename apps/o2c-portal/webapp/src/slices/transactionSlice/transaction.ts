@@ -23,7 +23,7 @@ import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { APIService } from "@utils/apiService";
 
 let searchCancelSource: CancelTokenSource | null = null;
-let emailsCancelSource: CancelTokenSource | null = null;
+let addressesCancelSource: CancelTokenSource | null = null;
 
 interface TransactionState {
   state: State;
@@ -33,7 +33,7 @@ interface TransactionState {
   hasMore: boolean;
   limit: number;
   offset: number;
-  emails: string[];
+  walletAddresses: string[];
 }
 
 const initialState: TransactionState = {
@@ -44,21 +44,21 @@ const initialState: TransactionState = {
   hasMore: false,
   limit: 5,
   offset: 0,
-  emails: [],
+  walletAddresses: [],
 };
 
-export const fetchWalletEmails = createAsyncThunk(
-  "transaction/fetchWalletEmails",
+export const fetchWalletAddresses = createAsyncThunk(
+  "transaction/fetchWalletAddresses",
   async (_, { dispatch, rejectWithValue }) => {
     try {
-      if (emailsCancelSource) {
-        emailsCancelSource.cancel();
+      if (addressesCancelSource) {
+        addressesCancelSource.cancel();
       }
-      emailsCancelSource = axios.CancelToken.source();
+      addressesCancelSource = axios.CancelToken.source();
 
       const response = await APIService.getInstance().get<string[]>(
-        AppConfig.serviceUrls.walletEmails,
-        { cancelToken: emailsCancelSource.token },
+        AppConfig.serviceUrls.walletAddresses,
+        { cancelToken: addressesCancelSource.token },
       );
       return response.data;
     } catch (error) {
@@ -68,11 +68,11 @@ export const fetchWalletEmails = createAsyncThunk(
       if (axios.isAxiosError(error)) {
         dispatch(
           enqueueSnackbarMessage({
-            message: SnackMessage.error.fetchWalletEmails,
+            message: SnackMessage.error.fetchWalletAddresses,
             type: "error",
           }),
         );
-        return rejectWithValue(error.response?.data?.message || "Failed to fetch wallet emails");
+        return rejectWithValue(error.response?.data?.message || "Failed to fetch wallet addresses");
       }
       return rejectWithValue("An unexpected error occurred");
     }
@@ -149,8 +149,8 @@ export const transactionSlice = createSlice({
         state.state = State.failed;
         state.errorMessage = action.payload as string;
       })
-      .addCase(fetchWalletEmails.fulfilled, (state, action) => {
-        state.emails = action.payload;
+      .addCase(fetchWalletAddresses.fulfilled, (state, action) => {
+        state.walletAddresses = action.payload;
       });
   },
 });
