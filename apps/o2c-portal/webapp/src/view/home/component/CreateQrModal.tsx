@@ -43,6 +43,7 @@ import { fetchEventTypes } from "@slices/eventTypesSlice/eventTypes";
 import { createQrCode } from "@slices/qrSlice/qr";
 import { fetchSessions } from "@slices/sessionSlice/session";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
+import { generateQrImageWithTitle } from "@utils/utils";
 
 interface CreateQrModalProps {
   open: boolean;
@@ -296,13 +297,12 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
 
   const handleDownload = async () => {
     if (!qrImageUrl || !createdQrId) return;
-    const title = (createdQrTitle ?? createdQrId)
-      .replace(/[^a-zA-Z0-9\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "-");
+    const title = createdQrTitle ?? createdQrId;
+    const compositeDataUrl = await generateQrImageWithTitle(qrImageUrl, title);
+    const filename = title.replace(/[^a-zA-Z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
     const link = document.createElement("a");
-    link.download = `QR-${title}.png`;
-    link.href = qrImageUrl;
+    link.download = `QR-${filename}.png`;
+    link.href = compositeDataUrl;
     link.click();
   };
 

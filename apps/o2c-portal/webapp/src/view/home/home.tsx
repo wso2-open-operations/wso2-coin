@@ -66,6 +66,7 @@ import { deleteQrCode, fetchQrCodes, setLimit, setOffset } from "@slices/qrSlice
 import { fetchSessions } from "@slices/sessionSlice/session";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
 import { ConfirmationType } from "@utils/types";
+import { generateQrImageWithTitle } from "@utils/utils";
 
 import CreateQrModal from "./component/CreateQrModal";
 
@@ -171,11 +172,13 @@ export default function O2cPortal() {
 
   const handleDownload = async (qr: ConferenceQrCode) => {
     try {
-      const qrDataUrl = qrImages[qr.qrId] || (await QRCode.toDataURL(qr.qrId, { width: 400, margin: 2 }));
-      const title = getQrTitle(qr).replace(/[^a-zA-Z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
+      const title = getQrTitle(qr);
+      const qrDataUrl = await QRCode.toDataURL(qr.qrId, { width: 400, margin: 2 });
+      const compositeDataUrl = await generateQrImageWithTitle(qrDataUrl, title);
+      const filename = title.replace(/[^a-zA-Z0-9\s-]/g, "").trim().replace(/\s+/g, "-") || qr.qrId;
       const link = document.createElement("a");
-      link.download = `QR-${title}.png`;
-      link.href = qrDataUrl;
+      link.download = `QR-${filename}.png`;
+      link.href = compositeDataUrl;
       link.click();
     } catch (error) {
       console.error("Failed to download QR code:", error);
