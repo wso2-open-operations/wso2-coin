@@ -66,6 +66,7 @@ import { deleteQrCode, fetchQrCodes, setLimit, setOffset } from "@slices/qrSlice
 import { fetchSessions } from "@slices/sessionSlice/session";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
 import { ConfirmationType } from "@utils/types";
+import { generateQrImageWithTitle } from "@utils/utils";
 
 import CreateQrModal from "./component/CreateQrModal";
 
@@ -155,12 +156,29 @@ export default function O2cPortal() {
     }
   }, [qrCodes]);
 
-  const handleDownload = async (qrId: string) => {
+  const getQrTitle = (qr: ConferenceQrCode): string => {
+    if (qr.info.eventType === "SESSION") {
+      const sessionInfo = qr.info as { eventType: "SESSION"; sessionId: string };
+      const session = sessions.find((s) => s.id === sessionInfo.sessionId);
+      return session ? session.name : `Session-${sessionInfo.sessionId}`;
+    }
+    if (qr.info.eventType === "GENERAL") {
+      const generalInfo = qr.info as { eventType: "GENERAL"; eventTypeName: string };
+      return generalInfo.eventTypeName;
+    }
+    const o2barInfo = qr.info as { eventType: "O2BAR"; email: string };
+    return getEmployeeDisplayName(o2barInfo.email);
+  };
+
+  const handleDownload = async (qr: ConferenceQrCode) => {
     try {
-      const qrDataUrl = qrImages[qrId] || (await QRCode.toDataURL(qrId, { width: 400, margin: 2 }));
+      const title = getQrTitle(qr);
+      const qrDataUrl = await QRCode.toDataURL(qr.qrId, { width: 400, margin: 2 });
+      const compositeDataUrl = await generateQrImageWithTitle(qrDataUrl, title);
+      const filename = title.replace(/[^a-zA-Z0-9\s-]/g, "").trim().replace(/\s+/g, "-") || qr.qrId;
       const link = document.createElement("a");
-      link.download = `qr-code-${qrId}.png`;
-      link.href = qrDataUrl;
+      link.download = `QR-${filename}.png`;
+      link.href = compositeDataUrl;
       link.click();
     } catch (error) {
       console.error("Failed to download QR code:", error);
@@ -463,7 +481,7 @@ export default function O2cPortal() {
         return (
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", height: "100%" }}>
             <Tooltip title="Download QR Code" arrow enterDelay={300}>
-              <IconButton size="small" color="primary" onClick={() => handleDownload(qr.qrId)}>
+              <IconButton size="small" color="primary" onClick={() => handleDownload(qr)}>
                 <DownloadIcon />
               </IconButton>
             </Tooltip>
@@ -841,7 +859,7 @@ export default function O2cPortal() {
                             <IconButton
                               size="small"
                               color="primary"
-                              onClick={() => handleDownload(qr.qrId)}
+                              onClick={() => handleDownload(qr)}
                             >
                               <DownloadIcon fontSize="small" />
                             </IconButton>

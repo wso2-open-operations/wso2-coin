@@ -43,6 +43,7 @@ import { fetchEventTypes } from "@slices/eventTypesSlice/eventTypes";
 import { createQrCode } from "@slices/qrSlice/qr";
 import { fetchSessions } from "@slices/sessionSlice/session";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
+import { generateQrImageWithTitle } from "@utils/utils";
 
 interface CreateQrModalProps {
   open: boolean;
@@ -70,6 +71,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
   const { state } = useAppSelector((state: RootState) => state.qr);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [createdQrId, setCreatedQrId] = useState<string | null>(null);
+  const [createdQrTitle, setCreatedQrTitle] = useState<string | null>(null);
   const [selectedEmployeeEmail, setSelectedEmployeeEmail] = useState<string>(userInfo?.workEmail ?? "");
 
   useEffect(() => {
@@ -89,6 +91,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
   const handleExited = () => {
     setQrImageUrl(null);
     setCreatedQrId(null);
+    setCreatedQrTitle(null);
     setSelectedEmployeeEmail(userInfo?.workEmail ?? "");
   };
 
@@ -263,6 +266,18 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     if (createQrCode.fulfilled.match(result)) {
       const qrId = result.payload.qrId;
       setCreatedQrId(qrId);
+      if (values.eventType === QrCodeEventType.SESSION) {
+        const session = sessions.find((s) => s.id === values.sessionId);
+        setCreatedQrTitle(session ? session.name : `Session-${values.sessionId}`);
+      } else if (values.eventType === QrCodeEventType.GENERAL) {
+        setCreatedQrTitle(values.eventTypeName);
+      } else {
+        const employee = employees.find((e) => e.workEmail === values.email);
+        const name = employee
+          ? [employee.firstName, employee.lastName].filter(Boolean).join(" ")
+          : values.email;
+        setCreatedQrTitle(name);
+      }
       // Generate QR code image
       try {
         const qrDataUrl = await QRCode.toDataURL(qrId, {
@@ -282,9 +297,12 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
 
   const handleDownload = async () => {
     if (!qrImageUrl || !createdQrId) return;
+    const title = createdQrTitle ?? createdQrId;
+    const compositeDataUrl = await generateQrImageWithTitle(qrImageUrl, title);
+    const filename = title.replace(/[^a-zA-Z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
     const link = document.createElement("a");
-    link.download = `qr-code-${createdQrId}.png`;
-    link.href = qrImageUrl;
+    link.download = `QR-${filename}.png`;
+    link.href = compositeDataUrl;
     link.click();
   };
 
