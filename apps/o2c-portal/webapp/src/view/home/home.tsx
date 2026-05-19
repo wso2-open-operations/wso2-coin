@@ -155,11 +155,26 @@ export default function O2cPortal() {
     }
   }, [qrCodes]);
 
-  const handleDownload = async (qrId: string) => {
+  const getQrTitle = (qr: ConferenceQrCode): string => {
+    if (qr.info.eventType === "SESSION") {
+      const sessionInfo = qr.info as { eventType: "SESSION"; sessionId: string };
+      const session = sessions.find((s) => s.id === sessionInfo.sessionId);
+      return session ? session.name : `Session-${sessionInfo.sessionId}`;
+    }
+    if (qr.info.eventType === "GENERAL") {
+      const generalInfo = qr.info as { eventType: "GENERAL"; eventTypeName: string };
+      return generalInfo.eventTypeName;
+    }
+    const o2barInfo = qr.info as { eventType: "O2BAR"; email: string };
+    return getEmployeeDisplayName(o2barInfo.email);
+  };
+
+  const handleDownload = async (qr: ConferenceQrCode) => {
     try {
-      const qrDataUrl = qrImages[qrId] || (await QRCode.toDataURL(qrId, { width: 400, margin: 2 }));
+      const qrDataUrl = qrImages[qr.qrId] || (await QRCode.toDataURL(qr.qrId, { width: 400, margin: 2 }));
+      const title = getQrTitle(qr).replace(/[^a-zA-Z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
       const link = document.createElement("a");
-      link.download = `qr-code-${qrId}.png`;
+      link.download = `QR-${title}.png`;
       link.href = qrDataUrl;
       link.click();
     } catch (error) {
@@ -463,7 +478,7 @@ export default function O2cPortal() {
         return (
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", height: "100%" }}>
             <Tooltip title="Download QR Code" arrow enterDelay={300}>
-              <IconButton size="small" color="primary" onClick={() => handleDownload(qr.qrId)}>
+              <IconButton size="small" color="primary" onClick={() => handleDownload(qr)}>
                 <DownloadIcon />
               </IconButton>
             </Tooltip>
@@ -841,7 +856,7 @@ export default function O2cPortal() {
                             <IconButton
                               size="small"
                               color="primary"
-                              onClick={() => handleDownload(qr.qrId)}
+                              onClick={() => handleDownload(qr)}
                             >
                               <DownloadIcon fontSize="small" />
                             </IconButton>
