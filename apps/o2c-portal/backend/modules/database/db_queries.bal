@@ -92,6 +92,7 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
             boolean hasSession = false;
             boolean hasO2Bar = false;
             boolean hasGeneral = false;
+            boolean hasPartner = false;
             foreach QrCodeType eventType in eventTypes {
                 if eventType == SESSION {
                     hasSession = true;
@@ -99,6 +100,8 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
                     hasO2Bar = true;
                 } else if eventType == GENERAL {
                     hasGeneral = true;
+                } else if eventType == PARTNER {
+                    hasPartner = true;
                 }
             }
             
@@ -133,6 +136,15 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
                         filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${GENERAL}`);
                     }
                 }
+                
+                // PARTNER has no email filter
+                if hasPartner {
+                    if hasSession || hasO2Bar || hasGeneral {
+                        filterQueries.push(` OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${PARTNER}`);
+                    } else {
+                        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${PARTNER}`);
+                    }
+                }
             } else {
                 // No email filter - build OR clause for event types
                 if eventTypes.length() == 1 {
@@ -141,6 +153,8 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
                     filterQueries.push(` (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[1]})`);
                 } else if eventTypes.length() == 3 {
                     filterQueries.push(` (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[1]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[2]})`);
+                } else if eventTypes.length() == 4 {
+                    filterQueries.push(` (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[1]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[2]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[3]})`);
                 }
             }
         }
@@ -181,6 +195,8 @@ isolated function checkIsQrCodeExistsQuery(QrCodeInfo qrInfo) returns sql:Parame
         whereClause = `JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${qrInfo.email}`;
     } else if qrInfo is QrCodeInfoGeneral {
         whereClause = `JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventTypeName')) = ${qrInfo.eventTypeName}`;
+    } else if qrInfo is QrCodeInfoPartner {
+        whereClause = `JSON_UNQUOTE(JSON_EXTRACT(info, '$.domain')) = ${qrInfo.domain}`;
     } else {
         whereClause = `JSON_UNQUOTE(JSON_EXTRACT(info, '$.sessionId')) = ${qrInfo.sessionId}`;
     }

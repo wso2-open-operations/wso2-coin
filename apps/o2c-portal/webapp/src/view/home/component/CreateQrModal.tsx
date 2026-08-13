@@ -44,6 +44,8 @@ import { createQrCode } from "@slices/qrSlice/qr";
 import { fetchSessions } from "@slices/sessionSlice/session";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
 import { generateQrImageWithTitle } from "@utils/utils";
+import { APIService } from "@utils/apiService";
+import { AppConfig } from "@config/config";
 
 interface CreateQrModalProps {
   open: boolean;
@@ -73,6 +75,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
   const [createdQrId, setCreatedQrId] = useState<string | null>(null);
   const [createdQrTitle, setCreatedQrTitle] = useState<string | null>(null);
   const [selectedEmployeeEmail, setSelectedEmployeeEmail] = useState<string>(userInfo?.workEmail ?? "");
+  const [partnerDomains, setPartnerDomains] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -82,6 +85,10 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       }
       if (roles.includes(Role.GENERAL_ADMIN)) {
         dispatch(fetchEmployees());
+        APIService.getInstance()
+          .get<string[]>(AppConfig.serviceUrls.partnerDomains)
+          .then((res) => setPartnerDomains(res.data))
+          .catch((err) => console.error("Failed to fetch partner domains", err));
       }
       // Sync selectedEmployeeEmail with initial email value when modal opens
       setSelectedEmployeeEmail(userInfo?.workEmail ?? "");
@@ -111,6 +118,9 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       if (eventType.category === "GENERAL") {
         return isGeneralAdmin;
       }
+      if (eventType.category === "PARTNER") {
+        return isGeneralAdmin;
+      }
       return false;
     });
   }, [eventTypes, isSessionAdmin, isGeneralAdmin, isO2BarAdmin]);
@@ -138,6 +148,10 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       const generalTypes = eventTypes.filter((et) => et.category === "GENERAL");
       if (generalTypes.length > 0) {
         options.push({ value: QrCodeEventType.GENERAL, label: "General", category: "GENERAL" });
+      }
+      const partnerTypes = eventTypes.filter((et) => et.category === "PARTNER");
+      if (partnerTypes.length > 0) {
+        options.push({ value: QrCodeEventType.PARTNER, label: "Partner", category: "PARTNER" as any });
       }
     }
 
@@ -178,6 +192,12 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       const type = eventTypes.find((et) => et.category === "O2BAR");
       return type?.defaultCoins ?? 0;
     }
+    if (eventType === QrCodeEventType.PARTNER) {
+      const type = eventTypes.find(
+        (et) => et.category === "PARTNER"
+      );
+      return type?.defaultCoins ?? 0;
+    }
     return 0;
   };
 
@@ -196,6 +216,11 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     eventTypeName: Yup.string().when("eventType", {
       is: QrCodeEventType.GENERAL,
       then: (schema) => schema.required("Event type name is required"),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    domain: Yup.string().when("eventType", {
+      is: QrCodeEventType.PARTNER,
+      then: (schema) => schema.required("Domain is required"),
       otherwise: (schema) => schema.notRequired(),
     }),
     coins: Yup.number().required("Coins is required").min(0, "Coins must be a positive number"),
@@ -246,13 +271,20 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       };
     } else if (values.eventType === QrCodeEventType.GENERAL) {
       info = {
-        eventType: "GENERAL" as const,
+        eventType: "GENERAL",
         eventTypeName: values.eventTypeName,
       };
+    } else if (values.eventType === QrCodeEventType.PARTNER) {
+      info = {
+        eventType: "PARTNER",
+        domain: (values as any).domain,
+      };
     } else {
+      const selectedEmp = employees.find((e) => e.workEmail === values.email);
       info = {
         eventType: "O2BAR" as const,
         email: values.email,
+        fullName: selectedEmp ? getEmployeeDisplayName(selectedEmp) : undefined,
       };
     }
 
@@ -271,6 +303,8 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
         setCreatedQrTitle(session ? session.name : `Session-${values.sessionId}`);
       } else if (values.eventType === QrCodeEventType.GENERAL) {
         setCreatedQrTitle(values.eventTypeName);
+      } else if (values.eventType === QrCodeEventType.PARTNER) {
+        setCreatedQrTitle((values as any).domain);
       } else {
         const employee = employees.find((e) => e.workEmail === values.email);
         const name = employee
@@ -332,6 +366,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     email: userInfo?.workEmail ?? "",
     sessionId: "",
     eventTypeName: getInitialEventTypeName(),
+    domain: "",
     coins: getInitialCoins(),
     description: "",
   };
@@ -598,6 +633,30 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
                           />
                         )}
                       </>
+                    )}
+
+                    {values.eventType === QrCodeEventType.PARTNER && (
+                      <Autocomplete
+                        options={partnerDomains}
+                        value={(values as any).domain || ""}
+                        onChange={(e, value) => {
+                          setFieldValue("domain", value || "");
+                          setFieldValue("description", value || "");
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Domain"
+                            error={Boolean(touched.eventType && (errors as any).domain)}
+                            helperText={
+                              (touched.eventType && (errors as any).domain) as string
+                            }
+                            disabled={state === State.loading || createdQrId !== null}
+                            required
+                            sx={{ mb: 2 }}
+                          />
+                        )}
+                      />
                     )}
 
                     {values.eventType === QrCodeEventType.SESSION && (

@@ -19,7 +19,7 @@ export const generateQrImageWithTitle = (qrDataUrl: string, title: string): Prom
     const img = new Image();
     img.onload = () => {
       const padding = 24;
-      const titleAreaHeight = 56;
+      const titleAreaHeight = 72;
       const canvasSize = 400;
 
       const canvas = document.createElement("canvas");
@@ -37,7 +37,7 @@ export const generateQrImageWithTitle = (qrDataUrl: string, title: string): Prom
       ctx.fillRect(0, canvasSize, canvasSize, titleAreaHeight);
 
       ctx.fillStyle = "#1a1a1a";
-      ctx.font = "bold 18px 'Inter', 'Helvetica Neue', Arial, sans-serif";
+      ctx.font = "bold 24px 'Inter', 'Helvetica Neue', Arial, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 

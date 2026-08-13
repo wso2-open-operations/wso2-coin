@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 import ballerina/http;
+import ballerina/regex;
 
 # Fetch active sessions from the conference backend.
 #
@@ -27,7 +28,43 @@ public isolated function fetchActiveSessions() returns Session[]|error {
     
     json payload = check response.getJsonPayload();
     
-    Session[] sessions = check payload.fromJsonWithType();
+    json[] payloadArr = <json[]>payload;
+    foreach json s in payloadArr {
+        map<json> sm = <map<json>>s;
+        if sm.hasKey("title") {
+            sm["name"] = sm.get("title");
+        }
+    }
+    
+    Session[] sessions = check payloadArr.fromJsonWithType();
     
     return sessions;
 }
+
+# Fetch partner domains from the conference backend's app_config.
+#
+# + return - Array of partner domains (strings) or error
+public isolated function fetchPartnerDomains() returns string[]|error {
+    http:Response response = check conferenceClient->get("/app-configs");
+    
+    if response.statusCode != http:STATUS_OK {
+        return error(string `Conference backend returned status ${response.statusCode}`);
+    }
+    
+    json payload = check response.getJsonPayload();
+    AppConfig[] configs = check payload.cloneWithType();
+    string[] domains = [];
+    foreach AppConfig config in configs {
+        if config.key == "partner_domains" {
+            string[] parts = regex:split(config.value, ",");
+            foreach string part in parts {
+                string trimmed = part.trim();
+                if trimmed.length() > 0 {
+                    domains.push(trimmed);
+                }
+            }
+        }
+    }
+    return domains;
+}
+

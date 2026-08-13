@@ -135,6 +135,34 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         return sessions;
     }
+    # Fetch all partner domains from the conference backend.
+    #
+    # + return - Array of partner domains or error
+    resource function get partners/domains(http:RequestContext ctx) returns string[]|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if invokerInfo is error {
+            log:printError(USER_INFO_HEADER_NOT_FOUND_ERROR, invokerInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: USER_INFO_HEADER_NOT_FOUND_ERROR
+                }
+            };
+        }
+
+        string[]|error domains = conference:fetchPartnerDomains();
+        if domains is error {
+            string customError = "Error occurred while fetching partner domains!";
+            log:printError(customError, domains);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return domains;
+    }
 
     # Fetch all employees.
     #
@@ -214,7 +242,8 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         if (payload.info is database:QrCodeInfoSession && payload.info.eventType != database:SESSION) ||
             (payload.info is database:QrCodeInfoO2Bar && payload.info.eventType != database:O2BAR) ||
-            (payload.info is database:QrCodeInfoGeneral && payload.info.eventType != database:GENERAL) {
+            (payload.info is database:QrCodeInfoGeneral && payload.info.eventType != database:GENERAL) ||
+            (payload.info is database:QrCodeInfoPartner && payload.info.eventType != database:PARTNER) {
             return <http:BadRequest>{
                 body: {
                     message: "Invalid event type in QR info"
@@ -225,6 +254,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         boolean isSessionQr = payload.info is database:QrCodeInfoSession;
         boolean isGeneralQr = payload.info is database:QrCodeInfoGeneral;
         boolean isO2BarQr = payload.info is database:QrCodeInfoO2Bar;
+        boolean isPartnerQr = payload.info is database:QrCodeInfoPartner;
 
         if isSessionQr && !isSessionAdmin {
             return <http:Forbidden>{
@@ -405,15 +435,15 @@ service http:InterceptableService / on new http:Listener(9090) {
         boolean isO2BarAdmin = authorization:checkPermissions([authorization:authorizedRoles.o2BarAdminRole], userInfo.groups);
 
         if isGeneralAdmin && isSessionAdmin {
-            filters.eventTypes = [database:SESSION, database:O2BAR, database:GENERAL];
+            filters.eventTypes = [database:SESSION, database:O2BAR, database:GENERAL, database:PARTNER];
         } else if isGeneralAdmin {
-            filters.eventTypes = [database:O2BAR, database:GENERAL];
+            filters.eventTypes = [database:O2BAR, database:GENERAL, database:PARTNER];
         } else if isSessionAdmin {
             filters.email = userInfo.email;
-            filters.eventTypes = [database:SESSION, database:O2BAR];
+            filters.eventTypes = [database:SESSION, database:O2BAR, database:PARTNER];
         } else if isO2BarAdmin {
             filters.email = userInfo.email;
-            filters.eventTypes = [database:O2BAR];
+            filters.eventTypes = [database:O2BAR, database:PARTNER];
         }
 
         database:ConferenceQrCodesResponse|error qrsResponse = database:fetchConferenceQrCodes(filters);
@@ -695,11 +725,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isSystem = eventType.category == database:SESSION || eventType.category == database:O2BAR;
+        boolean isSystem = eventType.category == database:SESSION || eventType.category == database:O2BAR || eventType.category == database:PARTNER;
         if isSystem {
             return <http:BadRequest>{
                 body: {
-                    message: "System event types (SESSION, O2BAR) cannot be deleted"
+                    message: "System event types (SESSION, O2BAR, PARTNER) cannot be deleted"
                 }
             };
         }

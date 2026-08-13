@@ -18,7 +18,8 @@
 public enum QrCodeType {
     SESSION,
     O2BAR,
-    GENERAL
+    GENERAL,
+    PARTNER
 };
 
 # QR code status types.

@@ -52,5 +52,6 @@ export const AppConfig = {
     wallets: SERVICE_BASE_URL + "/wallets",
     walletBalances: SERVICE_BASE_URL + "/wallets/balances/search",
     walletAddresses: SERVICE_BASE_URL + "/wallets/addresses",
+    partnerDomains: SERVICE_BASE_URL + "/partners/domains",
   },
 };

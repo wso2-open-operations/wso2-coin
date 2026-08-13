@@ -17,19 +17,21 @@
 -- Create table for conference event type table
 CREATE TABLE `conference_event_type` (
   `type` varchar(100) NOT NULL,
-  `category` enum('SESSION', 'O2BAR', 'GENERAL') NOT NULL,
+  `category` enum('SESSION', 'O2BAR', 'GENERAL', 'PARTNER') NOT NULL,
   `description` varchar(500) DEFAULT NULL,
   `default_coins` decimal(10,2) NOT NULL,
   PRIMARY KEY (`type`),
   KEY `idx_category` (`category`),
   CONSTRAINT `chk_session_type_match` CHECK (`category` != 'SESSION' OR `type` = 'SESSION'),
-  CONSTRAINT `chk_o2bar_type_match` CHECK (`category` != 'O2BAR' OR `type` = 'O2BAR')
+  CONSTRAINT `chk_o2bar_type_match` CHECK (`category` != 'O2BAR' OR `type` = 'O2BAR'),
+  CONSTRAINT `chk_partner_type_match` CHECK (`category` != 'PARTNER' OR `type` = 'PARTNER')
 );
 
--- Insert system event types (SESSION and O2BAR)
+-- Insert system event types (SESSION, O2BAR, and PARTNER)
 INSERT INTO `conference_event_type` (`type`, `category`, `description`, `default_coins`) VALUES
 ('SESSION', 'SESSION', 'Session QR code', 10.00),
-('O2BAR', 'O2BAR', 'O2 Bar QR code', 5.00);
+('O2BAR', 'O2BAR', 'O2 Bar QR code', 5.00),
+('PARTNER', 'PARTNER', 'Partner QR code', 5.00);
 
 -- Create table to store conference QR codes
 CREATE TABLE `conference_qr` (

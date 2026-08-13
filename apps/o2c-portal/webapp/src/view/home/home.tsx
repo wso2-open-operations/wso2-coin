@@ -26,6 +26,7 @@ import {
   ViewList as ListViewIcon,
   Person as PersonIcon,
   Search as SearchIcon,
+  Business as BusinessIcon,
 } from "@mui/icons-material";
 import {
   Box,
@@ -166,6 +167,10 @@ export default function O2cPortal() {
       const generalInfo = qr.info as { eventType: "GENERAL"; eventTypeName: string };
       return generalInfo.eventTypeName;
     }
+    if (qr.info.eventType === "PARTNER") {
+      const partnerInfo = qr.info as { eventType: "PARTNER"; domain: string };
+      return partnerInfo.domain;
+    }
     const o2barInfo = qr.info as { eventType: "O2BAR"; email: string };
     return getEmployeeDisplayName(o2barInfo.email);
   };
@@ -227,6 +232,14 @@ export default function O2cPortal() {
         }
         const employeeDisplayName = getEmployeeDisplayName(o2barInfo.email).toLowerCase();
         if (employeeDisplayName.includes(query.toLowerCase())) {
+          return true;
+        }
+      }
+
+      // Search in domain (for PARTNER)
+      if (qr.info.eventType === "PARTNER") {
+        const partnerInfo = qr.info as { eventType: "PARTNER"; domain: string };
+        if (partnerInfo.domain?.toLowerCase().includes(query)) {
           return true;
         }
       }
@@ -313,6 +326,11 @@ export default function O2cPortal() {
       const name = o2barType?.eventTypeName ?? "O2 Bar";
       return toTitleCase(name);
     }
+    if (qr.info.eventType === "PARTNER") {
+      const partnerType = eventTypes.find((et) => et.category === "PARTNER");
+      const name = partnerType?.eventTypeName ?? "Partner";
+      return toTitleCase(name);
+    }
     if (qr.info.eventType === "GENERAL") {
       const generalInfo = qr.info as { eventType: "GENERAL"; eventTypeName: string };
       return toTitleCase(generalInfo.eventTypeName);
@@ -347,6 +365,9 @@ export default function O2cPortal() {
         } else if (row.info.eventType === "GENERAL") {
           const generalInfo = row.info as { eventType: "GENERAL"; eventTypeName: string };
           return generalInfo.eventTypeName;
+        } else if (row.info.eventType === "PARTNER") {
+          const partnerInfo = row.info as { eventType: "PARTNER"; domain: string };
+          return `Partner: ${partnerInfo.domain}`;
         } else {
           const o2barInfo = row.info as { eventType: "O2BAR"; email: string };
           return getEmployeeDisplayName(o2barInfo.email);
@@ -361,6 +382,9 @@ export default function O2cPortal() {
         } else if (qr.info.eventType === "GENERAL") {
           const generalInfo = qr.info as { eventType: "GENERAL"; eventTypeName: string };
           return generalInfo.eventTypeName;
+        } else if (qr.info.eventType === "PARTNER") {
+          const partnerInfo = qr.info as { eventType: "PARTNER"; domain: string };
+          return partnerInfo.domain;
         } else {
           const o2barInfo = qr.info as { eventType: "O2BAR"; email: string };
           return getEmployeeDisplayName(o2barInfo.email);
@@ -377,7 +401,12 @@ export default function O2cPortal() {
       },
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
-        return qr.description || "-";
+        if (!qr.description) return "-";
+        const strippedDesc = qr.description.replace(" Partner QR", "");
+        if (qr.info.eventType === "PARTNER" && strippedDesc === (qr.info as any).domain) {
+          return "-";
+        }
+        return strippedDesc;
       },
     },
     {
@@ -625,15 +654,19 @@ export default function O2cPortal() {
             {filteredQrCodes.map((qr) => {
               const isSession = qr.info.eventType === "SESSION";
               const isGeneral = qr.info.eventType === "GENERAL";
+              const isPartner = qr.info.eventType === "PARTNER";
               const sessionInfo = isSession
                 ? (qr.info as { eventType: "SESSION"; sessionId: string })
                 : null;
               const o2barInfo =
-                !isSession && !isGeneral
+                !isSession && !isGeneral && !isPartner
                   ? (qr.info as { eventType: "O2BAR"; email: string })
                   : null;
               const generalInfo = isGeneral
                 ? (qr.info as { eventType: "GENERAL"; eventTypeName: string })
+                : null;
+              const partnerInfo = isPartner
+                ? (qr.info as { eventType: "PARTNER"; domain: string })
                 : null;
               const session =
                 isSession && sessionInfo
@@ -676,7 +709,15 @@ export default function O2cPortal() {
                       >
                         <Chip
                           icon={
-                            isSession ? <EventIcon /> : isGeneral ? <CategoryIcon /> : <EmailIcon />
+                            isSession ? (
+                              <EventIcon />
+                            ) : isGeneral ? (
+                              <CategoryIcon />
+                            ) : isPartner ? (
+                              <BusinessIcon />
+                            ) : (
+                              <EmailIcon />
+                            )
                           }
                           label={eventTypeDisplayName}
                           color="default"
@@ -721,11 +762,13 @@ export default function O2cPortal() {
                             <>{session ? session.name : `Session: ${sessionInfo?.sessionId}`}</>
                           ) : isGeneral ? (
                             <>{generalInfo?.eventTypeName}</>
+                          ) : isPartner ? (
+                            <>{partnerInfo?.domain}</>
                           ) : (
                             <>{o2barInfo ? getEmployeeDisplayName(o2barInfo.email) : ""}</>
                           )}
                         </Typography>
-                        {qr.description && (
+                        {qr.description && !(isPartner && qr.description.replace(" Partner QR", "") === partnerInfo?.domain) && (
                           <Typography
                             variant="body2"
                             color="text.secondary"
@@ -734,7 +777,7 @@ export default function O2cPortal() {
                               lineHeight: 1.5,
                             }}
                           >
-                            {qr.description}
+                            {qr.description.replace(" Partner QR", "")}
                           </Typography>
                         )}
                       </Box>
