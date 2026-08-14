@@ -105,57 +105,43 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
                 }
             }
             
+            sql:ParameterizedQuery[] typeQueries = [];
+            
             if filters.email is string {
-                // When email is provided with SESSION, show SESSION OR (O2BAR with matching email)
                 if hasSession && hasO2Bar {
-                    filterQueries.push(`
-                        (
-                            JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION}
-                            OR (
-                                JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}
-                                AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}
-                            )
-                        )
-                    `);
+                    typeQueries.push(`(JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION} OR (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR} AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}))`);
                 } else if hasO2Bar {
-                    // O2BAR with email filter
-                    filterQueries.push(`
-                        JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}
-                        AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}
-                    `);
+                    typeQueries.push(`(JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR} AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email})`);
                 } else if hasSession {
-                    // SESSION only (no email filter for SESSION)
-                    filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION}`);
-                }
-                
-                // GENERAL has no email filter
-                if hasGeneral {
-                    if hasSession || hasO2Bar {
-                        filterQueries.push(` OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${GENERAL}`);
-                    } else {
-                        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${GENERAL}`);
-                    }
-                }
-                
-                // PARTNER has no email filter
-                if hasPartner {
-                    if hasSession || hasO2Bar || hasGeneral {
-                        filterQueries.push(` OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${PARTNER}`);
-                    } else {
-                        filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${PARTNER}`);
-                    }
+                    typeQueries.push(`JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION}`);
                 }
             } else {
-                // No email filter - build OR clause for event types
-                if eventTypes.length() == 1 {
-                    filterQueries.push(` JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]}`);
-                } else if eventTypes.length() == 2 {
-                    filterQueries.push(` (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[1]})`);
-                } else if eventTypes.length() == 3 {
-                    filterQueries.push(` (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[1]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[2]})`);
-                } else if eventTypes.length() == 4 {
-                    filterQueries.push(` (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[0]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[1]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[2]} OR JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${eventTypes[3]})`);
+                if hasSession {
+                    typeQueries.push(`JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION}`);
                 }
+                if hasO2Bar {
+                    typeQueries.push(`JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}`);
+                }
+            }
+            
+            if hasGeneral {
+                typeQueries.push(`JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${GENERAL}`);
+            }
+            
+            if hasPartner {
+                typeQueries.push(`JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${PARTNER}`);
+            }
+            
+            if typeQueries.length() > 0 {
+                sql:ParameterizedQuery combined = `(`;
+                foreach int i in 0 ..< typeQueries.length() {
+                    if i > 0 {
+                        combined = sql:queryConcat(combined, ` OR `);
+                    }
+                    combined = sql:queryConcat(combined, typeQueries[i]);
+                }
+                combined = sql:queryConcat(combined, `)`);
+                filterQueries.push(combined);
             }
         }
     }

@@ -69,8 +69,6 @@ public type QrCodeInfoO2Bar record {|
         }
     }
     string email;
-    # Full Name of the employee
-    string fullName?;
 |};
 
 # [Database] Info entry for a general QR item.

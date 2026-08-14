@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 import ballerina/http;
-import ballerina/regex;
+import ballerina/lang.regexp;
 
 # Fetch active sessions from the conference backend.
 #
@@ -28,15 +28,14 @@ public isolated function fetchActiveSessions() returns Session[]|error {
     
     json payload = check response.getJsonPayload();
     
-    json[] payloadArr = <json[]>payload;
-    foreach json s in payloadArr {
-        map<json> sm = <map<json>>s;
-        if sm.hasKey("title") {
-            sm["name"] = sm.get("title");
-        }
-    }
-    
-    Session[] sessions = check payloadArr.fromJsonWithType();
+    json[] payloadArr = check payload.ensureType();
+    Session[] sessions = from json s in payloadArr
+        let map<json> sm = check s.ensureType()
+        select {
+            id: check sm.id.ensureType(),
+            name: check sm.title.ensureType(),
+            presenters: check sm.presenters.ensureType()
+        };
     
     return sessions;
 }
@@ -53,18 +52,12 @@ public isolated function fetchPartnerDomains() returns string[]|error {
     
     json payload = check response.getJsonPayload();
     AppConfig[] configs = check payload.cloneWithType();
-    string[] domains = [];
-    foreach AppConfig config in configs {
-        if config.key == "partner_domains" {
-            string[] parts = regex:split(config.value, ",");
-            foreach string part in parts {
-                string trimmed = part.trim();
-                if trimmed.length() > 0 {
-                    domains.push(trimmed);
-                }
-            }
-        }
-    }
+    string[] domains = from AppConfig config in configs
+        where config.key == PARTNER_DOMAINS_KEY
+        from string part in regexp:split(re `,`, config.value)
+        let string trimmed = part.trim()
+        where trimmed.length() > 0
+        select trimmed;
     return domains;
 }
 

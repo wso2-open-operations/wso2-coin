@@ -401,12 +401,7 @@ export default function O2cPortal() {
       },
       renderCell: (params) => {
         const qr = params.row as ConferenceQrCode;
-        if (!qr.description) return "-";
-        const strippedDesc = qr.description.replace(" Partner QR", "");
-        if (qr.info.eventType === "PARTNER" && strippedDesc === (qr.info as any).domain) {
-          return "-";
-        }
-        return strippedDesc;
+        return qr.description || "-";
       },
     },
     {
@@ -768,7 +763,7 @@ export default function O2cPortal() {
                             <>{o2barInfo ? getEmployeeDisplayName(o2barInfo.email) : ""}</>
                           )}
                         </Typography>
-                        {qr.description && !(isPartner && qr.description.replace(" Partner QR", "") === partnerInfo?.domain) && (
+                        {qr.description && (
                           <Typography
                             variant="body2"
                             color="text.secondary"
@@ -777,7 +772,7 @@ export default function O2cPortal() {
                               lineHeight: 1.5,
                             }}
                           >
-                            {qr.description.replace(" Partner QR", "")}
+                            {qr.description}
                           </Typography>
                         )}
                       </Box>

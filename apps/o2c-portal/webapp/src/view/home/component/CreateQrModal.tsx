@@ -41,6 +41,7 @@ import { Role } from "@slices/authSlice/auth";
 import { fetchEmployees } from "@slices/employeesSlice/employees";
 import { fetchEventTypes } from "@slices/eventTypesSlice/eventTypes";
 import { createQrCode } from "@slices/qrSlice/qr";
+import { fetchPartnerDomains } from "@slices/partnerDomainSlice/partnerDomain";
 import { fetchSessions } from "@slices/sessionSlice/session";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
 import { generateQrImageWithTitle } from "@utils/utils";
@@ -71,11 +72,11 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
   const { eventTypes } = useAppSelector((state: RootState) => state.eventTypes);
   const { employees } = useAppSelector((state: RootState) => state.employees);
   const { state } = useAppSelector((state: RootState) => state.qr);
+  const { domains: partnerDomains, state: partnerDomainsState, errorMessage: partnerDomainsError } = useAppSelector((state: RootState) => state.partnerDomain);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [createdQrId, setCreatedQrId] = useState<string | null>(null);
   const [createdQrTitle, setCreatedQrTitle] = useState<string | null>(null);
   const [selectedEmployeeEmail, setSelectedEmployeeEmail] = useState<string>(userInfo?.workEmail ?? "");
-  const [partnerDomains, setPartnerDomains] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -85,10 +86,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       }
       if (roles.includes(Role.GENERAL_ADMIN)) {
         dispatch(fetchEmployees());
-        APIService.getInstance()
-          .get<string[]>(AppConfig.serviceUrls.partnerDomains)
-          .then((res) => setPartnerDomains(res.data))
-          .catch((err) => console.error("Failed to fetch partner domains", err));
+        dispatch(fetchPartnerDomains());
       }
       // Sync selectedEmployeeEmail with initial email value when modal opens
       setSelectedEmployeeEmail(userInfo?.workEmail ?? "");
@@ -271,12 +269,12 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       };
     } else if (values.eventType === QrCodeEventType.GENERAL) {
       info = {
-        eventType: "GENERAL",
+        eventType: "GENERAL" as const,
         eventTypeName: values.eventTypeName,
       };
     } else if (values.eventType === QrCodeEventType.PARTNER) {
       info = {
-        eventType: "PARTNER",
+        eventType: "PARTNER" as const,
         domain: (values as any).domain,
       };
     } else {
@@ -284,7 +282,6 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       info = {
         eventType: "O2BAR" as const,
         email: values.email,
-        fullName: selectedEmp ? getEmployeeDisplayName(selectedEmp) : undefined,
       };
     }
 
@@ -636,27 +633,48 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
                     )}
 
                     {values.eventType === QrCodeEventType.PARTNER && (
-                      <Autocomplete
-                        options={partnerDomains}
-                        value={(values as any).domain || ""}
-                        onChange={(e, value) => {
-                          setFieldValue("domain", value || "");
-                          setFieldValue("description", value || "");
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Domain"
-                            error={Boolean(touched.eventType && (errors as any).domain)}
-                            helperText={
-                              (touched.eventType && (errors as any).domain) as string
-                            }
-                            disabled={state === State.loading || createdQrId !== null}
-                            required
-                            sx={{ mb: 2 }}
-                          />
+                      <Stack spacing={1} sx={{ mb: 2 }}>
+                        <Autocomplete
+                          options={partnerDomains}
+                          value={(values as any).domain || ""}
+                          onChange={(_, value) => {
+                            setFieldValue("domain", value || "");
+                          }}
+                          onBlur={handleBlur}
+                          disabled={state === State.loading || createdQrId !== null || partnerDomainsState === State.loading || !!partnerDomainsError}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Domain"
+                              name="domain"
+                              error={Boolean((touched as any).domain && (errors as any).domain)}
+                              helperText={
+                                ((touched as any).domain && (errors as any).domain) as string
+                              }
+                              required
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <React.Fragment>
+                                    {partnerDomainsState === State.loading ? <CircularProgress color="inherit" size={20} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </React.Fragment>
+                                ),
+                              }}
+                            />
+                          )}
+                        />
+                        {partnerDomainsError && (
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Typography color="error" variant="caption">
+                              {partnerDomainsError}
+                            </Typography>
+                            <Button size="small" onClick={() => dispatch(fetchPartnerDomains())} variant="text" sx={{ minWidth: "auto", p: 0.5 }}>
+                              Retry
+                            </Button>
+                          </Stack>
                         )}
-                      />
+                      </Stack>
                     )}
 
                     {values.eventType === QrCodeEventType.SESSION && (

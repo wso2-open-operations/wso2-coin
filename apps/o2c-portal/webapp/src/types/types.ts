@@ -126,7 +126,6 @@ export interface QrCodeInfoSession {
 export interface QrCodeInfoO2Bar {
   eventType: "O2BAR";
   email: string;
-  fullName?: string;
 }
 
 export interface QrCodeInfoGeneral {

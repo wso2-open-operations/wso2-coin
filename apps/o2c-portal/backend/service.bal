@@ -272,6 +272,38 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        if isPartnerQr {
+            if !isGeneralAdmin {
+                return <http:Forbidden>{
+                    body: {
+                        message: "Only General Admins can create Partner QR codes!"
+                    }
+                };
+            }
+
+            string|error jwtToken = ctx.getWithType(authorization:JWT_ASSERTION_HEADER);
+            string? tokenStr = jwtToken is string ? jwtToken : ();
+            string[]|error domains = conference:fetchPartnerDomains(tokenStr);
+            if domains is error {
+                string customError = "Error occurred while fetching partner domains for validation!";
+                log:printError(customError, domains);
+                return <http:InternalServerError>{
+                    body: {
+                        message: customError
+                    }
+                };
+            }
+
+            database:QrCodeInfoPartner partnerInfo = <database:QrCodeInfoPartner>payload.info;
+            if domains.indexOf(partnerInfo.domain) is () {
+                return <http:BadRequest>{
+                    body: {
+                        message: string `The domain '${partnerInfo.domain}' is not an authorized partner domain.`
+                    }
+                };
+            }
+        }
+
         if isO2BarQr {
             database:QrCodeInfoO2Bar o2BarInfo = <database:QrCodeInfoO2Bar>payload.info;
             if o2BarInfo.email == invokerInfo.email {
@@ -725,7 +757,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isSystem = eventType.category == database:SESSION || eventType.category == database:O2BAR || eventType.category == database:PARTNER;
+        boolean isSystem = eventType.category is database:SESSION|database:O2BAR|database:PARTNER;
         if isSystem {
             return <http:BadRequest>{
                 body: {
