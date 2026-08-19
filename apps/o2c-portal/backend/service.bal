@@ -281,9 +281,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 };
             }
 
-            string|error jwtToken = ctx.getWithType(authorization:JWT_ASSERTION_HEADER);
-            string? tokenStr = jwtToken is string ? jwtToken : ();
-            string[]|error domains = conference:fetchPartnerDomains(tokenStr);
+            string[]|error domains = conference:fetchPartnerDomains();
             if domains is error {
                 string customError = "Error occurred while fetching partner domains for validation!";
                 log:printError(customError, domains);
