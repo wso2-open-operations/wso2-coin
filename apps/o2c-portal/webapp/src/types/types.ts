@@ -115,6 +115,7 @@ export enum QrCodeEventType {
   SESSION = "SESSION",
   O2BAR = "O2BAR",
   GENERAL = "GENERAL",
+  PARTNER = "PARTNER",
 }
 
 export interface QrCodeInfoSession {
@@ -132,7 +133,12 @@ export interface QrCodeInfoGeneral {
   eventTypeName: string;
 }
 
-export type QrCodeInfo = QrCodeInfoSession | QrCodeInfoO2Bar | QrCodeInfoGeneral;
+export interface QrCodeInfoPartner {
+  eventType: "PARTNER";
+  domain: string;
+}
+
+export type QrCodeInfo = QrCodeInfoSession | QrCodeInfoO2Bar | QrCodeInfoGeneral | QrCodeInfoPartner;
 
 export interface ConferenceQrCode {
   qrId: string;
@@ -145,7 +151,8 @@ export interface ConferenceQrCode {
 
 export interface ConferenceEventType {
   eventTypeName: string;
-  category: "SESSION" | "O2BAR" | "GENERAL";
+  category: "SESSION" | "O2BAR" | "GENERAL" | "PARTNER";
+  type?: string;
   description?: string;
   defaultCoins: number;
 }

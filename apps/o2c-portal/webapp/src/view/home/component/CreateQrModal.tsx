@@ -41,9 +41,12 @@ import { Role } from "@slices/authSlice/auth";
 import { fetchEmployees } from "@slices/employeesSlice/employees";
 import { fetchEventTypes } from "@slices/eventTypesSlice/eventTypes";
 import { createQrCode } from "@slices/qrSlice/qr";
+import { fetchPartnerDomains } from "@slices/partnerDomainSlice/partnerDomain";
 import { fetchSessions } from "@slices/sessionSlice/session";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
 import { generateQrImageWithTitle } from "@utils/utils";
+import { APIService } from "@utils/apiService";
+import { AppConfig } from "@config/config";
 
 interface CreateQrModalProps {
   open: boolean;
@@ -69,6 +72,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
   const { eventTypes } = useAppSelector((state: RootState) => state.eventTypes);
   const { employees } = useAppSelector((state: RootState) => state.employees);
   const { state } = useAppSelector((state: RootState) => state.qr);
+  const { domains: partnerDomains, state: partnerDomainsState, errorMessage: partnerDomainsError } = useAppSelector((state: RootState) => state.partnerDomain);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [createdQrId, setCreatedQrId] = useState<string | null>(null);
   const [createdQrTitle, setCreatedQrTitle] = useState<string | null>(null);
@@ -82,6 +86,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       }
       if (roles.includes(Role.GENERAL_ADMIN)) {
         dispatch(fetchEmployees());
+        dispatch(fetchPartnerDomains());
       }
       // Sync selectedEmployeeEmail with initial email value when modal opens
       setSelectedEmployeeEmail(userInfo?.workEmail ?? "");
@@ -111,6 +116,9 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       if (eventType.category === "GENERAL") {
         return isGeneralAdmin;
       }
+      if (eventType.category === "PARTNER") {
+        return isGeneralAdmin;
+      }
       return false;
     });
   }, [eventTypes, isSessionAdmin, isGeneralAdmin, isO2BarAdmin]);
@@ -138,6 +146,10 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       const generalTypes = eventTypes.filter((et) => et.category === "GENERAL");
       if (generalTypes.length > 0) {
         options.push({ value: QrCodeEventType.GENERAL, label: "General", category: "GENERAL" });
+      }
+      const partnerTypes = eventTypes.filter((et) => et.category === "PARTNER");
+      if (partnerTypes.length > 0) {
+        options.push({ value: QrCodeEventType.PARTNER, label: "Partner", category: "PARTNER" as any });
       }
     }
 
@@ -178,6 +190,12 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
       const type = eventTypes.find((et) => et.category === "O2BAR");
       return type?.defaultCoins ?? 0;
     }
+    if (eventType === QrCodeEventType.PARTNER) {
+      const type = eventTypes.find(
+        (et) => et.category === "PARTNER"
+      );
+      return type?.defaultCoins ?? 0;
+    }
     return 0;
   };
 
@@ -196,6 +214,11 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     eventTypeName: Yup.string().when("eventType", {
       is: QrCodeEventType.GENERAL,
       then: (schema) => schema.required("Event type name is required"),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    domain: Yup.string().when("eventType", {
+      is: QrCodeEventType.PARTNER,
+      then: (schema) => schema.required("Domain is required"),
       otherwise: (schema) => schema.notRequired(),
     }),
     coins: Yup.number().required("Coins is required").min(0, "Coins must be a positive number"),
@@ -249,7 +272,13 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
         eventType: "GENERAL" as const,
         eventTypeName: values.eventTypeName,
       };
+    } else if (values.eventType === QrCodeEventType.PARTNER) {
+      info = {
+        eventType: "PARTNER" as const,
+        domain: (values as any).domain,
+      };
     } else {
+      const selectedEmp = employees.find((e) => e.workEmail === values.email);
       info = {
         eventType: "O2BAR" as const,
         email: values.email,
@@ -271,6 +300,8 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
         setCreatedQrTitle(session ? session.name : `Session-${values.sessionId}`);
       } else if (values.eventType === QrCodeEventType.GENERAL) {
         setCreatedQrTitle(values.eventTypeName);
+      } else if (values.eventType === QrCodeEventType.PARTNER) {
+        setCreatedQrTitle((values as any).domain);
       } else {
         const employee = employees.find((e) => e.workEmail === values.email);
         const name = employee
@@ -332,6 +363,7 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
     email: userInfo?.workEmail ?? "",
     sessionId: "",
     eventTypeName: getInitialEventTypeName(),
+    domain: "",
     coins: getInitialCoins(),
     description: "",
   };
@@ -598,6 +630,51 @@ const CreateQrModal: React.FC<CreateQrModalProps> = ({ open, onClose, onRefresh 
                           />
                         )}
                       </>
+                    )}
+
+                    {values.eventType === QrCodeEventType.PARTNER && (
+                      <Stack spacing={1} sx={{ mb: 2 }}>
+                        <Autocomplete
+                          options={partnerDomains}
+                          value={(values as any).domain || ""}
+                          onChange={(_, value) => {
+                            setFieldValue("domain", value || "");
+                          }}
+                          onBlur={handleBlur}
+                          disabled={state === State.loading || createdQrId !== null || partnerDomainsState === State.loading || !!partnerDomainsError}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Domain"
+                              name="domain"
+                              error={Boolean((touched as any).domain && (errors as any).domain)}
+                              helperText={
+                                ((touched as any).domain && (errors as any).domain) as string
+                              }
+                              required
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <React.Fragment>
+                                    {partnerDomainsState === State.loading ? <CircularProgress color="inherit" size={20} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </React.Fragment>
+                                ),
+                              }}
+                            />
+                          )}
+                        />
+                        {partnerDomainsError && (
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Typography color="error" variant="caption">
+                              {partnerDomainsError}
+                            </Typography>
+                            <Button size="small" onClick={() => dispatch(fetchPartnerDomains())} variant="text" sx={{ minWidth: "auto", p: 0.5 }}>
+                              Retry
+                            </Button>
+                          </Stack>
+                        )}
+                      </Stack>
                     )}
 
                     {values.eventType === QrCodeEventType.SESSION && (

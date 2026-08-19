@@ -26,6 +26,7 @@ import userReducer from "@slices/userSlice/user";
 import employeesReducer from "./employeesSlice/employees";
 import eventTypesReducer from "./eventTypesSlice/eventTypes";
 import qrReducer from "./qrSlice/qr";
+import partnerDomainReducer from "./partnerDomainSlice/partnerDomain";
 import sessionReducer from "./sessionSlice/session";
 import transactionReducer from "./transactionSlice/transaction";
 import walletReducer from "./walletSlice/wallet";
@@ -42,6 +43,7 @@ export const store = configureStore({
     session: sessionReducer,
     eventTypes: eventTypesReducer,
     employees: employeesReducer,
+    partnerDomain: partnerDomainReducer,
     transaction: transactionReducer,
     wallet: walletReducer,
 

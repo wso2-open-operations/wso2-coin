@@ -85,8 +85,22 @@ public type QrCodeInfoGeneral record {|
     string eventTypeName;
 |};
 
-# The `info` field is a session, o2bar, or general entry.
-public type QrCodeInfo QrCodeInfoSession|QrCodeInfoO2Bar|QrCodeInfoGeneral;
+# [Database] Info entry for a partner QR item.
+public type QrCodeInfoPartner record {|
+    # Event type discriminator
+    QrCodeType eventType;
+    # Domain string when `eventType` is PARTNER
+    @constraint:String {
+        pattern: {
+            value: NONE_EMPTY_PRINTABLE_STRING_REGEX,
+            message: "The domain should be a non-empty string with printable characters."
+        }
+    }
+    string domain;
+|};
+
+# The `info` field is a session, o2bar, general, or partner entry.
+public type QrCodeInfo QrCodeInfoSession|QrCodeInfoO2Bar|QrCodeInfoGeneral|QrCodeInfoPartner;
 
 # [Database] ConferenceQR record.
 public type ConferenceQrCode record {|

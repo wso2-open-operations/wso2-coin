@@ -81,6 +81,9 @@ public isolated function getQrCodeIdentifier(QrCodeInfo qrInfo) returns string {
     if qrInfo is QrCodeInfoGeneral {
         return qrInfo.eventTypeName;
     }
+    if qrInfo is QrCodeInfoPartner {
+        return qrInfo.domain;
+    }
     return qrInfo.sessionId;
 }
 
@@ -174,6 +177,8 @@ public isolated function getDefaultCoinsForQrInfo(QrCodeInfo qrInfo) returns Eve
         eventTypeName = SESSION.toString();
     } else if qrInfo is QrCodeInfoO2Bar {
         eventTypeName = O2BAR.toString();
+    } else if qrInfo is QrCodeInfoPartner {
+        eventTypeName = PARTNER.toString();
     } else {
         eventTypeName = qrInfo.eventTypeName;
     }

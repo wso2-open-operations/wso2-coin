@@ -14,30 +14,4 @@
 // specific language governing permissions and limitations
 // under the License.
 
-# OAuth2 client auth configurations.
-public type ClientAuthConfig record {|
-    # Token URL
-    string tokenUrl;
-    # Client Id
-    string clientId;
-    # Client Secret
-    string clientSecret;
-|};
-
-# Session information from conference backend.
-public type Session record {|
-    # Session ID
-    string id;
-    # Session name/title
-    string name;
-    # Presenter names
-    string[] presenters;
-|};
-
-# App config from the conference backend.
-public type AppConfig record {
-    # Key
-    string key;
-    # Value
-    string value;
-};
+const string PARTNER_DOMAINS_KEY = "partner_domains";
