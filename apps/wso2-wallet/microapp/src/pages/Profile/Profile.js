@@ -22,6 +22,7 @@ import {
 } from 'react';
 
 import { Modal } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { NumericFormat } from 'react-number-format';
@@ -109,6 +110,7 @@ function WalletRowBalance({ address, enabled }) {
 
 function Profile() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [walletAddress, setWalletAddress] = useState('');
 
@@ -167,6 +169,7 @@ function Profile() {
       setConfirmAction(null);
       setIsWalletModalOpen(false);
       showToast(SUCCESS, SWITCHED_TO_WALLET);
+      navigate('/');
     } catch (error) {
       console.error('Error switching wallet:', error);
       showAlertBox(ERROR, ERROR_SWITCHING_WALLET, OK);
@@ -188,6 +191,7 @@ function Profile() {
       setIsWalletModalOpen(false);
       showToast(SUCCESS, DEFAULT_WALLET_UPDATED);
       await queryClient.invalidateQueries({ queryKey: ['userWallets'] });
+      navigate('/');
     } catch (error) {
       console.error('Error setting default wallet:', error);
       showAlertBox(ERROR, ERROR_SETTING_DEFAULT, OK);
@@ -205,6 +209,7 @@ function Profile() {
       showToast(SUCCESS, SUCCESS_WALLET_CREATED);
       await queryClient.invalidateQueries({ queryKey: ['userWallets'] });
       setIsCreateConfirmOpen(false);
+      navigate('/');
     } catch (error) {
       console.error('Error creating wallet:', error);
       showAlertBox(ERROR, ERROR_CREATING_WALLET, OK);
