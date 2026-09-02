@@ -72,6 +72,14 @@ func run() error {
 		return fmt.Errorf("init encryptor: %w", err)
 	}
 
+	verifier, err := middleware.NewVerifier(ctx, cfg.JWT)
+	if err != nil {
+		return fmt.Errorf("init jwt verifier: %w", err)
+	}
+	if !verifier.Verified() {
+		slog.WarnContext(ctx, "JWT signature verification disabled (JWT_JWKS_URL not set); tokens are decoded but not verified")
+	}
+
 	svc := wallet.NewService(wallet.NewRepository(db), enc, wallet.InitialCoins{
 		Enabled:       cfg.InitialCoins.Enabled,
 		Amount:        cfg.InitialCoins.Amount,
@@ -90,7 +98,7 @@ func run() error {
 		middleware.CORS(cfg.CORSAllowedOrigin)(
 			middleware.CorrelationID(
 				middleware.Logger(
-					middleware.Auth(mux)))))
+					middleware.Auth(verifier)(mux)))))
 
 	srv := &http.Server{
 		Addr:              cfg.Port,

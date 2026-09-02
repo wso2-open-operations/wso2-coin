@@ -20,11 +20,14 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/MicahParks/keyfunc/v3"
 	"github.com/golang-jwt/jwt/v5"
 
+	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/config"
 	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/response"
 )
 
@@ -32,6 +35,12 @@ const (
 	assertionHeader = "X-Jwt-Assertion"
 	healthPath      = "/health"
 )
+
+var signingMethods = []string{
+	"RS256", "RS384", "RS512",
+	"ES256", "ES384", "ES512",
+	"PS256", "PS384", "PS512",
+}
 
 // UserInfo is the authenticated caller identity.
 type UserInfo struct {
@@ -59,37 +68,93 @@ type jwtClaims struct {
 	jwt.RegisteredClaims
 }
 
-// Auth reads the gateway-supplied JWT, extracts the caller email, and attaches it
-// to the request context. The token is decoded (not re-verified): the service runs
-// behind the Choreo gateway, which validates the token before forwarding it.
-func Auth(next http.Handler) http.Handler {
-	parser := jwt.NewParser()
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == healthPath {
-			next.ServeHTTP(w, r)
-			return
-		}
+// Verifier authenticates caller tokens. With a JWKS configured it validates the
+// signature, expiry and (when set) issuer and audience; without one it only
+// decodes the token.
+type Verifier struct {
+	keyfunc  jwt.Keyfunc
+	verified bool
+	issuer   string
+	audience string
+}
 
-		token := extractToken(r)
-		if token == "" {
-			response.WriteError(w, http.StatusUnauthorized, response.ErrMsgUnauthorized)
-			return
-		}
+// NewVerifier builds a Verifier from the JWT config. When cfg.JWKSURL is empty it
+// returns a decode-only verifier intended for local development behind a trusted
+// gateway; Verified reports false in that case so callers can warn.
+func NewVerifier(ctx context.Context, cfg config.JWTConfig) (*Verifier, error) {
+	if cfg.JWKSURL == "" {
+		return &Verifier{}, nil
+	}
+	jwks, err := keyfunc.NewDefaultCtx(ctx, []string{cfg.JWKSURL})
+	if err != nil {
+		return nil, fmt.Errorf("load JWKS from %s: %w", cfg.JWKSURL, err)
+	}
+	return &Verifier{
+		keyfunc:  jwks.Keyfunc,
+		verified: true,
+		issuer:   cfg.Issuer,
+		audience: cfg.Audience,
+	}, nil
+}
 
-		var claims jwtClaims
-		if _, _, err := parser.ParseUnverified(token, &claims); err != nil {
-			response.WriteError(w, http.StatusUnauthorized, response.ErrMsgUnauthorized)
-			return
-		}
-		email := strings.TrimSpace(claims.Email)
-		if email == "" {
-			response.WriteError(w, http.StatusUnauthorized, response.ErrMsgUnauthorized)
-			return
-		}
+// Verified reports whether tokens are signature-verified.
+func (v *Verifier) Verified() bool { return v.verified }
 
-		user := &UserInfo{Email: email, Subject: claims.Subject}
-		next.ServeHTTP(w, r.WithContext(WithUserInfo(r.Context(), user)))
-	})
+func (v *Verifier) parse(token string) (*jwtClaims, error) {
+	claims := &jwtClaims{}
+	if v.keyfunc == nil {
+		if _, _, err := jwt.NewParser().ParseUnverified(token, claims); err != nil {
+			return nil, err
+		}
+		return claims, nil
+	}
+	opts := []jwt.ParserOption{
+		jwt.WithValidMethods(signingMethods),
+		jwt.WithExpirationRequired(),
+	}
+	if v.issuer != "" {
+		opts = append(opts, jwt.WithIssuer(v.issuer))
+	}
+	if v.audience != "" {
+		opts = append(opts, jwt.WithAudience(v.audience))
+	}
+	if _, err := jwt.NewParser(opts...).ParseWithClaims(token, claims, v.keyfunc); err != nil {
+		return nil, err
+	}
+	return claims, nil
+}
+
+// Auth verifies the caller's token and attaches the identity to the request
+// context. Behind the Choreo gateway the token arrives in X-Jwt-Assertion.
+func Auth(v *Verifier) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == healthPath {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			token := extractToken(r)
+			if token == "" {
+				response.WriteError(w, http.StatusUnauthorized, response.ErrMsgUnauthorized)
+				return
+			}
+
+			claims, err := v.parse(token)
+			if err != nil {
+				response.WriteError(w, http.StatusUnauthorized, response.ErrMsgUnauthorized)
+				return
+			}
+			email := strings.TrimSpace(claims.Email)
+			if email == "" {
+				response.WriteError(w, http.StatusUnauthorized, response.ErrMsgUnauthorized)
+				return
+			}
+
+			user := &UserInfo{Email: email, Subject: claims.Subject}
+			next.ServeHTTP(w, r.WithContext(WithUserInfo(r.Context(), user)))
+		})
+	}
 }
 
 func extractToken(r *http.Request) string {

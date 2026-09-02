@@ -47,8 +47,8 @@ func (h ctxHandler) Handle(ctx context.Context, r slog.Record) error {
 	if id, _ := ctx.Value(correlationIDKey{}).(string); id != "" {
 		r.AddAttrs(slog.String("correlationID", id))
 	}
-	if u := UserInfoFromContext(ctx); u != nil {
-		r.AddAttrs(slog.String("user", u.Email))
+	if u := UserInfoFromContext(ctx); u != nil && u.Subject != "" {
+		r.AddAttrs(slog.String("user", u.Subject))
 	}
 	return h.inner.Handle(ctx, r)
 }
@@ -74,13 +74,16 @@ func CorrelationID(next http.Handler) http.Handler {
 	})
 }
 
-// CORS applies cross-origin headers for the configured origin.
+// CORS applies cross-origin headers for the configured origin. An empty origin
+// disables cross-origin responses (deny by default) rather than allowing all.
 func CORS(allowedOrigin string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Correlation-ID")
+			if allowedOrigin != "" {
+				w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Correlation-ID")
+			}
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)
 				return

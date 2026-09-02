@@ -32,10 +32,22 @@ const encryptionKeySize = 32
 type Config struct {
 	Port              string
 	CORSAllowedOrigin string
+	JWT               JWTConfig
 	DB                DBConfig
 	EncryptionKey     []byte
 	InitialCoins      InitialCoinsConfig
 	Maintenance       MaintenanceConfig
+}
+
+// JWTConfig controls how the caller's token is verified. When JWKSURL is set the
+// token's signature, expiry and (if configured) issuer/audience are validated
+// against the JWKS. When JWKSURL is empty the token is decoded but not verified —
+// intended only for local development behind a trusted gateway; set JWKSURL in
+// every deployed environment.
+type JWTConfig struct {
+	JWKSURL  string
+	Issuer   string
+	Audience string
 }
 
 // DBConfig holds the MySQL connection settings.
@@ -95,7 +107,12 @@ func Load() (Config, error) {
 
 	return Config{
 		Port:              envOrDefault("PORT", ":8081"),
-		CORSAllowedOrigin: envOrDefault("CORS_ALLOWED_ORIGIN", "*"),
+		CORSAllowedOrigin: os.Getenv("CORS_ALLOWED_ORIGIN"),
+		JWT: JWTConfig{
+			JWKSURL:  os.Getenv("JWT_JWKS_URL"),
+			Issuer:   os.Getenv("JWT_ISSUER"),
+			Audience: os.Getenv("JWT_AUDIENCE"),
+		},
 		DB: DBConfig{
 			Host:                  envOrDefault("DB_HOST", "localhost"),
 			Port:                  envOrDefault("DB_PORT", "3306"),
