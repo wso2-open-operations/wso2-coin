@@ -1,0 +1,162 @@
+/*
+ * Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: var(--safe-area-top, 0px) 20px 0;
+  height: calc(var(--topbar-height, 44px) + var(--safe-area-top, 0px));
+  background: #FAFAF9;
+  border-bottom: 1px solid #F0EDE8;
+  z-index: 1100;
+}
+
+.topbar-back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #F0EDE8;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1C1917;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topbar-back-btn:focus {
+  outline: none;
+}
+
+.topbar-back-btn:active {
+  transform: scale(0.93);
+  background: #E5E0D8;
+}
+
+.topbar-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1C1917;
+  letter-spacing: -0.6px;
+  margin: 0;
+  line-height: 1.2;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── LEAVE-APP CONFIRMATION MODAL ──────────────────────────────── */
+
+.topbar-leave-modal-wrap .ant-modal-content {
+  padding: 24px 20px 20px;
+}
+
+.topbar-leave-modal-wrap .ant-modal-header,
+.topbar-leave-modal-wrap .ant-modal-close {
+  display: none;
+}
+
+.topbar-leave-modal-wrap .ant-modal-body {
+  padding: 0;
+}
+
+.topbar-leave-modal {
+  text-align: center;
+}
+
+.topbar-leave-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1C1917;
+  letter-spacing: -0.4px;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.topbar-leave-text {
+  font-size: 14px;
+  color: #78716C;
+  line-height: 1.5;
+  margin: 0 0 20px;
+  text-align: center;
+}
+
+.topbar-leave-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.topbar-leave-cancel {
+  flex: 1;
+  height: 48px;
+  background: #ffffff;
+  border: 1.5px solid #E5E0D8;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1C1917;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topbar-leave-cancel:focus {
+  outline: none;
+}
+
+.topbar-leave-cancel:active {
+  background: #F0EDE8;
+  transform: scale(0.98);
+}
+
+.topbar-leave-confirm {
+  flex: 1;
+  height: 48px;
+  background: var(--orange-primary, #ff7300);
+  border: none;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.28);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topbar-leave-confirm:focus {
+  outline: none;
+}
+
+.topbar-leave-confirm:active {
+  transform: scale(0.98);
+}

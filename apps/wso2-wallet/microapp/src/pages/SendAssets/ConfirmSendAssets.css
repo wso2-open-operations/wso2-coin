@@ -1,0 +1,266 @@
+/*
+ * Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/* ── REVIEW TRANSACTION (CONFIRM SEND) PAGE ─────────────────────── */
+
+.confirm-page {
+  padding: 4px 0 24px;
+}
+
+/* Breadcrumb (Home › Review Transaction) — normal flow only */
+/* Hero amount display */
+.confirm-hero {
+  text-align: center;
+  padding: 28px 24px 24px;
+}
+
+.confirm-hero-label {
+  font-size: 11px;
+  color: #9CA3AF;
+  font-weight: 600;
+  margin-bottom: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.confirm-hero-amount {
+  font-size: 56px;
+  font-weight: 700;
+  color: #1C1917;
+  letter-spacing: -2.4px;
+  line-height: 1;
+  margin-bottom: 14px;
+  word-break: break-all;
+}
+
+.confirm-hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #FFF7ED;
+  border: 1px solid rgba(249, 115, 22, 0.22);
+  border-radius: 999px;
+  padding: 6px 14px 6px 8px;
+}
+
+.confirm-hero-chip-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--orange-primary, #ff7300);
+  letter-spacing: 0.4px;
+}
+
+/* From/To + Total card */
+.confirm-card {
+  margin: 0 24px 14px;
+  background: #ffffff;
+  border: 1.5px solid #E5E0D8;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.confirm-from-to {
+  display: flex;
+  align-items: center;
+  padding: 18px 20px;
+  gap: 10px;
+}
+
+.confirm-addr-blk {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.confirm-addr-blk-right {
+  text-align: right;
+}
+
+.confirm-addr-lbl {
+  font-size: 11px;
+  color: #78716C;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.confirm-addr-val {
+  font-family: 'JetBrains Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  color: #374151;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.confirm-arrow-sep {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #F0EDE8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.confirm-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-top: 1px solid #F0EDE8;
+  gap: 10px;
+}
+
+.confirm-total-lbl {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1C1917;
+}
+
+.confirm-total-val {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confirm-total-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1C1917;
+  letter-spacing: -0.5px;
+  word-break: break-all;
+}
+
+.confirm-ticker-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFF7ED;
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 20px;
+  padding: 4px 10px;
+  flex-shrink: 0;
+}
+
+.confirm-ticker-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--orange-primary, #ff7300);
+  letter-spacing: 0.3px;
+}
+
+/* Warning chip */
+.confirm-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 24px 18px;
+  background: #FFF7ED;
+  border: 1px solid rgba(249, 115, 22, 0.22);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.confirm-warn-text {
+  font-size: 12px;
+  color: #92400E;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+}
+
+/* Cancel + Confirm actions */
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  padding: 0 24px;
+}
+
+.confirm-cancel-btn {
+  flex: 1;
+  height: 54px;
+  background: #ffffff;
+  border: 1.5px solid #E5E0D8;
+  border-radius: 18px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1C1917;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.confirm-cancel-btn:focus {
+  outline: none;
+}
+
+.confirm-cancel-btn:active:not(:disabled) {
+  background: #F0EDE8;
+  transform: scale(0.98);
+}
+
+.confirm-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirm-primary-btn {
+  flex: 1.6;
+  height: 54px;
+  background: var(--orange-primary, #ff7300);
+  border: none;
+  border-radius: 18px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: -0.2px;
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.28);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.confirm-primary-btn:focus {
+  outline: none;
+}
+
+.confirm-primary-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.confirm-primary-btn:disabled {
+  background: #E5E0D8;
+  color: #78716C;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Full-width confirm button — used in parking flow (no Cancel sibling) */
+.confirm-primary-btn-full {
+  flex: 1;
+}
