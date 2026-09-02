@@ -122,6 +122,16 @@ paths:
           $ref: "#/components/responses/Error"
         "403":
           $ref: "#/components/responses/Error"
+  /api/v1/app-config:
+    get:
+      summary: Client-facing runtime configuration
+      responses:
+        "200":
+          description: App configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppConfig"
 components:
   parameters:
     Address:
@@ -138,6 +148,13 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
   schemas:
+    AppConfig:
+      type: object
+      properties:
+        maintenanceMode:
+          type: boolean
+        maintenanceMessage:
+          type: string
     Wallet:
       type: object
       properties:

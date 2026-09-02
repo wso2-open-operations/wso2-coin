@@ -136,4 +136,15 @@ export const getTransactionHistory = async (
   };
 };
 
-export const fetchAppConfigs = async () => ({ isMaintenanceMode: false });
+export const fetchAppConfigs = async () => {
+  try {
+    const config = await request("/app-config");
+    return {
+      isMaintenanceMode: !!config.maintenanceMode,
+      maintenanceMessage: config.maintenanceMessage || "",
+    };
+  } catch (_) {
+    // Fail safe: never block the app if the config endpoint is unreachable.
+    return { isMaintenanceMode: false, maintenanceMessage: "" };
+  }
+};

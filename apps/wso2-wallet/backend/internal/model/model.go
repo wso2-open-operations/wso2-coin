@@ -58,6 +58,12 @@ type TransactionPage struct {
 	HasMore      bool          `json:"hasMore"`
 }
 
+// AppConfig exposes client-facing runtime configuration.
+type AppConfig struct {
+	MaintenanceMode    bool   `json:"maintenanceMode"`
+	MaintenanceMessage string `json:"maintenanceMessage"`
+}
+
 // TransferRequest is the body of a transfer.
 type TransferRequest struct {
 	FromAddress string `json:"fromAddress"`

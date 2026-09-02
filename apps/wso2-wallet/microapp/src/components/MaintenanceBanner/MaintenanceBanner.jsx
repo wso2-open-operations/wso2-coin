@@ -27,6 +27,7 @@ export const MaintenanceBanner = () => {
   });
 
   const isMaintenanceMode = !!data?.isMaintenanceMode;
+  const maintenanceMessage = data?.maintenanceMessage;
 
   if (!isMaintenanceMode) {
     return null;
@@ -47,7 +48,8 @@ export const MaintenanceBanner = () => {
           Under Maintenance
         </h2>
         <p className="maintenance-text">
-          The app is currently undergoing maintenance and is temporarily unavailable. We apologize for any inconvenience caused. Please check back later.
+          {maintenanceMessage ||
+            "The app is currently undergoing maintenance and is temporarily unavailable. Please check back later."}
         </p>
         <button
           type="button"

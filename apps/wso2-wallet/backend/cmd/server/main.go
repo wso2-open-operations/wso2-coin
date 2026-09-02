@@ -31,6 +31,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/appconfig"
 	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/config"
 	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/crypto"
 	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/middleware"
@@ -83,6 +84,7 @@ func run() error {
 		w.WriteHeader(http.StatusOK)
 	})
 	wallet.NewHandler(svc).RegisterRoutes(mux)
+	appconfig.NewHandler(cfg.Maintenance.Mode, cfg.Maintenance.Message).RegisterRoutes(mux)
 
 	root := middleware.SecurityHeaders(
 		middleware.CORS(cfg.CORSAllowedOrigin)(

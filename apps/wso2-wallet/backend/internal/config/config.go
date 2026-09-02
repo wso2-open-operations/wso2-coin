@@ -35,6 +35,7 @@ type Config struct {
 	DB                DBConfig
 	EncryptionKey     []byte
 	InitialCoins      InitialCoinsConfig
+	Maintenance       MaintenanceConfig
 }
 
 // DBConfig holds the MySQL connection settings.
@@ -56,6 +57,12 @@ type InitialCoinsConfig struct {
 	Amount        string
 	FundingWallet string
 	EmailDomain   string
+}
+
+// MaintenanceConfig controls the client-facing maintenance screen.
+type MaintenanceConfig struct {
+	Mode    bool
+	Message string
 }
 
 // DSN returns the MySQL data source name.
@@ -102,6 +109,10 @@ func Load() (Config, error) {
 		},
 		EncryptionKey: key,
 		InitialCoins:  initialCoins,
+		Maintenance: MaintenanceConfig{
+			Mode:    envBool("MAINTENANCE_MODE", false),
+			Message: os.Getenv("MAINTENANCE_MESSAGE"),
+		},
 	}, nil
 }
 
