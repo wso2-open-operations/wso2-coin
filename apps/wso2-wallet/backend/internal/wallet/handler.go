@@ -186,13 +186,13 @@ func writeServiceError(ctx context.Context, w http.ResponseWriter, err error) {
 	case errors.Is(err, ErrForbidden):
 		response.WriteError(w, http.StatusForbidden, response.ErrMsgForbidden)
 	case errors.Is(err, ErrRecipientNotFound):
-		response.WriteError(w, http.StatusBadRequest, "Recipient wallet not found.")
+		response.WriteError(w, http.StatusBadRequest, response.ErrMsgRecipientNotFound)
 	case errors.Is(err, ErrSelfTransfer):
-		response.WriteError(w, http.StatusBadRequest, "Cannot transfer to the same wallet.")
+		response.WriteError(w, http.StatusBadRequest, response.ErrMsgSelfTransfer)
 	case errors.Is(err, ErrInvalidAmount):
-		response.WriteError(w, http.StatusBadRequest, "Invalid transfer amount.")
+		response.WriteError(w, http.StatusBadRequest, response.ErrMsgInvalidAmount)
 	case errors.Is(err, ErrInsufficientFunds):
-		response.WriteError(w, http.StatusBadRequest, "Insufficient funds.")
+		response.WriteError(w, http.StatusBadRequest, response.ErrMsgInsufficientFunds)
 	default:
 		slog.ErrorContext(ctx, "request failed", "err", err)
 		response.WriteError(w, http.StatusInternalServerError, response.ErrMsgInternal)

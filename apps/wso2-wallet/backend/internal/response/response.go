@@ -34,6 +34,11 @@ const (
 	ErrMsgConflict     = "The resource already exists."
 	ErrMsgTooLarge     = "Request body too large."
 	ErrMsgInternal     = "An internal server error occurred. Please try again later."
+
+	ErrMsgRecipientNotFound = "Recipient wallet not found."
+	ErrMsgSelfTransfer      = "Cannot transfer to the same wallet."
+	ErrMsgInvalidAmount     = "Invalid transfer amount."
+	ErrMsgInsufficientFunds = "Insufficient funds."
 )
 
 type errorBody struct {

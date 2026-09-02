@@ -250,17 +250,11 @@ func (s *Service) Transfer(ctx context.Context, email string, req model.Transfer
 	}
 
 	err = s.repo.Tx(ctx, func(q Queries) error {
-		if err := lockPair(ctx, q, from.Address, to.Address); err != nil {
-			return err
-		}
-		fromUnits, err := s.lockedUnits(ctx, q, from.Address)
+		balances, err := s.lockBalances(ctx, q, from.Address, to.Address)
 		if err != nil {
 			return err
 		}
-		toUnits, err := s.lockedUnits(ctx, q, to.Address)
-		if err != nil {
-			return err
-		}
+		fromUnits, toUnits := balances[from.Address], balances[to.Address]
 		if fromUnits.Cmp(amount) < 0 {
 			return ErrInsufficientFunds
 		}
@@ -340,16 +334,23 @@ func (s *Service) lockedUnits(ctx context.Context, q Queries, address string) (*
 	return money.ParseUnits(plain)
 }
 
-func lockPair(ctx context.Context, q Queries, a, b string) error {
+// lockBalances locks both wallets in a deterministic order (to avoid deadlocks
+// between concurrent transfers) and returns their decrypted unit balances keyed by
+// address.
+func (s *Service) lockBalances(ctx context.Context, q Queries, a, b string) (map[string]*big.Int, error) {
 	first, second := a, b
 	if strings.ToLower(second) < strings.ToLower(first) {
 		first, second = second, first
 	}
-	if _, err := q.LockBalance(ctx, first); err != nil {
-		return err
+	balances := make(map[string]*big.Int, 2)
+	for _, addr := range []string{first, second} {
+		units, err := s.lockedUnits(ctx, q, addr)
+		if err != nil {
+			return nil, err
+		}
+		balances[addr] = units
 	}
-	_, err := q.LockBalance(ctx, second)
-	return err
+	return balances, nil
 }
 
 func ownedBy(w *WalletRow, email string) bool {
