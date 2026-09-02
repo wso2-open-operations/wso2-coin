@@ -190,12 +190,11 @@ function ConfirmSendAssets() {
             );
           }
 
-          queryClient.invalidateQueries({
-            queryKey: ["transactions", fromAddress],
-          });
-          queryClient.invalidateQueries({
-            queryKey: ["walletBalance", fromAddress],
-          });
+          // Refresh balances and history for every wallet: the sender is debited
+          // and the recipient (which may be another of the user's own wallets) is
+          // credited, so a single-wallet invalidation would leave it stale.
+          queryClient.invalidateQueries({ queryKey: ["walletBalance"] });
+          queryClient.invalidateQueries({ queryKey: ["transactions"] });
         }
       } catch (stateError) {
         console.error("Error resetting fields or updating query cache", stateError);

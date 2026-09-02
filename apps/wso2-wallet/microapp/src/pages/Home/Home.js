@@ -25,7 +25,7 @@ import {
 import { message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
-import { SendOutlined, DownloadOutlined } from '@ant-design/icons';
+import { SendOutlined, DownloadOutlined, LoadingOutlined } from '@ant-design/icons';
 
 import RecentActivities from '../../components/Home/RecentActivities';
 import {
@@ -55,6 +55,7 @@ import { formatBalance } from '../../utils/transactionUtils';
 function Home() {
   const navigate = useNavigate();
   const [walletAddress, setWalletAddress] = useState(DEFAULT_WALLET_ADDRESS);
+  const [isResolvingWallet, setIsResolvingWallet] = useState(true);
   const recentActivitiesRef = useRef();
 
   const [messageApi, contextHolder] = message.useMessage();
@@ -65,12 +66,15 @@ function Home() {
       if (!isBridgeReady) {
         console.error(ERROR_BRIDGE_NOT_READY);
         showAlertBox(ERROR, ERROR_BRIDGE_NOT_READY, OK);
+        setIsResolvingWallet(false);
         return;
       }
 
       const wallets = await getUserWalletAddresses();
       if (!wallets || wallets.length === 0) {
-        navigate("/create-wallet");
+        // Keep the loading state until the redirect unmounts this page, so the
+        // wallet UI never flashes before create-wallet.
+        navigate("/create-wallet", { replace: true });
         return;
       }
       // Respect a previously-selected active wallet if it still exists; only fall
@@ -87,9 +91,11 @@ function Home() {
       if (active.walletAddress !== walletAddress) {
         setWalletAddress(active.walletAddress);
       }
+      setIsResolvingWallet(false);
     } catch (error) {
       console.log(`${ERROR_RETRIEVE_WALLET_ADDRESS} - ${error}`);
       messageApi.error(ERROR_RETRIEVE_WALLET_ADDRESS);
+      setIsResolvingWallet(false);
     }
   };
 
@@ -120,6 +126,18 @@ function Home() {
   const handleReceive = () => {
     navigate("/receive");
   };
+
+  if (isResolvingWallet) {
+    return (
+      <div className="home-container home-loading">
+        {contextHolder}
+        <LoadingOutlined
+          style={{ fontSize: 28, color: 'var(--orange-primary, #ff7300)' }}
+          spin
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="home-container">

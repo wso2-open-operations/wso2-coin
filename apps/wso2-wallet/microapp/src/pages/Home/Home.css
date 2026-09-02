@@ -29,6 +29,11 @@
   );
 }
 
+.home-loading {
+  align-items: center;
+  justify-content: center;
+}
+
 /* Hero card — dark gradient with subtle orange glow */
 .wallet-hero {
   margin: 12px 20px 0;

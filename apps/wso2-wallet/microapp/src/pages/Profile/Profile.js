@@ -91,7 +91,10 @@ const formatWalletAddress = (addr) => {
 // Renders a single wallet's O2C balance in the wallet list. Fetches only when the
 // list is expanded (enabled), and reuses the cached balance for the active wallet.
 function WalletRowBalance({ address, enabled }) {
-  const { data: balance, isLoading } = useWalletBalance(address, { enabled });
+  const { data: balance, isLoading } = useWalletBalance(address, {
+    enabled,
+    refetchOnMount: 'always',
+  });
   if (!enabled || isLoading || typeof balance === 'undefined') {
     return <span className="profile-wallet-balance is-loading">—</span>;
   }
@@ -113,7 +116,7 @@ function Profile() {
     data: userWallets = [],
     isLoading: isLoadingWallets,
     isError: isUserWalletsError,
-  } = useUserWallets(walletAddress);
+  } = useUserWallets(walletAddress, { refetchOnMount: 'always' });
 
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
