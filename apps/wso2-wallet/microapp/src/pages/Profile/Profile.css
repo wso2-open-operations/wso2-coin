@@ -228,6 +228,25 @@
   color: #78716C;
 }
 
+.profile-wallet-balance {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1C1917;
+  letter-spacing: -0.2px;
+}
+
+.profile-wallet-balance.is-loading {
+  color: #A8A29E;
+  font-weight: 500;
+}
+
+.profile-wallet-balance-ticker {
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #78716C;
+}
+
 .profile-wallet-tags {
   display: flex;
   align-items: center;
@@ -314,53 +333,18 @@
   margin-bottom: 16px;
 }
 
-.profile-modal-explainer {
-  background: #FAFAF9;
-  border: 1px solid #F0EDE8;
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  text-align: left;
+.profile-modal-action {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.profile-modal-explainer.is-primary {
-  background: #F0FDF4;
-  border-color: rgba(34, 197, 94, 0.22);
-}
-
-.profile-modal-explainer.is-active {
-  background: #FFF7ED;
-  border-color: rgba(249, 115, 22, 0.22);
-}
-
-.profile-modal-explainer-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1C1917;
-  letter-spacing: -0.2px;
-  margin-bottom: 4px;
-}
-
-.profile-modal-explainer.is-primary .profile-modal-explainer-title {
-  color: #166534;
-}
-
-.profile-modal-explainer.is-active .profile-modal-explainer-title {
-  color: #9A3412;
-}
-
-.profile-modal-explainer-text {
+.profile-modal-action-hint {
   font-size: 12px;
   color: #78716C;
   line-height: 1.5;
-}
-
-.profile-modal-explainer.is-primary .profile-modal-explainer-text {
-  color: #15803D;
-}
-
-.profile-modal-explainer.is-active .profile-modal-explainer-text {
-  color: #C2410C;
+  text-align: left;
+  padding: 0 2px;
 }
 
 .profile-modal-primary-btn {
@@ -402,7 +386,7 @@
 .profile-modal-actions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 }
 
 .profile-modal-secondary-btn {

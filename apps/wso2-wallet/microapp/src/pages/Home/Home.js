@@ -47,7 +47,7 @@ import {
   OK,
 } from '../../constants/strings';
 import { showAlertBox } from '../../helpers/alerts';
-import { saveLocalDataAsync } from '../../helpers/storage';
+import { getLocalDataAsync, saveLocalDataAsync } from '../../helpers/storage';
 import { waitForBridge } from '../../helpers/bridge';
 import { useWalletBalance } from '../../services/query-hooks';
 import { getUserWalletAddresses } from '../../services/wallet.service';
@@ -73,7 +73,16 @@ function Home() {
         navigate("/create-wallet");
         return;
       }
-      const active = wallets.find((w) => w.defaultWallet) || wallets[0];
+      // Respect a previously-selected active wallet if it still exists; only fall
+      // back to the default (or first) wallet on the very first load.
+      const stored = await getLocalDataAsync(STORAGE_KEYS.WALLET_ADDRESS);
+      const active =
+        (stored &&
+          wallets.find(
+            (w) => w.walletAddress.toLowerCase() === stored.toLowerCase()
+          )) ||
+        wallets.find((w) => w.defaultWallet) ||
+        wallets[0];
       await saveLocalDataAsync(STORAGE_KEYS.WALLET_ADDRESS, active.walletAddress);
       if (active.walletAddress !== walletAddress) {
         setWalletAddress(active.walletAddress);

@@ -24,6 +24,7 @@ import {
 import { Modal } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
+import { NumericFormat } from 'react-number-format';
 
 import {
   CheckOutlined,
@@ -50,12 +51,18 @@ import {
   CREATE_WALLET_CONFIRM,
   CREATE,
   CANCEL,
+  CONFIRM,
   SUCCESS,
   SUCCESS_WALLET_CREATED,
   OK,
   SHOW_WALLET_ADDRESS,
   WALLET_ADDRESS_COPIED,
+  WSO2_TOKEN,
   SWITCH_TO_THIS_WALLET,
+  SWITCH_WALLET_INFO,
+  ACTIVE_WALLET_INFO,
+  CONFIRM_SWITCH_WALLET,
+  CONFIRM_SET_DEFAULT,
   CURRENTLY_VIEWING,
   VIEWING_TAG,
   SET_AS_DEFAULT,
@@ -72,13 +79,33 @@ import {
   saveLocalDataAsync,
 } from '../../helpers/storage';
 import { setWalletAsPrimary, createWallet } from '../../services/wallet.service';
-import { useUserWallets } from '../../services/query-hooks';
+import { useUserWallets, useWalletBalance } from '../../services/query-hooks';
 
 const formatWalletAddress = (addr) => {
   if (!addr) return '';
   if (addr.length <= 24) return addr;
   return `${addr.slice(0, 12)}...${addr.slice(-10)}`;
 };
+
+// Renders a single wallet's O2C balance in the wallet list. Fetches only when the
+// list is expanded (enabled), and reuses the cached balance for the active wallet.
+function WalletRowBalance({ address, enabled }) {
+  const { data: balance, isLoading } = useWalletBalance(address, { enabled });
+  if (!enabled || isLoading || typeof balance === 'undefined') {
+    return <span className="profile-wallet-balance is-loading">—</span>;
+  }
+  return (
+    <span className="profile-wallet-balance">
+      <NumericFormat
+        value={balance}
+        displayType="text"
+        thousandSeparator
+        decimalScale={6}
+      />
+      <span className="profile-wallet-balance-ticker">{WSO2_TOKEN}</span>
+    </span>
+  );
+}
 
 function Profile() {
   const queryClient = useQueryClient();
@@ -97,6 +124,7 @@ function Profile() {
   const [isSwitching, setIsSwitching] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isCreateConfirmOpen, setIsCreateConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // 'switch' | 'default'
 
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isWalletsExpanded, setIsWalletsExpanded] = useState(false);
@@ -136,6 +164,7 @@ function Profile() {
     try {
       await saveLocalDataAsync(STORAGE_KEYS.WALLET_ADDRESS, selectedWallet.walletAddress);
       setWalletAddress(selectedWallet.walletAddress);
+      setConfirmAction(null);
       showToast(SUCCESS, SWITCHED_TO_WALLET);
     } catch (error) {
       console.error('Error switching wallet:', error);
@@ -154,6 +183,7 @@ function Profile() {
     try {
       await setWalletAsPrimary(selectedWallet.walletAddress);
       setSelectedWallet((prev) => (prev ? { ...prev, defaultWallet: true } : prev));
+      setConfirmAction(null);
       showToast(SUCCESS, DEFAULT_WALLET_UPDATED);
       await queryClient.invalidateQueries({ queryKey: ['userWallets'] });
     } catch (error) {
@@ -228,45 +258,47 @@ function Profile() {
                 </div>
               )}
 
-              <div
-                className={`profile-modal-explainer ${isPrimary ? 'is-primary' : ''}`}
-              >
-                <div className="profile-modal-explainer-text">
-                  {isPrimary ? DEFAULT_REWARDS_INFO : SET_DEFAULT_INFO}
-                </div>
-              </div>
-
               <div className="profile-modal-actions">
-                <button
-                  type="button"
-                  className="profile-modal-primary-btn"
-                  onClick={handleSwitchToWallet}
-                  disabled={isActive || isSwitching}
-                >
-                  {isSwitching ? (
-                    <LoadingOutlined style={{ fontSize: 14 }} spin />
-                  ) : isActive ? (
-                    <CheckOutlined style={{ fontSize: 14 }} />
-                  ) : (
-                    <SwapOutlined style={{ fontSize: 14 }} />
-                  )}
-                  <span>
-                    {isActive ? CURRENTLY_VIEWING : SWITCH_TO_THIS_WALLET}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="profile-modal-secondary-btn"
-                  onClick={handleSetAsDefault}
-                  disabled={isPrimary || isSettingPrimary}
-                >
-                  {isSettingPrimary ? (
-                    <LoadingOutlined style={{ fontSize: 14 }} spin />
-                  ) : isPrimary ? (
-                    <CheckOutlined style={{ fontSize: 14 }} />
-                  ) : null}
-                  <span>{isPrimary ? DEFAULT_WALLET_LABEL : SET_AS_DEFAULT}</span>
-                </button>
+                <div className="profile-modal-action">
+                  <button
+                    type="button"
+                    className="profile-modal-primary-btn"
+                    onClick={() => setConfirmAction('switch')}
+                    disabled={isActive || isSwitching}
+                  >
+                    {isSwitching ? (
+                      <LoadingOutlined style={{ fontSize: 14 }} spin />
+                    ) : isActive ? (
+                      <CheckOutlined style={{ fontSize: 14 }} />
+                    ) : (
+                      <SwapOutlined style={{ fontSize: 14 }} />
+                    )}
+                    <span>
+                      {isActive ? CURRENTLY_VIEWING : SWITCH_TO_THIS_WALLET}
+                    </span>
+                  </button>
+                  <div className="profile-modal-action-hint">
+                    {isActive ? ACTIVE_WALLET_INFO : SWITCH_WALLET_INFO}
+                  </div>
+                </div>
+                <div className="profile-modal-action">
+                  <button
+                    type="button"
+                    className="profile-modal-secondary-btn"
+                    onClick={() => setConfirmAction('default')}
+                    disabled={isPrimary || isSettingPrimary}
+                  >
+                    {isSettingPrimary ? (
+                      <LoadingOutlined style={{ fontSize: 14 }} spin />
+                    ) : isPrimary ? (
+                      <CheckOutlined style={{ fontSize: 14 }} />
+                    ) : null}
+                    <span>{isPrimary ? DEFAULT_WALLET_LABEL : SET_AS_DEFAULT}</span>
+                  </button>
+                  <div className="profile-modal-action-hint">
+                    {isPrimary ? DEFAULT_REWARDS_INFO : SET_DEFAULT_INFO}
+                  </div>
+                </div>
               </div>
             </div>
           );
@@ -309,6 +341,22 @@ function Profile() {
         loading={isCreating}
         onConfirm={createNewWallet}
         onCancel={() => setIsCreateConfirmOpen(false)}
+      />
+
+      {/* Switch / Set-default Confirmation */}
+      <ConfirmModal
+        open={confirmAction !== null}
+        title={confirmAction === 'switch' ? SWITCH_TO_THIS_WALLET : SET_AS_DEFAULT}
+        description={
+          confirmAction === 'switch' ? CONFIRM_SWITCH_WALLET : CONFIRM_SET_DEFAULT
+        }
+        confirmText={CONFIRM}
+        cancelText={CANCEL}
+        loading={isSwitching || isSettingPrimary}
+        onConfirm={
+          confirmAction === 'switch' ? handleSwitchToWallet : handleSetAsDefault
+        }
+        onCancel={() => setConfirmAction(null)}
       />
 
       <div className="profile-section">
@@ -436,6 +484,10 @@ function Profile() {
                             <span className="profile-wallet-addr">
                               {formatWalletAddress(wallet.walletAddress)}
                             </span>
+                            <WalletRowBalance
+                              address={wallet.walletAddress}
+                              enabled={isOpen}
+                            />
                             <span className="profile-wallet-date">
                               Created {new Date(wallet.createdOn).toLocaleDateString()}
                             </span>

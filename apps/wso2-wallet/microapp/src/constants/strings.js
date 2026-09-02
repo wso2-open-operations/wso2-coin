@@ -57,6 +57,11 @@ export const WALLET_ADDRESS = "Public Wallet Address";
 export const CONTINUE = "Continue";
 export const COPY_TO_CLIPBOARD = "Copy to clipboard";
 export const SWITCH_TO_THIS_WALLET = "Switch to this wallet";
+export const SWITCH_WALLET_INFO =
+  "Show this wallet's balance and activity across the app.";
+export const ACTIVE_WALLET_INFO = "You're currently viewing this wallet.";
+export const CONFIRM_SWITCH_WALLET =
+  "Switch the app to show this wallet's balance and activity?";
 export const CURRENTLY_VIEWING = "Currently viewing";
 export const VIEWING_TAG = "Viewing";
 export const SET_AS_DEFAULT = "Set as default";
@@ -65,6 +70,8 @@ export const DEFAULT_TAG = "Default";
 export const DEFAULT_REWARDS_INFO = "Coin rewards are received in this wallet.";
 export const SET_DEFAULT_INFO =
   "Set this wallet as default to receive coin rewards here.";
+export const CONFIRM_SET_DEFAULT =
+  "Set this wallet as your default to receive coin rewards?";
 export const SWITCHED_TO_WALLET = "Switched to this wallet";
 export const DEFAULT_WALLET_UPDATED = "Default wallet updated";
 export const ERROR_SWITCHING_WALLET = "Couldn't switch wallet";
