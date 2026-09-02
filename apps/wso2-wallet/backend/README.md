@@ -7,7 +7,7 @@ the gateway-supplied `X-Jwt-Assertion` header.
 
 ## Requirements
 
-- Go 1.23+
+- Go 1.25+
 - MySQL 8.0+
 
 ## Setup
@@ -28,7 +28,10 @@ go run ./cmd/server
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `PORT` | no | `:8081` | Listen address |
-| `CORS_ALLOWED_ORIGIN` | no | `*` | Allowed CORS origin |
+| `CORS_ALLOWED_ORIGIN` | no | — | Allowed CORS origin; empty denies cross-origin requests |
+| `JWT_JWKS_URL` | no | — | JWKS endpoint for token verification; empty decodes without verifying (local dev only) |
+| `JWT_ISSUER` | no | — | Expected token issuer (`iss`), checked when set |
+| `JWT_AUDIENCE` | no | — | Expected token audience (`aud`), checked when set |
 | `DB_HOST` / `DB_PORT` | no | `localhost` / `3306` | MySQL host/port |
 | `DB_USER` | yes | — | MySQL user |
 | `DB_PASSWORD` | no | — | MySQL password |
@@ -38,6 +41,8 @@ go run ./cmd/server
 | `INITIAL_COINS_AMOUNT` | no | `10` | Amount to grant |
 | `INITIAL_COINS_FUNDING_WALLET` | yes (if enabled) | — | Wallet the grant is debited from |
 | `INITIAL_COINS_EMAIL_DOMAIN` | no | `wso2.com` | Domain eligible for the grant |
+| `MAINTENANCE_MODE` | no | `false` | Show the client maintenance screen |
+| `MAINTENANCE_MESSAGE` | no | — | Message shown when maintenance mode is on |
 
 ## Endpoints
 
