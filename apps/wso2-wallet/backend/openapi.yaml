@@ -1,0 +1,231 @@
+openapi: 3.0.3
+info:
+  title: WSO2 Wallet Backend
+  version: 1.0.0
+  description: REST API for managing wallets, balances and transfers.
+servers:
+  - url: /
+paths:
+  /health:
+    get:
+      summary: Service liveness
+      security: []
+      responses:
+        "200":
+          description: Service is up
+  /api/v1/wallets:
+    get:
+      summary: List the caller's wallets
+      responses:
+        "200":
+          description: Wallets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Wallet"
+    post:
+      summary: Create a new wallet for the caller
+      responses:
+        "201":
+          description: Created wallet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+  /api/v1/wallets/{address}/set-primary:
+    post:
+      summary: Set a wallet as the caller's default
+      parameters:
+        - $ref: "#/components/parameters/Address"
+      responses:
+        "204":
+          description: Updated
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /api/v1/wallets/{address}/balance:
+    get:
+      summary: Get a wallet's balance
+      parameters:
+        - $ref: "#/components/parameters/Address"
+      responses:
+        "200":
+          description: Balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Balance"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /api/v1/wallets/{address}/transactions:
+    get:
+      summary: List a wallet's transactions, newest first
+      parameters:
+        - $ref: "#/components/parameters/Address"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 15
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [sent, received]
+      responses:
+        "200":
+          description: Transaction page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionPage"
+  /api/v1/wallets/{address}/health:
+    get:
+      summary: Report a wallet's integrity
+      parameters:
+        - $ref: "#/components/parameters/Address"
+      responses:
+        "200":
+          description: Health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletHealth"
+  /api/v1/transfers:
+    post:
+      summary: Transfer coins between two wallets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferRequest"
+      responses:
+        "201":
+          description: Transfer accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+  /api/v1/app-config:
+    get:
+      summary: Client-facing runtime configuration
+      responses:
+        "200":
+          description: App configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppConfig"
+components:
+  parameters:
+    Address:
+      name: address
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    AppConfig:
+      type: object
+      properties:
+        maintenanceMode:
+          type: boolean
+        maintenanceMessage:
+          type: string
+    Wallet:
+      type: object
+      properties:
+        address:
+          type: string
+        defaultWallet:
+          type: boolean
+        createdOn:
+          type: string
+    Balance:
+      type: object
+      properties:
+        address:
+          type: string
+        balance:
+          type: string
+    Transaction:
+      type: object
+      properties:
+        transactionHash:
+          type: string
+        fromAddress:
+          type: string
+        toAddress:
+          type: string
+        amount:
+          type: string
+        direction:
+          type: string
+          enum: [sent, received]
+        timestamp:
+          type: string
+    TransactionPage:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        limit:
+          type: integer
+        offset:
+          type: integer
+        hasMore:
+          type: boolean
+    TransferRequest:
+      type: object
+      required: [fromAddress, toAddress, amount]
+      properties:
+        fromAddress:
+          type: string
+        toAddress:
+          type: string
+        amount:
+          type: string
+    TransferResponse:
+      type: object
+      properties:
+        transactionHash:
+          type: string
+    WalletHealth:
+      type: object
+      properties:
+        healthy:
+          type: boolean
+        exists:
+          type: boolean
+        balanceIntact:
+          type: boolean
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
