@@ -165,6 +165,7 @@ function Profile() {
       await saveLocalDataAsync(STORAGE_KEYS.WALLET_ADDRESS, selectedWallet.walletAddress);
       setWalletAddress(selectedWallet.walletAddress);
       setConfirmAction(null);
+      setIsWalletModalOpen(false);
       showToast(SUCCESS, SWITCHED_TO_WALLET);
     } catch (error) {
       console.error('Error switching wallet:', error);
@@ -184,6 +185,7 @@ function Profile() {
       await setWalletAsPrimary(selectedWallet.walletAddress);
       setSelectedWallet((prev) => (prev ? { ...prev, defaultWallet: true } : prev));
       setConfirmAction(null);
+      setIsWalletModalOpen(false);
       showToast(SUCCESS, DEFAULT_WALLET_UPDATED);
       await queryClient.invalidateQueries({ queryKey: ['userWallets'] });
     } catch (error) {
