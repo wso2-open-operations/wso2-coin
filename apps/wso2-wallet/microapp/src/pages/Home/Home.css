@@ -503,13 +503,12 @@
 }
 
 .transaction-detail-label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: #9CA3AF;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  letter-spacing: 0;
   text-align: left;
-  flex: 0 0 96px;
+  flex: 0 0 110px;
 }
 
 .transaction-detail-value {

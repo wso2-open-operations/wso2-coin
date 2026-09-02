@@ -23,7 +23,6 @@ import {
 } from 'react';
 
 import { message } from 'antd';
-import { NumericFormat } from 'react-number-format';
 import { useNavigate } from 'react-router-dom';
 
 import { SendOutlined, DownloadOutlined } from '@ant-design/icons';
@@ -51,6 +50,7 @@ import { getLocalDataAsync, saveLocalDataAsync } from '../../helpers/storage';
 import { waitForBridge } from '../../helpers/bridge';
 import { useWalletBalance } from '../../services/query-hooks';
 import { getUserWalletAddresses } from '../../services/wallet.service';
+import { formatBalance } from '../../utils/transactionUtils';
 
 function Home() {
   const navigate = useNavigate();
@@ -150,13 +150,7 @@ function Home() {
                 Retry
               </button>
             ) : (
-              <NumericFormat
-                value={tokenBalance}
-                displayType={"text"}
-                thousandSeparator={true}
-                decimalScale={6}
-                fixedDecimalScale={false}
-              />
+              formatBalance(tokenBalance)
             )}
           </div>
           {!isTokenBalanceLoading && (

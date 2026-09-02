@@ -22,6 +22,27 @@ export const formatWalletAddress = (address) => {
   return `${address.slice(0, 8)}...${address.slice(-6)}`;
 };
 
+// Formats an O2C amount: trims trailing zeros but always keeps at least two
+// decimal places, e.g. 5.000000000 -> "5.00", 3.2 -> "3.20", 1.234232000 ->
+// "1.234232". Works on the raw decimal string to preserve precision.
+export const formatBalance = (value) => {
+  if (value === null || value === undefined || value === '') return '';
+  let s = String(value).trim();
+  const negative = s.startsWith('-');
+  if (negative) s = s.slice(1);
+  if (!/^\d*\.?\d*$/.test(s) || s === '' || s === '.') {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return String(value);
+    s = Math.abs(n).toString();
+  }
+  let [intPart = '0', fracPart = ''] = s.split('.');
+  intPart = intPart.replace(/^0+(?=\d)/, '') || '0';
+  fracPart = fracPart.replace(/0+$/, '');
+  if (fracPart.length < 2) fracPart = fracPart.padEnd(2, '0');
+  const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${negative ? '-' : ''}${intFormatted}.${fracPart}`;
+};
+
 export const copyTextToClipboard = async (text, label = 'Value') => {
   const successMsg = `${label} copied to clipboard!`;
   try {

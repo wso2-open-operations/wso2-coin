@@ -25,7 +25,6 @@ import { Modal } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
-import { NumericFormat } from 'react-number-format';
 
 import {
   CheckOutlined,
@@ -81,6 +80,7 @@ import {
 } from '../../helpers/storage';
 import { setWalletAsPrimary, createWallet } from '../../services/wallet.service';
 import { useUserWallets, useWalletBalance } from '../../services/query-hooks';
+import { formatBalance } from '../../utils/transactionUtils';
 
 const formatWalletAddress = (addr) => {
   if (!addr) return '';
@@ -97,12 +97,7 @@ function WalletRowBalance({ address, enabled }) {
   }
   return (
     <span className="profile-wallet-balance">
-      <NumericFormat
-        value={balance}
-        displayType="text"
-        thousandSeparator
-        decimalScale={6}
-      />
+      {formatBalance(balance)}
       <span className="profile-wallet-balance-ticker">{WSO2_TOKEN}</span>
     </span>
   );

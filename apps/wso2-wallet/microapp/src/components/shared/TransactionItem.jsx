@@ -27,17 +27,8 @@ import { WSO2_TOKEN } from '../../constants/strings';
 import {
   formatWalletAddress,
   copyTextToClipboard,
+  formatBalance,
 } from '../../utils/transactionUtils';
-
-const formatBalance = (raw) => {
-  if (raw == null) return null;
-  const num = Number(raw);
-  if (!Number.isFinite(num)) return raw;
-  return num.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 4,
-  });
-};
 
 const DetailRow = ({ label, value, copyValue, copyLabel, muted }) => {
   const handleCopy = (e) => {
@@ -83,7 +74,10 @@ const TransactionItem = ({ transaction, index }) => {
 
   const toggle = () => setIsExpanded((v) => !v);
 
-  const balanceDisplay = formatBalance(transaction.runningBalance);
+  const balanceDisplay =
+    transaction.runningBalance != null
+      ? formatBalance(transaction.runningBalance)
+      : null;
 
   return (
     <div
@@ -126,7 +120,7 @@ const TransactionItem = ({ transaction, index }) => {
             }`}
           >
             {isSend ? '-' : '+'}
-            {transaction.value}
+            {formatBalance(transaction.value)}
             <span className="transaction-item-ticker">{WSO2_TOKEN}</span>
           </span>
         </div>
@@ -143,20 +137,17 @@ const TransactionItem = ({ transaction, index }) => {
         aria-hidden={!isExpanded}
       >
         <div className="transaction-item-divider" />
-        <DetailRow
-          label="Running balance"
-          value={
-            balanceDisplay ? (
+        {balanceDisplay && (
+          <DetailRow
+            label="Running balance"
+            value={
               <>
                 {balanceDisplay}
                 <span className="transaction-detail-ticker">{WSO2_TOKEN}</span>
               </>
-            ) : (
-              '—'
-            )
-          }
-          muted={!balanceDisplay}
-        />
+            }
+          />
+        )}
         <DetailRow
           label={isSend ? 'Sent to' : 'Received from'}
           value={formatWalletAddress(counterparty)}
