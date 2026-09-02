@@ -99,8 +99,6 @@ const formatTimestamp = (iso) => {
 
 export const getTransactionHistory = async (
   walletAddress,
-  fromBlock = 0,
-  toBlock = "latest",
   limit = MAX_TRANSFER_PAGE,
   offset = 0
 ) => {

@@ -37,7 +37,7 @@ export function useTransactionHistory({
       if (!walletAddress || walletAddress === '0x' || walletAddress.length !== 42) {
         return { transactions: [], totalCount: 0 };
       }
-      const result = await getTransactionHistory(walletAddress, 0, 'latest', MAX_TRANSFER_PAGE, 0); // fetch most recent page; client-side filter/paginate below
+      const result = await getTransactionHistory(walletAddress, MAX_TRANSFER_PAGE, 0); // fetch most recent page; client-side filter/paginate below
       return { ...result, totalCount: result.transactions.length };
     },
     enabled: !!walletAddress && walletAddress !== '0x' && walletAddress.length === 42,
