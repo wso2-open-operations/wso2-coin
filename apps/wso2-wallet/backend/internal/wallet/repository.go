@@ -52,9 +52,10 @@ type TxnInsert struct {
 	Reference   string
 }
 
-// Queries is the set of writes available inside a database transaction.
+// Queries is the set of reads and writes available inside a database transaction.
 type Queries interface {
 	LockBalance(ctx context.Context, address string) (string, error)
+	CountWalletsByEmail(ctx context.Context, email string) (int, error)
 	UpdateBalance(ctx context.Context, address, encBalance string) error
 	InsertWallet(ctx context.Context, address, email, encBalance string, isDefault bool) error
 	InsertTransaction(ctx context.Context, t TxnInsert) error
@@ -199,6 +200,16 @@ func (q *txQueries) LockBalance(ctx context.Context, address string) (string, er
 		return "", fmt.Errorf("wallet %s has no balance", address)
 	}
 	return bal.String, nil
+}
+
+func (q *txQueries) CountWalletsByEmail(ctx context.Context, email string) (int, error) {
+	var n int
+	err := q.tx.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM user_wallet WHERE user_email = ?", email).Scan(&n)
+	if err != nil {
+		return 0, fmt.Errorf("count wallets: %w", err)
+	}
+	return n, nil
 }
 
 func (q *txQueries) UpdateBalance(ctx context.Context, address, encBalance string) error {

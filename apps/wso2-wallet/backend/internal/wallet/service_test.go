@@ -104,6 +104,10 @@ func (q *fakeQueries) LockBalance(_ context.Context, address string) (string, er
 	return w.Balance.String, nil
 }
 
+func (q *fakeQueries) CountWalletsByEmail(_ context.Context, email string) (int, error) {
+	return q.r.CountWalletsByEmail(context.Background(), email)
+}
+
 func (q *fakeQueries) UpdateBalance(_ context.Context, address, encBalance string) error {
 	w := q.r.find(address)
 	if w == nil {
@@ -216,6 +220,33 @@ func TestCreateWalletNoAllocationForExternalDomain(t *testing.T) {
 	}
 	if got := balanceOf(t, enc, repo, "0xfund"); got != "100.000000000" {
 		t.Errorf("funding balance = %q, want unchanged 100.000000000", got)
+	}
+}
+
+func TestCreateWalletSecondHasNoAllocation(t *testing.T) {
+	enc := newEnc(t)
+	repo := &fakeRepo{}
+	seed(t, enc, repo, "0xfund", "system", "100", false)
+	svc := NewService(repo, enc, InitialCoins{Enabled: true, Amount: "10", FundingWallet: "0xfund", EmailDomain: "wso2.com"})
+
+	if _, err := svc.CreateWallet(context.Background(), "alice@wso2.com"); err != nil {
+		t.Fatalf("first CreateWallet: %v", err)
+	}
+	second, err := svc.CreateWallet(context.Background(), "alice@wso2.com")
+	if err != nil {
+		t.Fatalf("second CreateWallet: %v", err)
+	}
+	if second.DefaultWallet {
+		t.Error("second wallet should not be the default")
+	}
+	if got := balanceOf(t, enc, repo, second.Address); got != "0.000000000" {
+		t.Errorf("second wallet balance = %q, want 0.000000000", got)
+	}
+	if len(repo.txns) != 1 {
+		t.Errorf("allocation transactions = %d, want 1", len(repo.txns))
+	}
+	if got := balanceOf(t, enc, repo, "0xfund"); got != "90.000000000" {
+		t.Errorf("funding balance = %q, want 90.000000000 (debited once)", got)
 	}
 }
 

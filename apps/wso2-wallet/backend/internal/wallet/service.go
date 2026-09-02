@@ -96,26 +96,29 @@ func (s *Service) CreateWallet(ctx context.Context, email string) (model.Wallet,
 	if err != nil {
 		return model.Wallet{}, err
 	}
-	isFirst := count == 0
 
-	if isFirst && s.allocationApplies(email) {
-		if err := s.createWithAllocation(ctx, address, email); err != nil {
+	var isDefault bool
+	switch {
+	case count > 0:
+		// Not the user's first wallet: a plain, non-default, zero-balance wallet.
+		if err := s.createZeroWallet(ctx, address, email, false); err != nil {
 			return model.Wallet{}, err
 		}
-	} else {
-		encZero, err := s.enc.Encrypt(money.FormatUnits(big.NewInt(0)), balanceAAD(address))
+	case s.allocationApplies(email):
+		// First wallet with the initial coin allocation, re-checked under lock.
+		isDefault, err = s.createFirstWithAllocation(ctx, address, email)
 		if err != nil {
 			return model.Wallet{}, err
 		}
-		err = s.repo.Tx(ctx, func(q Queries) error {
-			return q.InsertWallet(ctx, address, email, encZero, isFirst)
-		})
-		if err != nil {
+	default:
+		// First wallet, no allocation.
+		isDefault = true
+		if err := s.createZeroWallet(ctx, address, email, true); err != nil {
 			return model.Wallet{}, err
 		}
 	}
 
-	return model.Wallet{Address: address, DefaultWallet: isFirst, CreatedOn: time.Now().UTC().Format(time.RFC3339)}, nil
+	return model.Wallet{Address: address, DefaultWallet: isDefault, CreatedOn: time.Now().UTC().Format(time.RFC3339)}, nil
 }
 
 func (s *Service) allocationApplies(email string) bool {
@@ -123,35 +126,63 @@ func (s *Service) allocationApplies(email string) bool {
 		strings.HasSuffix(strings.ToLower(strings.TrimSpace(email)), "@"+strings.ToLower(s.initialCoins.EmailDomain))
 }
 
-func (s *Service) createWithAllocation(ctx context.Context, address, email string) error {
+func (s *Service) createZeroWallet(ctx context.Context, address, email string, isDefault bool) error {
+	encZero, err := s.enc.Encrypt(money.FormatUnits(big.NewInt(0)), balanceAAD(address))
+	if err != nil {
+		return err
+	}
+	return s.repo.Tx(ctx, func(q Queries) error {
+		return q.InsertWallet(ctx, address, email, encZero, isDefault)
+	})
+}
+
+// createFirstWithAllocation inserts the user's first wallet with the initial coin
+// allocation, debiting the funding wallet. Under the funding-wallet lock (which
+// serializes concurrent allocations) it re-checks that the user still has no wallet;
+// if a concurrent create already made their first wallet it falls back to a plain
+// zero-balance wallet with no second allocation, and reports isDefault=false.
+func (s *Service) createFirstWithAllocation(ctx context.Context, address, email string) (bool, error) {
 	amount, err := money.ParseUnits(s.initialCoins.Amount)
 	if err != nil {
-		return fmt.Errorf("parse initial coins amount: %w", err)
+		return false, fmt.Errorf("parse initial coins amount: %w", err)
 	}
 	encInitial, err := s.enc.Encrypt(money.FormatUnits(amount), balanceAAD(address))
 	if err != nil {
-		return err
+		return false, err
 	}
 	ref, err := newReference()
 	if err != nil {
-		return err
+		return false, err
 	}
 	encAmount, err := s.enc.Encrypt(money.FormatUnits(amount), amountAADForRef(ref))
 	if err != nil {
-		return err
+		return false, err
 	}
 	funding := s.initialCoins.FundingWallet
 
-	return s.repo.Tx(ctx, func(q Queries) error {
-		if err := q.InsertWallet(ctx, address, email, encInitial, true); err != nil {
-			return err
-		}
+	isDefault := true
+	err = s.repo.Tx(ctx, func(q Queries) error {
 		fundingUnits, err := s.lockedUnits(ctx, q, funding)
 		if err != nil {
 			return err
 		}
+		count, err := q.CountWalletsByEmail(ctx, email)
+		if err != nil {
+			return err
+		}
+		if count > 0 {
+			isDefault = false
+			encZero, err := s.enc.Encrypt(money.FormatUnits(big.NewInt(0)), balanceAAD(address))
+			if err != nil {
+				return err
+			}
+			return q.InsertWallet(ctx, address, email, encZero, false)
+		}
 		if fundingUnits.Cmp(amount) < 0 {
 			return ErrInsufficientFunds
+		}
+		if err := q.InsertWallet(ctx, address, email, encInitial, true); err != nil {
+			return err
 		}
 		encFunding, err := s.enc.Encrypt(money.FormatUnits(new(big.Int).Sub(fundingUnits, amount)), balanceAAD(funding))
 		if err != nil {
@@ -162,6 +193,10 @@ func (s *Service) createWithAllocation(ctx context.Context, address, email strin
 		}
 		return q.InsertTransaction(ctx, TxnInsert{FromAddress: funding, ToAddress: address, Amount: encAmount, Reference: ref})
 	})
+	if err != nil {
+		return false, err
+	}
+	return isDefault, nil
 }
 
 // SetPrimary marks one of the caller's wallets as their default.
