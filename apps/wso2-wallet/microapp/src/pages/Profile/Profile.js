@@ -21,9 +21,7 @@ import {
   useState,
 } from 'react';
 
-import {
-  Modal,
-} from 'antd';
+import { Modal } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 
@@ -35,21 +33,38 @@ import {
   PlusOutlined,
   QrcodeOutlined,
   RightOutlined,
+  SwapOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
 import { QRCodeSVG } from 'qrcode.react';
 
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { STORAGE_KEYS } from '../../constants/configs';
 import {
   ERROR,
   ERROR_READING_WALLET_DETAILS,
   ERROR_CREATING_WALLET,
+  ERROR_SWITCHING_WALLET,
+  ERROR_SETTING_DEFAULT,
   CREATE_A_NEW_WALLET,
+  CREATE_WALLET_CONFIRM,
+  CREATE,
+  CANCEL,
   SUCCESS,
   SUCCESS_WALLET_CREATED,
   OK,
   SHOW_WALLET_ADDRESS,
   WALLET_ADDRESS_COPIED,
+  SWITCH_TO_THIS_WALLET,
+  CURRENTLY_VIEWING,
+  VIEWING_TAG,
+  SET_AS_DEFAULT,
+  DEFAULT_WALLET_LABEL,
+  DEFAULT_TAG,
+  DEFAULT_REWARDS_INFO,
+  SET_DEFAULT_INFO,
+  SWITCHED_TO_WALLET,
+  DEFAULT_WALLET_UPDATED,
 } from '../../constants/strings';
 import { showToast, showAlertBox } from '../../helpers/alerts';
 import {
@@ -79,7 +94,9 @@ function Profile() {
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isSettingPrimary, setIsSettingPrimary] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isCreateConfirmOpen, setIsCreateConfirmOpen] = useState(false);
 
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isWalletsExpanded, setIsWalletsExpanded] = useState(false);
@@ -111,21 +128,37 @@ function Profile() {
     setTimeout(() => setIsAddressCopied(false), 2000);
   };
 
-  const handleSetAsPrimary = async () => {
+  // Switches only the locally-active wallet (what Home shows); does not change the
+  // server-side default wallet.
+  const handleSwitchToWallet = async () => {
+    if (!selectedWallet) return;
+    setIsSwitching(true);
+    try {
+      await saveLocalDataAsync(STORAGE_KEYS.WALLET_ADDRESS, selectedWallet.walletAddress);
+      setWalletAddress(selectedWallet.walletAddress);
+      showToast(SUCCESS, SWITCHED_TO_WALLET);
+    } catch (error) {
+      console.error('Error switching wallet:', error);
+      showAlertBox(ERROR, ERROR_SWITCHING_WALLET, OK);
+    } finally {
+      setIsSwitching(false);
+    }
+  };
+
+  // Sets only the server-side default wallet (where coin rewards are received); does
+  // not change which wallet is locally active.
+  const handleSetAsDefault = async () => {
     if (!selectedWallet || selectedWallet.defaultWallet) return;
 
     setIsSettingPrimary(true);
     try {
       await setWalletAsPrimary(selectedWallet.walletAddress);
-      await saveLocalDataAsync(STORAGE_KEYS.WALLET_ADDRESS, selectedWallet.walletAddress);
-      setWalletAddress(selectedWallet.walletAddress);
-      showToast(SUCCESS, 'Primary wallet updated');
+      setSelectedWallet((prev) => (prev ? { ...prev, defaultWallet: true } : prev));
+      showToast(SUCCESS, DEFAULT_WALLET_UPDATED);
       await queryClient.invalidateQueries({ queryKey: ['userWallets'] });
-      setIsWalletModalOpen(false);
-      setSelectedWallet(null);
     } catch (error) {
-      console.error('Error setting wallet as primary:', error);
-      showAlertBox(ERROR, "Couldn't set as primary wallet", OK);
+      console.error('Error setting default wallet:', error);
+      showAlertBox(ERROR, ERROR_SETTING_DEFAULT, OK);
     } finally {
       setIsSettingPrimary(false);
     }
@@ -134,25 +167,18 @@ function Profile() {
   const createNewWallet = async () => {
     setIsCreating(true);
     try {
-      await createWallet();
+      const wallet = await createWallet();
+      await saveLocalDataAsync(STORAGE_KEYS.WALLET_ADDRESS, wallet.walletAddress);
+      setWalletAddress(wallet.walletAddress);
       showToast(SUCCESS, SUCCESS_WALLET_CREATED);
       await queryClient.invalidateQueries({ queryKey: ['userWallets'] });
+      setIsCreateConfirmOpen(false);
     } catch (error) {
       console.error('Error creating wallet:', error);
       showAlertBox(ERROR, ERROR_CREATING_WALLET, OK);
     } finally {
       setIsCreating(false);
     }
-  };
-
-  const handleCreateWallet = () => {
-    Modal.confirm({
-      title: CREATE_A_NEW_WALLET,
-      content: 'Are you sure you want to create a new wallet?',
-      okText: 'Create',
-      cancelText: 'Cancel',
-      onOk: createNewWallet,
-    });
   };
 
   return (
@@ -175,9 +201,17 @@ function Profile() {
           const showTagRow = isActive || isPrimary;
           return (
             <div className="profile-modal">
-              <div className="profile-modal-address">
-                {selectedWallet.walletAddress}
-              </div>
+              <CopyToClipboard
+                text={selectedWallet.walletAddress}
+                onCopy={handleCopyAddress}
+              >
+                <button type="button" className="profile-modal-address">
+                  <span className="profile-modal-address-text">
+                    {selectedWallet.walletAddress}
+                  </span>
+                  {isAddressCopied ? <CheckOutlined /> : <CopyOutlined />}
+                </button>
+              </CopyToClipboard>
               <div className="profile-modal-meta">
                 Created on{' '}
                 {new Date(selectedWallet.createdOn).toLocaleString()}
@@ -186,69 +220,54 @@ function Profile() {
               {showTagRow && (
                 <div className="profile-modal-tag-row">
                   {isPrimary && (
-                    <span className="profile-primary-tag">Default</span>
+                    <span className="profile-primary-tag">{DEFAULT_TAG}</span>
                   )}
                   {isActive && (
-                    <span className="profile-active-tag">Active</span>
+                    <span className="profile-active-tag">{CURRENTLY_VIEWING}</span>
                   )}
                 </div>
               )}
 
-              {isPrimary && (
-                <div className="profile-modal-explainer is-primary">
-                  <div className="profile-modal-explainer-title">
-                    Default Wallet
-                  </div>
-                  <div className="profile-modal-explainer-text">
-                    This is your default wallet. Coin rewards will be received
-                    to this wallet. To change it, tap another wallet and set it
-                    as default.
-                  </div>
+              <div
+                className={`profile-modal-explainer ${isPrimary ? 'is-primary' : ''}`}
+              >
+                <div className="profile-modal-explainer-text">
+                  {isPrimary ? DEFAULT_REWARDS_INFO : SET_DEFAULT_INFO}
                 </div>
-              )}
+              </div>
 
-              {isActive && (
-                <div className="profile-modal-explainer is-active">
-                  <div className="profile-modal-explainer-title">
-                    Active Wallet
-                  </div>
-                  <div className="profile-modal-explainer-text">
-                    This is the wallet you are currently using. Balance and
-                    transactions are shown for this wallet. Set another wallet
-                    as default to switch.
-                  </div>
-                </div>
-              )}
-
-              {!isPrimary && !isActive && (
-                <div className="profile-modal-explainer">
-                  <div className="profile-modal-explainer-title">
-                    Not your default wallet
-                  </div>
-                  <div className="profile-modal-explainer-text">
-                    Set this wallet as default to receive your coin rewards
-                    here.
-                  </div>
-                </div>
-              )}
-
-              {!isPrimary && (
+              <div className="profile-modal-actions">
                 <button
                   type="button"
                   className="profile-modal-primary-btn"
-                  onClick={handleSetAsPrimary}
-                  disabled={isSettingPrimary}
+                  onClick={handleSwitchToWallet}
+                  disabled={isActive || isSwitching}
+                >
+                  {isSwitching ? (
+                    <LoadingOutlined style={{ fontSize: 14 }} spin />
+                  ) : isActive ? (
+                    <CheckOutlined style={{ fontSize: 14 }} />
+                  ) : (
+                    <SwapOutlined style={{ fontSize: 14 }} />
+                  )}
+                  <span>
+                    {isActive ? CURRENTLY_VIEWING : SWITCH_TO_THIS_WALLET}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="profile-modal-secondary-btn"
+                  onClick={handleSetAsDefault}
+                  disabled={isPrimary || isSettingPrimary}
                 >
                   {isSettingPrimary ? (
                     <LoadingOutlined style={{ fontSize: 14 }} spin />
-                  ) : (
+                  ) : isPrimary ? (
                     <CheckOutlined style={{ fontSize: 14 }} />
-                  )}
-                  <span>
-                    {isSettingPrimary ? 'Updating…' : 'Make this my default'}
-                  </span>
+                  ) : null}
+                  <span>{isPrimary ? DEFAULT_WALLET_LABEL : SET_AS_DEFAULT}</span>
                 </button>
-              )}
+              </div>
             </div>
           );
         })()}
@@ -280,6 +299,18 @@ function Profile() {
         </div>
       </Modal>
 
+      {/* Create Wallet Confirmation */}
+      <ConfirmModal
+        open={isCreateConfirmOpen}
+        title={CREATE_A_NEW_WALLET}
+        description={CREATE_WALLET_CONFIRM}
+        confirmText={CREATE}
+        cancelText={CANCEL}
+        loading={isCreating}
+        onConfirm={createNewWallet}
+        onCancel={() => setIsCreateConfirmOpen(false)}
+      />
+
       <div className="profile-section">
         <div className="profile-group-label">Wallet</div>
         <div className="profile-card">
@@ -301,7 +332,7 @@ function Profile() {
           <button
             type="button"
             className="profile-btn"
-            onClick={handleCreateWallet}
+            onClick={() => setIsCreateConfirmOpen(true)}
             disabled={isCreating}
           >
             <span className="profile-btn-icon neutral">
@@ -338,9 +369,9 @@ function Profile() {
             : count === 0
               ? 'Nothing to display yet'
               : activeWallet
-                ? `Active ${formatWalletAddress(activeWallet.walletAddress)}`
+                ? `${VIEWING_TAG} ${formatWalletAddress(activeWallet.walletAddress)}`
                 : primaryWallet
-                  ? `Default ${formatWalletAddress(primaryWallet.walletAddress)}`
+                  ? `${DEFAULT_TAG} ${formatWalletAddress(primaryWallet.walletAddress)}`
                   : 'Tap to view all';
           const canExpand = !isLoadingWallets && count > 0;
           const isOpen = canExpand && isWalletsExpanded;
@@ -411,10 +442,10 @@ function Profile() {
                           </span>
                           <span className="profile-wallet-tags">
                             {isActive && (
-                              <span className="profile-active-tag">Active</span>
+                              <span className="profile-active-tag">{VIEWING_TAG}</span>
                             )}
                             {wallet.defaultWallet && (
-                              <span className="profile-primary-tag">Default</span>
+                              <span className="profile-primary-tag">{DEFAULT_TAG}</span>
                             )}
                           </span>
                         </button>

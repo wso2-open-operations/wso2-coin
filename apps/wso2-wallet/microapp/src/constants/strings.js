@@ -43,13 +43,32 @@ export const HISTORY = "History";
 
 // create wallet
 export const CREATE_A_NEW_WALLET = "Create a new wallet";
+export const CREATE_WALLET_CONFIRM = "This creates a new wallet and switches to it.";
 export const WALLET_ADDRESS_COPIED = "Wallet address copied to clipboard";
+
+// common actions
+export const CONFIRM = "Confirm";
+export const CREATE = "Create";
+export const CANCEL = "Cancel";
 
 // wallet details
 export const SHOW_WALLET_ADDRESS = "Show Wallet Address";
 export const WALLET_ADDRESS = "Public Wallet Address";
 export const CONTINUE = "Continue";
 export const COPY_TO_CLIPBOARD = "Copy to clipboard";
+export const SWITCH_TO_THIS_WALLET = "Switch to this wallet";
+export const CURRENTLY_VIEWING = "Currently viewing";
+export const VIEWING_TAG = "Viewing";
+export const SET_AS_DEFAULT = "Set as default";
+export const DEFAULT_WALLET_LABEL = "Default wallet";
+export const DEFAULT_TAG = "Default";
+export const DEFAULT_REWARDS_INFO = "Coin rewards are received in this wallet.";
+export const SET_DEFAULT_INFO =
+  "Set this wallet as default to receive coin rewards here.";
+export const SWITCHED_TO_WALLET = "Switched to this wallet";
+export const DEFAULT_WALLET_UPDATED = "Default wallet updated";
+export const ERROR_SWITCHING_WALLET = "Couldn't switch wallet";
+export const ERROR_SETTING_DEFAULT = "Couldn't set default wallet";
 
 export const OK = "Ok";
 export const ERROR = "Error";

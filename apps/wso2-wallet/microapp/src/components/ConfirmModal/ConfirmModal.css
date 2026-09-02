@@ -1,0 +1,98 @@
+/*
+ * Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+.confirm-modal {
+  padding: 4px 0;
+}
+
+.confirm-modal-text {
+  font-size: 13px;
+  color: #78716C;
+  line-height: 1.5;
+  text-align: left;
+  margin-bottom: 18px;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.confirm-modal-cancel {
+  flex: 1;
+  height: 48px;
+  background: #ffffff;
+  border: 1.5px solid #E5E0D8;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1C1917;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.confirm-modal-cancel:focus {
+  outline: none;
+}
+
+.confirm-modal-cancel:active:not(:disabled) {
+  background: #F0EDE8;
+  transform: scale(0.98);
+}
+
+.confirm-modal-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirm-modal-confirm {
+  flex: 1.4;
+  height: 48px;
+  background: var(--orange-primary, #ff7300);
+  border: none;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: -0.2px;
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.25);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.confirm-modal-confirm:focus {
+  outline: none;
+}
+
+.confirm-modal-confirm:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.confirm-modal-confirm:disabled {
+  background: #FCA5A5;
+  box-shadow: none;
+  cursor: not-allowed;
+}

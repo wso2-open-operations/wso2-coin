@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { Avatar, Modal } from "antd";
+import { Avatar } from "antd";
 import { useState } from "react";
 import { LoadingOutlined, PlusOutlined } from "@ant-design/icons";
 import "./CreateWallet.css";
@@ -23,6 +23,9 @@ import { useNavigate } from "react-router-dom";
 import {
   WSO2_WALLET,
   CREATE_A_NEW_WALLET,
+  CREATE_WALLET_CONFIRM,
+  CREATE,
+  CANCEL,
   SUCCESS,
   SUCCESS_WALLET_CREATED,
   OK,
@@ -33,9 +36,11 @@ import { STORAGE_KEYS } from "../../constants/configs";
 import { saveLocalDataAsync } from "../../helpers/storage";
 import { createWallet } from "../../services/wallet.service";
 import { showAlertBox, showToast } from "../../helpers/alerts";
+import ConfirmModal from "../../components/ConfirmModal/ConfirmModal";
 
 function CreateWallet() {
   const [walletCreateLoading, setWalletCreateLoading] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const navigate = useNavigate();
 
   const createNewWallet = async () => {
@@ -44,6 +49,7 @@ function CreateWallet() {
       const wallet = await createWallet();
       await saveLocalDataAsync(STORAGE_KEYS.WALLET_ADDRESS, wallet.walletAddress);
       showToast(SUCCESS, SUCCESS_WALLET_CREATED);
+      setIsConfirmOpen(false);
       navigate("/");
     } catch (error) {
       console.log(error);
@@ -53,18 +59,19 @@ function CreateWallet() {
     }
   };
 
-  const handleCreateNewWallet = () => {
-    Modal.confirm({
-      title: CREATE_A_NEW_WALLET,
-      content: "Are you sure you want to create a new wallet?",
-      okText: "Create",
-      cancelText: "Cancel",
-      onOk: createNewWallet,
-    });
-  };
-
   return (
     <div className="cw-page">
+      <ConfirmModal
+        open={isConfirmOpen}
+        title={CREATE_A_NEW_WALLET}
+        description={CREATE_WALLET_CONFIRM}
+        confirmText={CREATE}
+        cancelText={CANCEL}
+        loading={walletCreateLoading}
+        onConfirm={createNewWallet}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
+
       <div className="cw-body">
         <div className="cw-logo">
           <Avatar size={96} src={Wso2MainImg} />
@@ -79,7 +86,7 @@ function CreateWallet() {
         <button
           type="button"
           className="cw-btn-primary"
-          onClick={handleCreateNewWallet}
+          onClick={() => setIsConfirmOpen(true)}
           disabled={walletCreateLoading}
         >
           {walletCreateLoading ? (
