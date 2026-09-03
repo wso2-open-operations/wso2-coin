@@ -1,0 +1,289 @@
+/*
+ * Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/* ── REQUEST COINS PAGE ─────────────────────────────────────────── */
+
+.receive-page {
+  padding: 4px 0 24px;
+}
+
+/* Breadcrumb (Home › Request Coins) */
+/* Intro copy */
+.receive-intro {
+  padding: 16px 24px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #78716C;
+  text-align: left;
+}
+
+/* Form sections */
+.receive-form {
+  padding: 18px 24px 0;
+}
+
+.receive-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #78716C;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+/* Wallet address card */
+.receive-address-card {
+  background: #ffffff;
+  border: 1.5px solid #E5E0D8;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.receive-address-card-text {
+  font-family: 'JetBrains Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  color: #1C1917;
+  word-break: break-all;
+  text-align: left;
+  letter-spacing: 0.2px;
+  line-height: 1.45;
+}
+
+.receive-hint {
+  font-size: 12px;
+  color: #78716C;
+  margin-top: 7px;
+  padding-left: 2px;
+  text-align: left;
+}
+
+/* Amount input — matches send page */
+.receive-amount-wrap {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid #E5E0D8;
+  border-radius: 16px;
+  padding: 0 16px;
+  height: 64px;
+  transition: all 0.15s ease;
+}
+
+.receive-amount-wrap.is-focused {
+  border-color: var(--orange-primary, #ff7300);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.08);
+}
+
+.receive-amount-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1C1917;
+  letter-spacing: -0.8px;
+  padding: 0;
+}
+
+.receive-amount-input::placeholder {
+  color: #D1C9C0;
+}
+
+.receive-ticker-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFF7ED;
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 20px;
+  padding: 5px 10px;
+  flex-shrink: 0;
+}
+
+.receive-ticker-pill-sm {
+  padding: 3px 8px;
+}
+
+.receive-ticker-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--orange-primary, #ff7300);
+  letter-spacing: 0.3px;
+}
+
+/* Primary action button */
+.receive-primary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 28px 24px 0;
+  height: 54px;
+  width: calc(100% - 48px);
+  background: var(--orange-primary, #ff7300);
+  border: none;
+  border-radius: 18px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.28);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.receive-primary-btn:focus {
+  outline: none;
+}
+
+.receive-primary-btn:active:not(.is-disabled) {
+  transform: scale(0.98);
+}
+
+.receive-primary-btn.is-disabled,
+.receive-primary-btn:disabled {
+  background: #E5E0D8;
+  color: #78716C;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Inline variant — used in the QR-code action row */
+.receive-primary-btn-inline {
+  flex: 1.4;
+  margin: 0;
+  width: auto;
+  height: 52px;
+  font-size: 14px;
+}
+
+/* QR card */
+.receive-qr-card {
+  margin: 18px 24px 0;
+  background: #ffffff;
+  border: 1.5px solid #E5E0D8;
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.receive-qr-canvas {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px;
+}
+
+.receive-qr-info {
+  background: #FAFAF9;
+  border: 1px solid #F0EDE8;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.receive-qr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.receive-qr-row-stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+}
+
+.receive-qr-divider {
+  height: 1px;
+  background: #F0EDE8;
+  margin: 10px 0;
+}
+
+.receive-qr-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #78716C;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.receive-qr-amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.receive-qr-amount-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1C1917;
+  letter-spacing: -0.4px;
+}
+
+.receive-qr-address {
+  font-family: 'JetBrains Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  color: #374151;
+  font-weight: 500;
+}
+
+/* Actions row (New QR + Share) */
+.receive-actions {
+  display: flex;
+  gap: 10px;
+  padding: 18px 24px 0;
+}
+
+.receive-secondary-btn {
+  flex: 1;
+  height: 52px;
+  background: #ffffff;
+  border: 1.5px solid #E5E0D8;
+  border-radius: 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1C1917;
+  letter-spacing: -0.2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.receive-secondary-btn:focus {
+  outline: none;
+}
+
+.receive-secondary-btn:active {
+  background: #F0EDE8;
+  transform: scale(0.98);
+}
