@@ -43,6 +43,10 @@ import (
 	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/wallet"
 )
 
+// listenAddr is the address the HTTP server binds. Must match the port declared
+// in .choreo/component.yaml.
+const listenAddr = ":8080"
+
 func main() {
 	middleware.ConfigureLogger()
 	if err := run(); err != nil {
@@ -106,7 +110,7 @@ func run() error {
 					middleware.Auth(verifier)(mux)))))
 
 	srv := &http.Server{
-		Addr:              cfg.Port,
+		Addr:              listenAddr,
 		Handler:           root,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
@@ -115,7 +119,7 @@ func run() error {
 	}
 
 	go func() {
-		slog.InfoContext(ctx, "server starting", "port", cfg.Port)
+		slog.InfoContext(ctx, "server starting", "addr", listenAddr)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.ErrorContext(ctx, "server error", "err", err)
 			stop()
