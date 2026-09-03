@@ -479,6 +479,7 @@ function Profile() {
                         <button
                           key={wallet.walletAddress + idx}
                           type="button"
+                          tabIndex={isOpen ? 0 : -1}
                           className={`profile-wallet-row ${isActive ? 'is-active' : ''}`}
                           onClick={() => {
                             setSelectedWallet(wallet);

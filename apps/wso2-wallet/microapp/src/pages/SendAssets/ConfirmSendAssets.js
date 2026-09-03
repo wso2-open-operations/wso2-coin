@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Avatar } from "antd";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -56,6 +56,8 @@ function ConfirmSendAssets() {
   const [senderAddress, setSenderAddress] = useState("");
   const [isTransferLoading, setIsTransferLoading] = useState(false);
   const [paymentFlowData, setPaymentFlowData] = useState(null);
+  // Synchronous guard against double submission (state updates lag a rapid re-tap).
+  const isSubmittingRef = useRef(false);
 
   const fetchLocalTxDetails = async () => {
     try {
@@ -125,6 +127,9 @@ function ConfirmSendAssets() {
   };
 
   const handleConfirm = async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+
     let receipt = null;
     let transferFailed = false;
 
@@ -133,6 +138,7 @@ function ConfirmSendAssets() {
       if (!isBridgeReady) {
         console.error(ERROR_BRIDGE_NOT_READY);
         showAlertBox(ERROR, ERROR_BRIDGE_NOT_READY, OK);
+        isSubmittingRef.current = false;
         return;
       }
 
@@ -165,6 +171,7 @@ function ConfirmSendAssets() {
 
       showAlertBox(ERROR, ERROR_TRANSFERRING_TOKEN, OK);
       setIsTransferLoading(false);
+      isSubmittingRef.current = false;
     }
 
     if (receipt) {
@@ -227,6 +234,7 @@ function ConfirmSendAssets() {
       }, 500);
     } else if (!transferFailed) {
       setIsTransferLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 

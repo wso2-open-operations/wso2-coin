@@ -88,6 +88,9 @@ const TransactionItem = ({ transaction, index }) => {
       aria-expanded={isExpanded}
       onClick={toggle}
       onKeyDown={(e) => {
+        // Ignore keys bubbling up from nested controls (e.g. the copy button),
+        // so their Enter/Space keeps working instead of toggling the row.
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           toggle();

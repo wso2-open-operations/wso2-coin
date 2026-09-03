@@ -23,6 +23,11 @@ import { getLocalDataAsync } from "../helpers/storage";
 export const MAX_TRANSFER_PAGE = 100;
 
 const request = async (path, { method = "GET", body } = {}) => {
+  if (!BACKEND_BASE_URL) {
+    throw new Error(
+      "Wallet backend URL is not configured (set REACT_APP_WALLET_BACKEND_BASE_URL)"
+    );
+  }
   const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
     method,
     cache: "no-store",

@@ -136,6 +136,7 @@ export const saveLocalData = (key, value, callback, failedToRespondCallback) => 
       failedToRespondCallback(error);
   } else {
     console.error("Native bridge is not available");
+    failedToRespondCallback(new Error("Native bridge is not available"));
   }
 };
 
@@ -160,6 +161,7 @@ export const getLocalData = (key, callback, failedToRespondCallback) => {
       failedToRespondCallback(error);
   } else {
     console.error("Native bridge is not available");
+    failedToRespondCallback(new Error("Native bridge is not available"));
   }
 };
 

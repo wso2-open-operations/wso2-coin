@@ -49,3 +49,10 @@ code {
   font-family: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas,
     'Courier New', monospace;
 }
+
+/* Always show a visible focus indicator for keyboard users, even where a
+   component clears the default outline for mouse focus. */
+:focus-visible {
+  outline: 2px solid var(--orange-primary, #ff7300) !important;
+  outline-offset: 2px;
+}

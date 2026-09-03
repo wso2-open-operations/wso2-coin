@@ -247,8 +247,10 @@ function SendAssets() {
           }
 
           if (parsedData.coin_amount) {
-            const amount = parseFloat(parsedData.coin_amount);
-            if (isNaN(amount) || amount <= 0) {
+            const amountStr = String(parsedData.coin_amount).trim();
+            // Require a complete positive decimal; parseFloat alone would accept
+            // strings like "1invalid" as 1 and then persist the raw value.
+            if (!/^\d+(\.\d+)?$/.test(amountStr) || parseFloat(amountStr) <= 0) {
               messageApi.error("QR code has an invalid amount");
               setIsScanning(false);
               return;
@@ -260,7 +262,7 @@ function SendAssets() {
             );
             await saveLocalDataAsync(
               STORAGE_KEYS.SENDING_AMOUNT,
-              parsedData.coin_amount,
+              amountStr,
             );
             messageApi.success("Payment request loaded");
 
