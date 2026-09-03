@@ -27,7 +27,6 @@ go run ./cmd/server
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `PORT` | no | `:8081` | Listen address |
 | `CORS_ALLOWED_ORIGIN` | no | — | Allowed CORS origin; empty denies cross-origin requests |
 | `JWT_JWKS_URL` | no | — | JWKS endpoint for token verification; required unless `JWT_ALLOW_INSECURE=true` |
 | `JWT_ISSUER` | no | — | Expected token issuer (`iss`), checked when set |

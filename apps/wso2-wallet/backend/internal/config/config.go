@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -31,7 +30,6 @@ const encryptionKeySize = 32
 
 // Config is the fully resolved, validated service configuration.
 type Config struct {
-	Port              string
 	CORSAllowedOrigin string
 	JWT               JWTConfig
 	DB                DBConfig
@@ -108,7 +106,6 @@ func Load() (Config, error) {
 	}
 
 	return Config{
-		Port:              listenAddr(envOrDefault("PORT", ":8081")),
 		CORSAllowedOrigin: os.Getenv("CORS_ALLOWED_ORIGIN"),
 		JWT: JWTConfig{
 			JWKSURL:       os.Getenv("JWT_JWKS_URL"),
@@ -182,15 +179,6 @@ func envOrDefault(key, def string) string {
 		return v
 	}
 	return def
-}
-
-// listenAddr ensures the HTTP listen address carries a leading colon, so a bare
-// port number (e.g. Choreo's PORT=8080) becomes ":8080".
-func listenAddr(p string) string {
-	if !strings.Contains(p, ":") {
-		return ":" + p
-	}
-	return p
 }
 
 func envIntOrDefault(key string, def int) int {
