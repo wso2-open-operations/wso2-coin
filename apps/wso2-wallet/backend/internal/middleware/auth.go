@@ -83,6 +83,9 @@ type Verifier struct {
 // gateway; Verified reports false in that case so callers can warn.
 func NewVerifier(ctx context.Context, cfg config.JWTConfig) (*Verifier, error) {
 	if cfg.JWKSURL == "" {
+		if !cfg.AllowInsecure {
+			return nil, fmt.Errorf("JWT_JWKS_URL is required; set JWT_ALLOW_INSECURE=true only for local development behind a trusted gateway")
+		}
 		return &Verifier{}, nil
 	}
 	jwks, err := keyfunc.NewDefaultCtx(ctx, []string{cfg.JWKSURL})

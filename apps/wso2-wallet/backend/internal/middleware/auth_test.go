@@ -17,13 +17,31 @@
 package middleware
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/config"
 )
+
+func TestNewVerifierRequiresJWKS(t *testing.T) {
+	// No JWKS URL and no explicit dev opt-in must fail (fail closed).
+	if _, err := NewVerifier(context.Background(), config.JWTConfig{}); err == nil {
+		t.Fatal("expected error when JWKS is unset and AllowInsecure is false")
+	}
+	// Explicit dev opt-in yields a decode-only verifier.
+	v, err := NewVerifier(context.Background(), config.JWTConfig{AllowInsecure: true})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if v.Verified() {
+		t.Fatal("decode-only verifier should report Verified() == false")
+	}
+}
 
 func signToken(t *testing.T, key *rsa.PrivateKey, claims jwtClaims) string {
 	t.Helper()

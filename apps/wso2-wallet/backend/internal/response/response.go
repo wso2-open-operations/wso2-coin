@@ -20,6 +20,7 @@ package response
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 )
 
@@ -70,6 +71,14 @@ func DecodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			return errTooLarge
+		}
+		return errBadRequest
+	}
+	// Reject anything after the first JSON value (e.g. two concatenated objects).
+	if err := dec.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		var maxErr *http.MaxBytesError
 		if errors.As(err, &maxErr) {
 			return errTooLarge

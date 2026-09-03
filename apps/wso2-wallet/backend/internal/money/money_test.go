@@ -33,6 +33,11 @@ func TestParseAndFormatUnits(t *testing.T) {
 		{name: "too many decimals", in: "1.0000000001", wantError: true},
 		{name: "not a number", in: "abc", wantError: true},
 		{name: "empty", in: "", wantError: true},
+		{name: "lone minus", in: "-", wantError: true},
+		{name: "lone dot", in: ".", wantError: true},
+		{name: "lone plus", in: "+", wantError: true},
+		{name: "minus dot", in: "-.", wantError: true},
+		{name: "double dot", in: "1.2.3", wantError: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

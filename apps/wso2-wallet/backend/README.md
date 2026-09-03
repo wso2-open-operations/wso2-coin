@@ -29,9 +29,10 @@ go run ./cmd/server
 |---|---|---|---|
 | `PORT` | no | `:8081` | Listen address |
 | `CORS_ALLOWED_ORIGIN` | no | — | Allowed CORS origin; empty denies cross-origin requests |
-| `JWT_JWKS_URL` | no | — | JWKS endpoint for token verification; empty decodes without verifying (local dev only) |
+| `JWT_JWKS_URL` | no | — | JWKS endpoint for token verification; required unless `JWT_ALLOW_INSECURE=true` |
 | `JWT_ISSUER` | no | — | Expected token issuer (`iss`), checked when set |
 | `JWT_AUDIENCE` | no | — | Expected token audience (`aud`), checked when set |
+| `JWT_ALLOW_INSECURE` | no | `false` | Allow startup without a JWKS (decode-only); local development only |
 | `DB_HOST` / `DB_PORT` | no | `localhost` / `3306` | MySQL host/port |
 | `DB_USER` | yes | — | MySQL user |
 | `DB_PASSWORD` | no | — | MySQL password |

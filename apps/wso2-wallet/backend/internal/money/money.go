@@ -38,16 +38,17 @@ func ParseUnits(s string) (*big.Int, error) {
 	s = strings.TrimPrefix(s, "-")
 
 	whole, frac, _ := strings.Cut(s, ".")
+	// Require actual digits: reject "-", ".", "+", "-.", "1.2.3" and similar, which
+	// would otherwise decode to 0 once frac is zero-padded below.
+	if whole+frac == "" || !isDigits(whole) || !isDigits(frac) {
+		return nil, fmt.Errorf("invalid amount %q", s)
+	}
 	if len(frac) > Decimals {
 		return nil, fmt.Errorf("amount has more than %d decimal places", Decimals)
 	}
 	frac += strings.Repeat("0", Decimals-len(frac))
 
-	digits := whole + frac
-	if digits == "" {
-		return nil, fmt.Errorf("invalid amount %q", s)
-	}
-	n, ok := new(big.Int).SetString(digits, 10)
+	n, ok := new(big.Int).SetString(whole+frac, 10)
 	if !ok {
 		return nil, fmt.Errorf("invalid amount %q", s)
 	}
@@ -55,6 +56,15 @@ func ParseUnits(s string) (*big.Int, error) {
 		n.Neg(n)
 	}
 	return n, nil
+}
+
+func isDigits(s string) bool {
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // FormatUnits renders base units as a fixed-point decimal string with Decimals digits.

@@ -65,7 +65,6 @@ type Queries interface {
 type Repository interface {
 	WalletsByEmail(ctx context.Context, email string) ([]WalletRow, error)
 	WalletByAddress(ctx context.Context, address string) (*WalletRow, error)
-	CountWalletsByEmail(ctx context.Context, email string) (int, error)
 	SetPrimary(ctx context.Context, email, address string) error
 	Transactions(ctx context.Context, address string, limit, offset int, direction string) ([]TxnRow, error)
 	Tx(ctx context.Context, fn func(Queries) error) error
@@ -115,15 +114,6 @@ func (r *mysqlRepository) WalletByAddress(ctx context.Context, address string) (
 		return nil, fmt.Errorf("query wallet: %w", err)
 	}
 	return &wr, nil
-}
-
-func (r *mysqlRepository) CountWalletsByEmail(ctx context.Context, email string) (int, error) {
-	var n int
-	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM user_wallet WHERE user_email = ?", email).Scan(&n)
-	if err != nil {
-		return 0, fmt.Errorf("count wallets: %w", err)
-	}
-	return n, nil
 }
 
 func (r *mysqlRepository) SetPrimary(ctx context.Context, email, address string) error {

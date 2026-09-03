@@ -41,13 +41,14 @@ type Config struct {
 
 // JWTConfig controls how the caller's token is verified. When JWKSURL is set the
 // token's signature, expiry and (if configured) issuer/audience are validated
-// against the JWKS. When JWKSURL is empty the token is decoded but not verified —
-// intended only for local development behind a trusted gateway; set JWKSURL in
-// every deployed environment.
+// against the JWKS. When JWKSURL is empty the service refuses to start unless
+// AllowInsecure is explicitly enabled (local development only), in which case
+// tokens are decoded but not verified.
 type JWTConfig struct {
-	JWKSURL  string
-	Issuer   string
-	Audience string
+	JWKSURL       string
+	Issuer        string
+	Audience      string
+	AllowInsecure bool
 }
 
 // DBConfig holds the MySQL connection settings.
@@ -109,9 +110,10 @@ func Load() (Config, error) {
 		Port:              envOrDefault("PORT", ":8081"),
 		CORSAllowedOrigin: os.Getenv("CORS_ALLOWED_ORIGIN"),
 		JWT: JWTConfig{
-			JWKSURL:  os.Getenv("JWT_JWKS_URL"),
-			Issuer:   os.Getenv("JWT_ISSUER"),
-			Audience: os.Getenv("JWT_AUDIENCE"),
+			JWKSURL:       os.Getenv("JWT_JWKS_URL"),
+			Issuer:        os.Getenv("JWT_ISSUER"),
+			Audience:      os.Getenv("JWT_AUDIENCE"),
+			AllowInsecure: envBool("JWT_ALLOW_INSECURE", false),
 		},
 		DB: DBConfig{
 			Host:                  envOrDefault("DB_HOST", "localhost"),
