@@ -1,0 +1,11 @@
+schemaVersion: "1.2"
+endpoints:
+  - name: wso2-wallet-backend
+    displayName: WSO2 Wallet Backend
+    service:
+      basePath: /
+      port: 8081
+    type: REST
+    networkVisibilities:
+      - Public
+    schemaFilePath: openapi.yaml
