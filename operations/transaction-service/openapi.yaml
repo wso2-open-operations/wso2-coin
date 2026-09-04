@@ -1,0 +1,218 @@
+openapi: 3.0.3
+info:
+  title: Transaction Service
+  version: 1.0.0
+  description: Client-scoped token-operations API for master wallet transfers and transaction queries.
+servers:
+  - url: /
+security:
+  - jwtAssertion: []
+paths:
+  /health:
+    get:
+      summary: Service liveness
+      security: []
+      responses:
+        "200":
+          description: Service is up
+  /wallets/master/balance:
+    get:
+      summary: Get the caller's master wallet balance
+      responses:
+        "200":
+          description: Balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Balance"
+        "403":
+          $ref: "#/components/responses/Error"
+  /wallets/master/transfer:
+    post:
+      summary: Transfer from the caller's master wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferRequest"
+      responses:
+        "201":
+          description: Transfer accepted
+          headers:
+            Location:
+              description: URL of the created transaction
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+  /wallets/{address}/balance:
+    get:
+      summary: Get any wallet's balance
+      parameters:
+        - $ref: "#/components/parameters/Address"
+      responses:
+        "200":
+          description: Balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Balance"
+        "404":
+          $ref: "#/components/responses/Error"
+  /transactions/search:
+    post:
+      summary: Browse and filter transactions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionSearchRequest"
+      responses:
+        "200":
+          description: Transaction page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionPage"
+  /transactions/{reference}:
+    get:
+      summary: Get a single transaction
+      parameters:
+        - $ref: "#/components/parameters/Reference"
+      responses:
+        "200":
+          description: Transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          $ref: "#/components/responses/Error"
+components:
+  securitySchemes:
+    jwtAssertion:
+      type: apiKey
+      in: header
+      name: X-Jwt-Assertion
+      description: Gateway-issued JWT assertion carrying the caller identity.
+  parameters:
+    Address:
+      name: address
+      in: path
+      required: true
+      schema:
+        type: string
+    Reference:
+      name: reference
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Balance:
+      type: object
+      properties:
+        walletAddress:
+          type: string
+        balance:
+          type: string
+          description: Decimal balance as a string
+    TransferRequest:
+      type: object
+      required: [toAddress, amount]
+      properties:
+        toAddress:
+          type: string
+        amount:
+          type: string
+          description: Decimal amount as a string
+    TransferResponse:
+      type: object
+      properties:
+        reference:
+          type: string
+        fromAddress:
+          type: string
+        toAddress:
+          type: string
+        amount:
+          type: string
+          description: Decimal amount as a string
+    TransactionSearchRequest:
+      type: object
+      required: [limit, offset]
+      properties:
+        fromAddresses:
+          type: array
+          items:
+            type: string
+        toAddresses:
+          type: array
+          items:
+            type: string
+        reference:
+          type: string
+        dateFrom:
+          type: string
+        dateTo:
+          type: string
+        limit:
+          type: integer
+          default: 15
+          maximum: 100
+        offset:
+          type: integer
+          default: 0
+    Transaction:
+      type: object
+      properties:
+        reference:
+          type: string
+        fromAddress:
+          type: string
+        toAddress:
+          type: string
+        amount:
+          type: string
+          description: Decimal amount as a string
+        timestamp:
+          type: string
+    TransactionPage:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+    Error:
+      type: object
+      properties:
+        message:
+          type: string

@@ -1,0 +1,332 @@
+// Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+// Package transaction implements master-wallet balances, transfers and history for
+// operational clients identified by their client id.
+package transaction
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"log/slog"
+	"math/big"
+	"strings"
+	"time"
+
+	"github.com/wso2/wso2-coin/operations/transaction-service/internal/model"
+	"github.com/wso2/wso2-coin/operations/transaction-service/internal/money"
+)
+
+// Domain errors returned by the service and mapped to HTTP statuses by the handler.
+var (
+	ErrNotFound          = errors.New("wallet not found")
+	ErrForbidden         = errors.New("caller has no master wallet")
+	ErrInvalidAmount     = errors.New("invalid amount")
+	ErrInsufficientFunds = errors.New("insufficient funds")
+	ErrRecipientNotFound = errors.New("recipient wallet not found")
+	ErrSelfTransfer      = errors.New("cannot transfer to the same wallet")
+	ErrIntegrity         = errors.New("balance integrity check failed")
+)
+
+// Encryptor authenticates and (de)encrypts stored values, binding them to an AAD.
+type Encryptor interface {
+	Encrypt(plaintext, aad string) (string, error)
+	Decrypt(encoded, aad string) (string, error)
+}
+
+// Service holds transaction business logic.
+type Service struct {
+	repo Repository
+	enc  Encryptor
+}
+
+// NewService returns a transaction Service.
+func NewService(repo Repository, enc Encryptor) *Service {
+	return &Service{repo: repo, enc: enc}
+}
+
+// MasterBalance returns the decrypted balance of the caller's master wallet.
+func (s *Service) MasterBalance(ctx context.Context, clientID string) (model.Balance, error) {
+	address, err := s.masterAddress(ctx, clientID)
+	if err != nil {
+		return model.Balance{}, err
+	}
+	return s.walletBalance(ctx, address)
+}
+
+// Transfer moves coins from the caller's master wallet to an existing recipient
+// atomically and returns a reference for the recorded transaction.
+func (s *Service) Transfer(ctx context.Context, clientID string, req model.TransferRequest) (model.TransferResponse, error) {
+	from, err := s.masterAddress(ctx, clientID)
+	if err != nil {
+		return model.TransferResponse{}, err
+	}
+	amount, err := money.ParseUnits(req.Amount)
+	if err != nil || amount.Sign() <= 0 {
+		return model.TransferResponse{}, ErrInvalidAmount
+	}
+	if strings.EqualFold(from, req.ToAddress) {
+		return model.TransferResponse{}, ErrSelfTransfer
+	}
+	to, err := s.repo.WalletByAddress(ctx, req.ToAddress)
+	if err != nil {
+		return model.TransferResponse{}, err
+	}
+	if to == nil {
+		slog.WarnContext(ctx, "transfer recipient wallet not found", "recipient", req.ToAddress)
+		return model.TransferResponse{}, ErrRecipientNotFound
+	}
+
+	ref, err := newReference()
+	if err != nil {
+		return model.TransferResponse{}, err
+	}
+	encAmount, err := s.enc.Encrypt(money.FormatUnits(amount), amountAADForRef(ref))
+	if err != nil {
+		return model.TransferResponse{}, fmt.Errorf("encrypt amount: %w", err)
+	}
+
+	err = s.repo.Tx(ctx, func(q Queries) error {
+		balances, err := s.lockBalances(ctx, q, from, to.Address)
+		if err != nil {
+			return err
+		}
+		fromUnits, toUnits := balances[from], balances[to.Address]
+		if fromUnits.Cmp(amount) < 0 {
+			return ErrInsufficientFunds
+		}
+		encFrom, err := s.enc.Encrypt(money.FormatUnits(new(big.Int).Sub(fromUnits, amount)), balanceAAD(from))
+		if err != nil {
+			return fmt.Errorf("encrypt sender balance: %w", err)
+		}
+		encTo, err := s.enc.Encrypt(money.FormatUnits(new(big.Int).Add(toUnits, amount)), balanceAAD(to.Address))
+		if err != nil {
+			return fmt.Errorf("encrypt recipient balance: %w", err)
+		}
+		if err := q.UpdateBalance(ctx, from, encFrom); err != nil {
+			return err
+		}
+		if err := q.UpdateBalance(ctx, to.Address, encTo); err != nil {
+			return err
+		}
+		return q.InsertTransaction(ctx, TxnInsert{FromAddress: from, ToAddress: to.Address, Amount: encAmount, Reference: ref})
+	})
+	if err != nil {
+		return model.TransferResponse{}, err
+	}
+	return model.TransferResponse{
+		Reference:   ref,
+		FromAddress: from,
+		ToAddress:   to.Address,
+		Amount:      money.FormatUnits(amount),
+	}, nil
+}
+
+// WalletBalance returns the decrypted balance of any wallet by address.
+func (s *Service) WalletBalance(ctx context.Context, address string) (model.Balance, error) {
+	return s.walletBalance(ctx, address)
+}
+
+// SearchTransactions returns a filtered, paginated page of transactions, newest first.
+func (s *Service) SearchTransactions(ctx context.Context, req model.TransactionSearchRequest) (model.TransactionPage, error) {
+	rows, total, err := s.repo.SearchTransactions(ctx, SearchFilters{
+		FromAddresses: req.FromAddresses,
+		ToAddresses:   req.ToAddresses,
+		Reference:     req.Reference,
+		DateFrom:      req.DateFrom,
+		DateTo:        req.DateTo,
+		Limit:         req.Limit,
+		Offset:        req.Offset,
+	})
+	if err != nil {
+		return model.TransactionPage{}, err
+	}
+
+	txns := make([]model.Transaction, 0, len(rows))
+	for _, row := range rows {
+		txn, err := s.toTransaction(row)
+		if err != nil {
+			return model.TransactionPage{}, err
+		}
+		txns = append(txns, txn)
+	}
+
+	next, previous := pageLinks(req.Limit, req.Offset, total)
+	return model.TransactionPage{
+		Transactions: txns,
+		Total:        total,
+		Limit:        req.Limit,
+		Offset:       req.Offset,
+		Next:         next,
+		Previous:     previous,
+	}, nil
+}
+
+// TransactionByReference returns a single transaction by its reference.
+func (s *Service) TransactionByReference(ctx context.Context, reference string) (model.Transaction, error) {
+	row, err := s.repo.TransactionByReference(ctx, reference)
+	if err != nil {
+		return model.Transaction{}, err
+	}
+	if row == nil {
+		return model.Transaction{}, ErrNotFound
+	}
+	return s.toTransaction(*row)
+}
+
+func (s *Service) masterAddress(ctx context.Context, clientID string) (string, error) {
+	address, err := s.repo.MasterWalletByClient(ctx, clientID)
+	if err != nil {
+		if errors.Is(err, ErrNoMasterWallet) {
+			// The client id is deliberately omitted from this log line.
+			slog.WarnContext(ctx, "denying request: caller has no active master wallet mapping")
+			return "", ErrForbidden
+		}
+		return "", err
+	}
+	return address, nil
+}
+
+func (s *Service) walletBalance(ctx context.Context, address string) (model.Balance, error) {
+	w, err := s.repo.WalletByAddress(ctx, address)
+	if err != nil {
+		return model.Balance{}, err
+	}
+	if w == nil {
+		return model.Balance{}, ErrNotFound
+	}
+	plain, err := s.decryptBalance(w)
+	if err != nil {
+		return model.Balance{}, err
+	}
+	return model.Balance{WalletAddress: w.Address, Balance: plain}, nil
+}
+
+func (s *Service) toTransaction(row TxnRow) (model.Transaction, error) {
+	amount, err := s.enc.Decrypt(row.Amount, amountAADForRow(row))
+	if err != nil {
+		return model.Transaction{}, ErrIntegrity
+	}
+	return model.Transaction{
+		Reference:   transactionReference(row),
+		FromAddress: row.FromAddress,
+		ToAddress:   row.ToAddress,
+		Amount:      amount,
+		Timestamp:   transactionTime(row).UTC().Format(time.RFC3339),
+	}, nil
+}
+
+func (s *Service) decryptBalance(w *WalletRow) (string, error) {
+	if !w.Balance.Valid {
+		return "", ErrIntegrity
+	}
+	plain, err := s.enc.Decrypt(w.Balance.String, balanceAAD(w.Address))
+	if err != nil {
+		return "", ErrIntegrity
+	}
+	return plain, nil
+}
+
+func (s *Service) lockedUnits(ctx context.Context, q Queries, address string) (*big.Int, error) {
+	enc, err := q.LockBalance(ctx, address)
+	if err != nil {
+		return nil, err
+	}
+	plain, err := s.enc.Decrypt(enc, balanceAAD(address))
+	if err != nil {
+		return nil, ErrIntegrity
+	}
+	return money.ParseUnits(plain)
+}
+
+// lockBalances locks both wallets in a deterministic order (to avoid deadlocks
+// between concurrent transfers) and returns their decrypted unit balances keyed by
+// address.
+func (s *Service) lockBalances(ctx context.Context, q Queries, a, b string) (map[string]*big.Int, error) {
+	first, second := a, b
+	if strings.ToLower(second) < strings.ToLower(first) {
+		first, second = second, first
+	}
+	balances := make(map[string]*big.Int, 2)
+	for _, addr := range []string{first, second} {
+		units, err := s.lockedUnits(ctx, q, addr)
+		if err != nil {
+			return nil, err
+		}
+		balances[addr] = units
+	}
+	return balances, nil
+}
+
+func transactionReference(row TxnRow) string {
+	if row.Reference.Valid && row.Reference.String != "" {
+		return row.Reference.String
+	}
+	return row.Hash.String
+}
+
+func transactionTime(row TxnRow) time.Time {
+	if row.BlockTime.Valid {
+		return row.BlockTime.Time
+	}
+	return row.CreatedOn
+}
+
+func pageLinks(limit, offset, total int) (next, previous *string) {
+	if limit > 0 && offset+limit < total {
+		s := fmt.Sprintf("?offset=%d&limit=%d", offset+limit, limit)
+		next = &s
+	}
+	if offset > 0 {
+		prevOffset := offset - limit
+		if prevOffset < 0 {
+			prevOffset = 0
+		}
+		s := fmt.Sprintf("?offset=%d&limit=%d", prevOffset, limit)
+		previous = &s
+	}
+	return next, previous
+}
+
+func balanceAAD(address string) string {
+	return "o2c:balance:" + strings.ToLower(address)
+}
+
+func amountAADForRef(reference string) string {
+	return "o2c:amount:ref:" + reference
+}
+
+func amountAADForRow(row TxnRow) string {
+	if row.Hash.Valid && row.Hash.String != "" {
+		return fmt.Sprintf("o2c:amount:%s:%d", strings.ToLower(row.Hash.String), row.LogIndex.Int64)
+	}
+	return amountAADForRef(row.Reference.String)
+}
+
+func newReference() (string, error) {
+	return randomHex(32)
+}
+
+func randomHex(n int) (string, error) {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("generate random bytes: %w", err)
+	}
+	return "0x" + hex.EncodeToString(b), nil
+}
