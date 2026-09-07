@@ -21,58 +21,79 @@ import ballerina/time;
 # + request - Transaction search filters
 # + return - Transaction search response or error
 public isolated function searchTransactions(TransactionSearchRequest request) returns TransactionSearchResponse|error {
-    // Validate time range if both provided
+    // Validate each supplied time bound independently, then the range if both are given
     string? startTime = request.startTime;
     string? endTime = request.endTime;
-    if startTime is string && endTime is string {
-        time:Utc|error startUtc = time:utcFromString(startTime);
-        time:Utc|error endUtc = time:utcFromString(endTime);
-        if startUtc is error {
+    time:Utc? startUtc = ();
+    time:Utc? endUtc = ();
+    if startTime is string {
+        time:Utc|error parsed = time:utcFromString(startTime);
+        if parsed is error {
             return error("Invalid startTime format. Use ISO-8601 (e.g. 2026-01-01T00:00:00Z)");
         }
-        if endUtc is error {
+        startUtc = parsed;
+    }
+    if endTime is string {
+        time:Utc|error parsed = time:utcFromString(endTime);
+        if parsed is error {
             return error("Invalid endTime format. Use ISO-8601 (e.g. 2026-01-01T00:00:00Z)");
         }
-        if time:utcDiffSeconds(endUtc, startUtc) < 0d {
-            return error("startTime must be before endTime");
-        }
+        endUtc = parsed;
+    }
+    if startUtc is time:Utc && endUtc is time:Utc && time:utcDiffSeconds(endUtc, startUtc) < 0d {
+        return error("startTime must be before endTime");
     }
 
-    // Build the service request
-    TransactionServiceRequest serviceRequest = {
-        transactionHash: request.transactionHash,
-        startTime: request.startTime,
-        endTime: request.endTime,
-        'limit: request.'limit,
-        offset: request.offset
-    };
+    // Build the service request, including only the fields that are set
+    TransactionServiceRequest serviceRequest = {};
 
-    // Set sender address filter
-    string? senderAddress = request.senderAddress;
-    if senderAddress is string {
-        serviceRequest.senderAddresses = [senderAddress];
+    string? fromAddress = request.fromAddress;
+    if fromAddress is string {
+        serviceRequest.fromAddresses = [fromAddress];
     }
 
-    // Set receiver address filter
-    string? receiverAddress = request.receiverAddress;
-    if receiverAddress is string {
-        serviceRequest.receiverAddresses = [receiverAddress];
+    string? toAddress = request.toAddress;
+    if toAddress is string {
+        serviceRequest.toAddresses = [toAddress];
     }
 
-    http:Response response = check transactionClient->post("/api/v1/blockchain/transactions/search", serviceRequest);
+    string? reference = request.reference;
+    if reference is string {
+        serviceRequest.reference = reference;
+    }
+
+    if startTime is string {
+        serviceRequest.dateFrom = startTime;
+    }
+
+    if endTime is string {
+        serviceRequest.dateTo = endTime;
+    }
+
+    int? searchLimit = request.'limit;
+    if searchLimit is int {
+        serviceRequest.'limit = searchLimit;
+    }
+
+    int? searchOffset = request.offset;
+    if searchOffset is int {
+        serviceRequest.offset = searchOffset;
+    }
+
+    http:Response response = check transactionClient->post("/transactions/search", serviceRequest);
 
     if response.statusCode != http:STATUS_OK {
         return error(string `Transaction service returned status ${response.statusCode}`);
     }
 
     json responseJson = check response.getJsonPayload();
-    TransactionServiceEnvelope envelope = check responseJson.fromJsonWithType();
+    TransactionServiceResponse serviceResponse = check responseJson.fromJsonWithType();
 
     return {
-        hasMore: envelope.payload.hasMore,
-        offset: envelope.payload.offset,
-        'limit: envelope.payload.'limit,
-        transactions: envelope.payload.transactions
+        total: serviceResponse.total,
+        offset: serviceResponse.offset,
+        'limit: serviceResponse.'limit,
+        transactions: serviceResponse.transactions
     };
 }
 
@@ -81,21 +102,53 @@ public isolated function searchTransactions(TransactionSearchRequest request) re
 # + walletAddress - Wallet address to check balance for
 # + return - WalletBalance or error
 public isolated function fetchWalletBalance(string walletAddress) returns WalletBalance|error {
-    if !ETH_ADDRESS_REGEX.isFullMatch(walletAddress) {
+    if !WALLET_ADDRESS_REGEX.isFullMatch(walletAddress) {
         return error("Invalid wallet address format");
     }
 
-    http:Response response = check transactionClient->/api/v1/blockchain/get\-balance/[walletAddress].get();
+    http:Response response = check transactionClient->/wallets/[walletAddress]/balance.get();
 
     if response.statusCode != http:STATUS_OK {
         return error(string `Transaction service returned status ${response.statusCode}`);
     }
 
     json responseJson = check response.getJsonPayload();
-    BalanceServiceEnvelope envelope = check responseJson.fromJsonWithType();
+    BalanceServiceResponse balanceResponse = check responseJson.fromJsonWithType();
 
     return {
         walletAddress: walletAddress,
-        balance: envelope.payload.balance
+        balance: balanceResponse.balance
     };
+}
+
+# Fetch all wallets from the transaction service.
+#
+# + return - Array of wallet details or error
+public isolated function fetchAllWallets() returns WalletDetail[]|error {
+    http:Response response = check transactionClient->/wallets.get();
+
+    if response.statusCode != http:STATUS_OK {
+        return error(string `Transaction service returned status ${response.statusCode}`);
+    }
+
+    json responseJson = check response.getJsonPayload();
+    WalletDetail[] wallets = check responseJson.fromJsonWithType();
+
+    return wallets;
+}
+
+# Fetch all wallet addresses from the transaction service.
+#
+# + return - Array of wallet addresses or error
+public isolated function fetchWalletAddresses() returns string[]|error {
+    http:Response response = check transactionClient->/wallets/addresses.get();
+
+    if response.statusCode != http:STATUS_OK {
+        return error(string `Transaction service returned status ${response.statusCode}`);
+    }
+
+    json responseJson = check response.getJsonPayload();
+    string[] addresses = check responseJson.fromJsonWithType();
+
+    return addresses;
 }

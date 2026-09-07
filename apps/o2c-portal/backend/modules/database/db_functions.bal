@@ -93,11 +93,11 @@ public isolated function getQrCodeIdentifier(QrCodeInfo qrInfo) returns string {
 # + return - true if exists, false otherwise
 public isolated function isQrCodeExists(QrCodeInfo qrInfo) returns boolean|error {
     CountRecord|error result = o2cClient->queryRow(checkIsQrCodeExistsQuery(qrInfo));
-    
+
     if result is error {
         return result is sql:NoRowsError ? false : result;
     }
-    
+
     return true;
 }
 
@@ -182,12 +182,12 @@ public isolated function getDefaultCoinsForQrInfo(QrCodeInfo qrInfo) returns Eve
     } else {
         eventTypeName = qrInfo.eventTypeName;
     }
-    
+
     ConferenceEventTypeRecord|error eventType = o2cClient->queryRow(fetchConferenceEventTypeByNameQuery(eventTypeName));
     if eventType is error {
         return eventType is sql:NoRowsError ? () : eventType;
     }
-    
+
     return {coins: eventType.defaultCoins};
 }
 
@@ -204,23 +204,4 @@ public isolated function deleteConferenceEventType(string typeName) returns erro
     if deleteResult.affectedRowCount <= 0 {
         return error("Event type not found");
     }
-}
-
-# Fetch all wallet records.
-#
-# + return - Array of wallet details or error
-public isolated function fetchAllWallets() returns UserWalletDetail[]|error {
-    stream<UserWalletDetail, sql:Error?> resultStream = walletClient->query(fetchAllWalletsQuery());
-
-    return from UserWalletDetail wallet in resultStream
-        select wallet;
-}
-
-# Fetch all distinct wallet addresses from the user_wallet table.
-#
-# + return - Array of distinct wallet address strings or error
-public isolated function fetchDistinctAddresses() returns string[]|error {
-    stream<WalletAddressRecord, sql:Error?> resultStream = walletClient->query(fetchDistinctAddressesQuery());
-    return from WalletAddressRecord addressRecord in resultStream
-        select addressRecord.walletAddress;
 }

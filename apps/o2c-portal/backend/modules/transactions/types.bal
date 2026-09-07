@@ -15,11 +15,11 @@
 // under the License.
 import ballerina/constraint;
 
-# Ethereum address pattern: 0x followed by 40 hex characters.
-final string:RegExp ETH_ADDRESS_REGEX = re `^0x[0-9a-fA-F]{40}$`;
+# Wallet address pattern: 0x followed by 40 hex characters.
+final string:RegExp WALLET_ADDRESS_REGEX = re `^0x[0-9a-fA-F]{40}$`;
 
-# Transaction hash pattern: 0x followed by 64 hex characters.
-final string:RegExp TX_HASH_REGEX = re `^0x[0-9a-fA-F]{64}$`;
+# Reference pattern: 0x followed by 64 hex characters.
+final string:RegExp REFERENCE_REGEX = re `^0x[0-9a-fA-F]{64}$`;
 
 # OAuth2 client auth configurations.
 public type ClientAuthConfig record {|
@@ -48,27 +48,27 @@ public type TransactionSearchRequest record {
     # Sender wallet address
     @constraint:String {
         pattern: {
-            value: ETH_ADDRESS_REGEX,
-            message: "Invalid sender address. Must be a valid Ethereum address (0x followed by 40 hex characters)"
+            value: WALLET_ADDRESS_REGEX,
+            message: "Invalid fromAddress. Must be a valid wallet address (0x followed by 40 hex characters)"
         }
     }
-    string senderAddress?;
+    string fromAddress?;
     # Receiver wallet address
     @constraint:String {
         pattern: {
-            value: ETH_ADDRESS_REGEX,
-            message: "Invalid receiver address. Must be a valid Ethereum address (0x followed by 40 hex characters)"
+            value: WALLET_ADDRESS_REGEX,
+            message: "Invalid toAddress. Must be a valid wallet address (0x followed by 40 hex characters)"
         }
     }
-    string receiverAddress?;
-    # Transaction hash
+    string toAddress?;
+    # Transaction reference
     @constraint:String {
         pattern: {
-            value: TX_HASH_REGEX,
-            message: "Invalid transaction hash. Must start with 0x followed by 64 hex characters"
+            value: REFERENCE_REGEX,
+            message: "Invalid reference. Must start with 0x followed by 64 hex characters"
         }
     }
-    string transactionHash?;
+    string reference?;
     # Start time filter (ISO-8601)
     string startTime?;
     # End time filter (ISO-8601)
@@ -86,28 +86,25 @@ public type TransactionSearchRequest record {
     int offset?;
 };
 
-# A single blockchain transaction.
+# A single transaction record.
 public type Transaction record {|
-    # Transaction hash
-    string txHash;
-    # Block number
-    int blockNumber;
+    # Transaction reference
+    string reference;
     # Sender wallet address
-    string senderAddress;
+    string fromAddress;
     # Receiver wallet address
-    string receiverAddress;
+    string toAddress;
     # Human-readable amount
     string amount;
-    # Raw unformatted amount
-    string amountRaw;
     # Transaction timestamp (ISO-8601)
     string timestamp;
+    json...;
 |};
 
 # Payload returned from a transaction search.
 public type TransactionSearchResponse record {|
-    # Whether more results are available
-    boolean hasMore;
+    # Total number of matching transactions
+    int total;
     # Current offset
     int offset;
     # Current limit
@@ -117,22 +114,46 @@ public type TransactionSearchResponse record {|
 |};
 
 # Internal request payload sent to the transaction service (arrays for addresses).
-type TransactionServiceRequest record {
+type TransactionServiceRequest record {|
     # Sender wallet addresses
-    string[] senderAddresses?;
+    string[] fromAddresses?;
     # Receiver wallet addresses
-    string[] receiverAddresses?;
-    # Transaction hash
-    string transactionHash?;
-    # Start time filter (ISO-8601)
-    string startTime?;
-    # End time filter (ISO-8601)
-    string endTime?;
+    string[] toAddresses?;
+    # Transaction reference
+    string reference?;
+    # Start date filter (ISO-8601)
+    string dateFrom?;
+    # End date filter (ISO-8601)
+    string dateTo?;
     # Number of records to fetch
     int 'limit?;
     # Offset for pagination
     int offset?;
-};
+|};
+
+# Response payload returned by the transaction service search endpoint.
+type TransactionServiceResponse record {|
+    # Matching transactions
+    Transaction[] transactions;
+    # Total number of matching transactions
+    int total;
+    # Applied result limit
+    int 'limit;
+    # Applied result offset
+    int offset;
+    json...;
+|};
+
+# Wallet detail returned by the transaction service.
+public type WalletDetail record {|
+    # Wallet address
+    string walletAddress;
+    # Whether this is the default wallet
+    boolean defaultWallet;
+    # Created timestamp (RFC3339)
+    string createdOn;
+    json...;
+|};
 
 # Wallet balance result.
 public type WalletBalance record {|
@@ -142,38 +163,11 @@ public type WalletBalance record {|
     string balance;
 |};
 
-# Balance response envelope from the transaction service.
-type BalanceServiceEnvelope record {|
-    # Response message
-    string message;
-    # HTTP status code
-    int httpCode;
-    # Response payload
-    record {|
-        # Human-readable balance
-        string balance;
-        # Raw unformatted balance
-        string tokenBalanceUnFormatted;
-        # Token decimal places
-        int decimals;
-    |} payload;
-|};
-
-# Full response envelope from the transaction service.
-type TransactionServiceEnvelope record {|
-    # Response message
-    string message;
-    # HTTP status code
-    int httpCode;
-    # Response payload
-    record {|
-        # Whether more results are available
-        boolean hasMore;
-        # Current offset
-        int offset;
-        # Current limit
-        int 'limit;
-        # Array of raw transactions
-        Transaction[] transactions;
-    |} payload;
+# Balance response payload returned by the transaction service.
+type BalanceServiceResponse record {|
+    # Wallet address
+    string walletAddress;
+    # Human-readable balance
+    string balance;
+    json...;
 |};

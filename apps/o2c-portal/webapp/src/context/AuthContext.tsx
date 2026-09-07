@@ -74,10 +74,8 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     getDecodedIDToken,
     getBasicUserInfo,
     refreshAccessToken,
-    isAuthenticated,
     getIDToken,
     trySignInSilently,
-    getAccessToken,
     state,
   } = useAuthContext();
 
@@ -141,23 +139,21 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     };
   }, [state.isAuthenticated, state.isLoading]);
 
-  const refreshToken = () => {
-    return new Promise<{ accessToken: string }>(async (resolve) => {
-      const userIsAuthenticated = await isAuthenticated();
-      if (userIsAuthenticated) {
-        resolve({ accessToken: await getAccessToken() });
-      } else {
-        refreshAccessToken()
-          .then(async () => {
-            const accessToken = await getAccessToken();
-            resolve({ accessToken: accessToken });
-          })
-          .catch(() => {
-            appSignOut();
-          });
-      }
-    });
-  };
+  // Invoked by the API layer after a 401: the access token has expired, so always
+  // refresh the session (via the refresh token) rather than returning the stale token.
+  // Resolves with a fresh ID token — the token the app sends on API requests. If the
+  // refresh fails (session truly ended), sign the user out.
+  const refreshToken = (): Promise<{ accessToken: string }> =>
+    refreshAccessToken()
+      .then(async () => ({ accessToken: await getIDToken() }))
+      .catch(async (error) => {
+        try {
+          await appSignOut();
+        } catch {
+          // Ignore sign-out failure so the original refresh error surfaces.
+        }
+        throw error;
+      });
 
   const appSignOut = async () => {
     setAppState(AppState.Loading);

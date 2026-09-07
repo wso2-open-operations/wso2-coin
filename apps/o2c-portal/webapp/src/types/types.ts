@@ -191,9 +191,9 @@ export interface WalletBalance {
 }
 
 export interface TransactionSearchRequest {
-  senderAddress?: string;
-  receiverAddress?: string;
-  transactionHash?: string;
+  fromAddress?: string;
+  toAddress?: string;
+  reference?: string;
   startTime?: string;
   endTime?: string;
   limit?: number;
@@ -201,17 +201,15 @@ export interface TransactionSearchRequest {
 }
 
 export interface Transaction {
-  txHash: string;
-  blockNumber: number;
-  senderAddress: string;
-  receiverAddress: string;
+  reference: string;
+  fromAddress: string;
+  toAddress: string;
   amount: string;
-  amountRaw: string;
   timestamp: string;
 }
 
 export interface TransactionSearchResponse {
-  hasMore: boolean;
+  total: number;
   offset: number;
   limit: number;
   transactions: Transaction[];

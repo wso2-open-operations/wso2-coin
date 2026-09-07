@@ -135,6 +135,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         return sessions;
     }
+
     # Fetch all partner domains from the conference backend.
     #
     # + return - Array of partner domains or error
@@ -791,7 +792,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request context
     # + return - Array of wallet details or error
     resource function get wallets(http:RequestContext ctx)
-        returns database:UserWalletDetail[]|http:Forbidden|http:InternalServerError {
+        returns transactions:WalletDetail[]|http:Forbidden|http:InternalServerError {
 
         authorization:CustomJwtPayload|error invokerInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if invokerInfo is error {
@@ -804,7 +805,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
-            invokerInfo.groups);
+                invokerInfo.groups);
         if !isAuthorized {
             log:printWarn(string `Unauthorized wallet access attempt by: ${invokerInfo.email}`);
             return <http:Forbidden>{
@@ -814,7 +815,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:UserWalletDetail[]|error wallets = database:fetchAllWallets();
+        transactions:WalletDetail[]|error wallets = transactions:fetchAllWallets();
         if wallets is error {
             string customError = "Error occurred while fetching wallets!";
             log:printError(customError, wallets);
@@ -847,7 +848,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
-            invokerInfo.groups);
+                invokerInfo.groups);
         if !isAuthorized {
             log:printWarn(string `Unauthorized wallet balance access attempt by: ${invokerInfo.email}`);
             return <http:Forbidden>{
@@ -901,7 +902,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
-            invokerInfo.groups);
+                invokerInfo.groups);
         if !isAuthorized {
             log:printWarn(string `Unauthorized wallet addresses access attempt by: ${invokerInfo.email}`);
             return <http:Forbidden>{
@@ -911,7 +912,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        string[]|error addresses = database:fetchDistinctAddresses();
+        string[]|error addresses = transactions:fetchWalletAddresses();
         if addresses is error {
             string customError = "Error occurred while fetching wallet addresses!";
             log:printError(customError, addresses);
@@ -944,7 +945,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         boolean isAuthorized = authorization:checkPermissions([authorization:authorizedRoles.o2cAdminRole],
-            invokerInfo.groups);
+                invokerInfo.groups);
         if !isAuthorized {
             log:printWarn(string `Unauthorized transaction search attempt by: ${invokerInfo.email}`);
             return <http:Forbidden>{

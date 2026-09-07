@@ -48,18 +48,3 @@ count = 3
 interval = 3.0
 backOffFactor = 2.0
 maxWaitInterval = 20.0
-
-[o2c_portal.database.walletDbConfig]
-host = ""
-user = ""
-password = ""
-database = "wso2_wallet"
-port = 3306
-
-[o2c_portal.database.walletDbConfig.connectionPool]
-maxOpenConnections = 5
-maxConnectionLifeTime = 100.0
-minIdleConnections = 2
-
-[o2c_portal.database.walletDbConfig.options]
-connectTimeout = 10.0

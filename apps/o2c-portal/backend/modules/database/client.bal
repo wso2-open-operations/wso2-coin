@@ -19,11 +19,5 @@ import ballerinax/mysql.driver as _;
 # O2C Database Client Configuration.
 configurable DatabaseConfig o2cDbConfig = ?;
 
-# Wallet Database Client Configuration.
-configurable DatabaseConfig walletDbConfig = ?;
-
 # O2C Database Client.
 final mysql:Client o2cClient = check new (...o2cDbConfig);
-
-# Wallet Database Client.
-final mysql:Client walletClient = check new (...walletDbConfig);
