@@ -15,7 +15,6 @@
 // under the License.
 import ballerina/constraint;
 import ballerina/sql;
-import ballerinax/mysql;
 
 # [Configurable] database configs.
 type DatabaseConfig record {|
@@ -29,10 +28,6 @@ type DatabaseConfig record {|
     string host;
     # Port number of the MySQL server
     int port;
-    # The `mysql:Options` configurations
-    mysql:Options options?;
-    # The `sql:ConnectionPool` configurations
-    sql:ConnectionPool connectionPool?;
 |};
 
 # Database audit fields.
