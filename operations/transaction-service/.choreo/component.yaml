@@ -1,0 +1,12 @@
+schemaVersion: "1.2"
+endpoints:
+  - name: transaction-service
+    displayName: Transaction Service
+    service:
+      basePath: /
+      port: 8080
+    type: REST
+    networkVisibilities:
+      - Organization
+      - Project
+    schemaFilePath: openapi.yaml

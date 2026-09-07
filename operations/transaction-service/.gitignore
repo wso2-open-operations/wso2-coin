@@ -1,0 +1,12 @@
+# Local environment / secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# Compiled binaries
+/server
+/transaction-service
+*.out
+
+# OS / editor cruft
+.DS_Store
