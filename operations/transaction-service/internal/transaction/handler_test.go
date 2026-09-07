@@ -205,6 +205,64 @@ func TestHandlerPaymentReferenceConflict(t *testing.T) {
 	}
 }
 
+// doWalletsMe issues a GET /wallets/me with the given end-user token in the
+// configured header (omitted when userTok is empty).
+func doWalletsMe(t *testing.T, repo *fakeRepo, userTok string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/wallets/me", nil)
+	if userTok != "" {
+		req.Header.Set(testUserHeader, userTok)
+	}
+	rec := httptest.NewRecorder()
+	newTestMux(t, repo).ServeHTTP(rec, req)
+	return rec
+}
+
+func TestHandlerWalletsMe(t *testing.T) {
+	enc := newEnc(t)
+	repo := &fakeRepo{byEmail: map[string][]WalletBalanceRow{
+		"user@example.com": {encWalletRow(t, enc, "0xdefault", "42.5", true)},
+	}}
+	rec := doWalletsMe(t, repo, userToken(t, "user@example.com"))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body = %s", rec.Code, rec.Body.String())
+	}
+	var got []model.UserWallet
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	want := model.UserWallet{WalletAddress: "0xdefault", Balance: "42.500000000", DefaultWallet: true}
+	if len(got) != 1 || got[0] != want {
+		t.Fatalf("wallets = %+v, want [%+v]", got, want)
+	}
+}
+
+func TestHandlerWalletsMeEmptyReturnsJSONArray(t *testing.T) {
+	rec := doWalletsMe(t, &fakeRepo{}, userToken(t, "user@example.com"))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if body := strings.TrimSpace(rec.Body.String()); body != "[]" {
+		t.Fatalf("body = %q, want [] (not null) for empty result", body)
+	}
+}
+
+func TestHandlerWalletsMeMissingUserToken(t *testing.T) {
+	rec := doWalletsMe(t, &fakeRepo{}, "")
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+}
+
+func TestHandlerWalletsMeInvalidUserToken(t *testing.T) {
+	rec := doWalletsMe(t, &fakeRepo{}, "not-a-jwt")
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+}
+
 func TestHandlerSearchRejectsTooManyAddresses(t *testing.T) {
 	addrs := make([]string, maxSearchAddresses+1)
 	for i := range addrs {

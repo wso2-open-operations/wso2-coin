@@ -30,6 +30,14 @@ type WalletSummary struct {
 	CreatedOn     string `json:"createdOn"`
 }
 
+// UserWallet is one of the caller's own wallets with its decrypted balance, as
+// returned by the "my wallets" listing.
+type UserWallet struct {
+	WalletAddress string `json:"walletAddress"`
+	Balance       string `json:"balance"`
+	DefaultWallet bool   `json:"defaultWallet"`
+}
+
 // TransferRequest is the body of a transfer from the caller's master wallet.
 type TransferRequest struct {
 	ToAddress string `json:"toAddress"`
