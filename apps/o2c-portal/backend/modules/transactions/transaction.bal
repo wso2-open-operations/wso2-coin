@@ -21,21 +21,27 @@ import ballerina/time;
 # + request - Transaction search filters
 # + return - Transaction search response or error
 public isolated function searchTransactions(TransactionSearchRequest request) returns TransactionSearchResponse|error {
-    // Validate time range if both provided
+    // Validate each supplied time bound independently, then the range if both are given
     string? startTime = request.startTime;
     string? endTime = request.endTime;
-    if startTime is string && endTime is string {
-        time:Utc|error startUtc = time:utcFromString(startTime);
-        time:Utc|error endUtc = time:utcFromString(endTime);
-        if startUtc is error {
+    time:Utc? startUtc = ();
+    time:Utc? endUtc = ();
+    if startTime is string {
+        time:Utc|error parsed = time:utcFromString(startTime);
+        if parsed is error {
             return error("Invalid startTime format. Use ISO-8601 (e.g. 2026-01-01T00:00:00Z)");
         }
-        if endUtc is error {
+        startUtc = parsed;
+    }
+    if endTime is string {
+        time:Utc|error parsed = time:utcFromString(endTime);
+        if parsed is error {
             return error("Invalid endTime format. Use ISO-8601 (e.g. 2026-01-01T00:00:00Z)");
         }
-        if time:utcDiffSeconds(endUtc, startUtc) < 0d {
-            return error("startTime must be before endTime");
-        }
+        endUtc = parsed;
+    }
+    if startUtc is time:Utc && endUtc is time:Utc && time:utcDiffSeconds(endUtc, startUtc) < 0d {
+        return error("startTime must be before endTime");
     }
 
     // Build the service request, including only the fields that are set

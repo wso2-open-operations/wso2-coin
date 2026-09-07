@@ -146,8 +146,12 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
   const refreshToken = (): Promise<{ accessToken: string }> =>
     refreshAccessToken()
       .then(async () => ({ accessToken: await getIDToken() }))
-      .catch((error) => {
-        appSignOut();
+      .catch(async (error) => {
+        try {
+          await appSignOut();
+        } catch {
+          // Ignore sign-out failure so the original refresh error surfaces.
+        }
         throw error;
       });
 
