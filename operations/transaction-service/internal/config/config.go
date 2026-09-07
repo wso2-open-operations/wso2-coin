@@ -34,11 +34,13 @@ const (
 
 // Config is the fully resolved, validated service configuration.
 type Config struct {
-	Port              string
-	CORSAllowedOrigin string
-	JWT               JWTConfig
-	DB                DBConfig
-	EncryptionKey     []byte
+	Port                string
+	CORSAllowedOrigin   string
+	JWT                 JWTConfig
+	UserJWT             JWTConfig
+	UserAssertionHeader string
+	DB                  DBConfig
+	EncryptionKey       []byte
 }
 
 // JWTConfig controls how the caller's token is verified. When JWKSURL is set the
@@ -103,6 +105,15 @@ func Load() (Config, error) {
 			Audience:      os.Getenv("JWT_AUDIENCE"),
 			AllowInsecure: envBool("JWT_ALLOW_INSECURE", false),
 		},
+		// End-user token verification for the payments endpoint. There is no
+		// decode-only path: when payments is enabled the JWKS URL is required, so
+		// AllowInsecure is left false.
+		UserJWT: JWTConfig{
+			JWKSURL:  os.Getenv("USER_JWT_JWKS_URL"),
+			Issuer:   os.Getenv("USER_JWT_ISSUER"),
+			Audience: os.Getenv("USER_JWT_AUDIENCE"),
+		},
+		UserAssertionHeader: envOrDefault("USER_ASSERTION_HEADER", "X-User-Assertion"),
 		DB: DBConfig{
 			Host:                  envOrDefault("DB_HOST", "localhost"),
 			Port:                  envOrDefault("DB_PORT", "3306"),

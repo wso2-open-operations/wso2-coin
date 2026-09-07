@@ -84,13 +84,26 @@ func run() error {
 		slog.WarnContext(ctx, "JWT signature verification disabled (JWT_JWKS_URL not set); tokens are decoded but not verified")
 	}
 
+	// The payments endpoint verifies a second, end-user token. It is enabled only
+	// when USER_JWT_JWKS_URL is configured; there is no decode-only path for it.
+	var userVerifier *middleware.Verifier
+	if cfg.UserJWT.JWKSURL != "" {
+		userVerifier, err = middleware.NewVerifier(ctx, cfg.UserJWT)
+		if err != nil {
+			return fmt.Errorf("init user jwt verifier: %w", err)
+		}
+		slog.InfoContext(ctx, "payments endpoint enabled")
+	} else {
+		slog.InfoContext(ctx, "payments endpoint disabled (USER_JWT_JWKS_URL not set)")
+	}
+
 	svc := transaction.NewService(transaction.NewRepository(db), enc)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	transaction.NewHandler(svc).RegisterRoutes(mux)
+	transaction.NewHandler(svc, userVerifier, cfg.UserAssertionHeader).RegisterRoutes(mux)
 
 	root := middleware.SecurityHeaders(
 		middleware.CORS(cfg.CORSAllowedOrigin)(

@@ -102,6 +102,52 @@ paths:
           $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
+  /payments:
+    post:
+      summary: Collect a payment from a user's own wallet into a treasury wallet
+      description: >-
+        A scoped client collects a coin payment from the end user's own wallet into a
+        treasury wallet on the user's behalf. Requires both the service token
+        (jwtAssertion) and a verified end-user token (userAssertion). The reference is
+        a caller-supplied idempotency key: replaying it with identical details returns
+        the original transaction (200); reusing it with different details is a 409.
+      security:
+        - jwtAssertion: []
+          userAssertion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequest"
+      responses:
+        "200":
+          description: Idempotent replay of an already-recorded payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentResponse"
+        "201":
+          description: Payment recorded
+          headers:
+            Location:
+              description: URL of the created transaction
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "413":
+          $ref: "#/components/responses/Error"
   /transactions/search:
     post:
       summary: Browse and filter transactions
@@ -147,6 +193,13 @@ components:
       in: header
       name: X-Jwt-Assertion
       description: Gateway-issued JWT assertion carrying the caller identity.
+    userAssertion:
+      type: apiKey
+      in: header
+      name: X-User-Assertion
+      description: >-
+        Verified end-user JWT (header name configurable via USER_ASSERTION_HEADER).
+        Its email claim identifies the wallet owner on whose behalf a payment is made.
   parameters:
     Address:
       name: address
@@ -196,6 +249,40 @@ components:
           type: string
           description: Decimal amount as a string
     TransferResponse:
+      type: object
+      properties:
+        reference:
+          type: string
+        fromAddress:
+          type: string
+        toAddress:
+          type: string
+        amount:
+          type: string
+          description: Decimal amount as a string
+    PaymentRequest:
+      type: object
+      required: [fromAddress, toAddress, amount, reference, source]
+      properties:
+        fromAddress:
+          type: string
+          description: The user-owned wallet the payment is collected from
+        toAddress:
+          type: string
+          description: The treasury wallet the payment is collected into
+        amount:
+          type: string
+          description: Decimal amount as a string; must be greater than zero
+        reference:
+          type: string
+          maxLength: 66
+          description: >-
+            Caller-supplied idempotency key. Matches ^[A-Za-z0-9][A-Za-z0-9._:-]{0,65}$
+            and must not be shaped like a service-generated reference (0x + 64 hex).
+        source:
+          type: string
+          description: Uppercase source token; matches ^[A-Z][A-Z0-9_]{1,31}$
+    PaymentResponse:
       type: object
       properties:
         reference:

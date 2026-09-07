@@ -31,6 +31,7 @@ import (
 
 type fakeRepo struct {
 	masters     map[string]string
+	owners      map[string]string
 	wallets     []*WalletRow
 	txns        []TxnInsert
 	searchRows  []TxnRow
@@ -67,6 +68,11 @@ func (r *fakeRepo) WalletByAddress(_ context.Context, address string) (*WalletRo
 	return &cp, nil
 }
 
+func (r *fakeRepo) WalletOwnedBy(_ context.Context, address, email string) (bool, error) {
+	owner, ok := r.owners[address]
+	return ok && strings.EqualFold(owner, email), nil
+}
+
 func (r *fakeRepo) ListWallets(_ context.Context) ([]WalletSummaryRow, error) {
 	return r.summaries, nil
 }
@@ -90,7 +96,19 @@ func (r *fakeRepo) TransactionByReference(_ context.Context, reference string) (
 }
 
 func (r *fakeRepo) Tx(_ context.Context, fn func(Queries) error) error {
-	return fn(&fakeQueries{r: r})
+	// Snapshot wallet balances so a failing closure rolls back, mimicking a real
+	// database transaction.
+	snapshot := make(map[string]sql.NullString, len(r.wallets))
+	for _, w := range r.wallets {
+		snapshot[w.Address] = w.Balance
+	}
+	if err := fn(&fakeQueries{r: r}); err != nil {
+		for _, w := range r.wallets {
+			w.Balance = snapshot[w.Address]
+		}
+		return err
+	}
+	return nil
 }
 
 type fakeQueries struct {
@@ -118,6 +136,16 @@ func (q *fakeQueries) UpdateBalance(_ context.Context, address, encBalance strin
 }
 
 func (q *fakeQueries) InsertTransaction(_ context.Context, t TxnInsert) error {
+	// Simulate the uq_reference unique index: a reference already recorded (seeded
+	// via byRef, or inserted earlier) collides.
+	if _, exists := q.r.byRef[t.Reference]; exists {
+		return ErrDuplicateReference
+	}
+	for _, existing := range q.r.txns {
+		if existing.Reference == t.Reference {
+			return ErrDuplicateReference
+		}
+	}
 	q.r.txns = append(q.r.txns, t)
 	return nil
 }
@@ -230,6 +258,162 @@ func TestTransferErrors(t *testing.T) {
 				t.Errorf("recorded %d transactions on failure, want 0", len(repo.txns))
 			}
 		})
+	}
+}
+
+func newPaymentFixture(t *testing.T) (*crypto.Encryptor, *fakeRepo, *Service) {
+	t.Helper()
+	enc := newEnc(t)
+	repo := &fakeRepo{
+		owners: map[string]string{"0xuserwallet": "user@example.com"},
+		byRef:  map[string]*TxnRow{},
+	}
+	seedWallet(t, enc, repo, "0xuserwallet", "100")
+	seedWallet(t, enc, repo, "0xtreasury", "0")
+	return enc, repo, NewService(repo, enc)
+}
+
+func validPaymentRequest() model.PaymentRequest {
+	return model.PaymentRequest{
+		FromAddress: "0xuserwallet",
+		ToAddress:   "0xtreasury",
+		Amount:      "12.5",
+		Reference:   "order-123",
+		Source:      "STOREFRONT",
+	}
+}
+
+func TestPay(t *testing.T) {
+	enc, repo, svc := newPaymentFixture(t)
+
+	res, err := svc.Pay(context.Background(), "user@example.com", validPaymentRequest())
+	if err != nil {
+		t.Fatalf("Pay: %v", err)
+	}
+	if res.Idempotent {
+		t.Error("first Pay should not be an idempotent replay")
+	}
+	if res.Response.FromAddress != "0xuserwallet" || res.Response.ToAddress != "0xtreasury" {
+		t.Errorf("endpoints = %s -> %s, want 0xuserwallet -> 0xtreasury", res.Response.FromAddress, res.Response.ToAddress)
+	}
+	if res.Response.Amount != "12.500000000" {
+		t.Errorf("amount = %q, want 12.500000000", res.Response.Amount)
+	}
+	if res.Response.Reference != "order-123" {
+		t.Errorf("reference = %q, want order-123", res.Response.Reference)
+	}
+	if got := balanceOf(t, enc, repo, "0xuserwallet"); got != "87.500000000" {
+		t.Errorf("sender balance = %q, want 87.500000000", got)
+	}
+	if got := balanceOf(t, enc, repo, "0xtreasury"); got != "12.500000000" {
+		t.Errorf("recipient balance = %q, want 12.500000000", got)
+	}
+	if len(repo.txns) != 1 || repo.txns[0].Reference != "order-123" || repo.txns[0].Source != "STOREFRONT" {
+		t.Errorf("payment not recorded with reference and source: %+v", repo.txns)
+	}
+}
+
+func TestPayErrors(t *testing.T) {
+	req := validPaymentRequest
+	tests := []struct {
+		name    string
+		email   string
+		req     model.PaymentRequest
+		wantErr error
+	}{
+		{"invalid reference chars", "user@example.com", withRef(req(), "bad ref!"), ErrInvalidReference},
+		{"generated-shaped reference", "user@example.com", withRef(req(), "0x"+strings.Repeat("a", 64)), ErrInvalidReference},
+		{"reference too long", "user@example.com", withRef(req(), "a"+strings.Repeat("b", 66)), ErrInvalidReference},
+		{"invalid source lowercase", "user@example.com", withSource(req(), "storefront"), ErrInvalidSource},
+		{"invalid source too short", "user@example.com", withSource(req(), "A"), ErrInvalidSource},
+		{"invalid amount", "user@example.com", withAmount(req(), "abc"), ErrInvalidAmount},
+		{"zero amount", "user@example.com", withAmount(req(), "0"), ErrInvalidAmount},
+		{"self transfer", "user@example.com", withTo(req(), "0xuserwallet"), ErrSelfTransfer},
+		{"not owned", "someone@else.com", req(), ErrForbidden},
+		{"recipient not found", "user@example.com", withTo(req(), "0xmissing"), ErrRecipientNotFound},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			enc, repo, svc := newPaymentFixture(t)
+
+			_, err := svc.Pay(context.Background(), tt.email, tt.req)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("Pay error = %v, want %v", err, tt.wantErr)
+			}
+			if got := balanceOf(t, enc, repo, "0xuserwallet"); got != "100.000000000" {
+				t.Errorf("sender balance changed on failure: %q", got)
+			}
+			if got := balanceOf(t, enc, repo, "0xtreasury"); got != "0.000000000" {
+				t.Errorf("recipient balance changed on failure: %q", got)
+			}
+			if len(repo.txns) != 0 {
+				t.Errorf("recorded %d transactions on failure, want 0", len(repo.txns))
+			}
+		})
+	}
+}
+
+func TestPayIdempotentReplay(t *testing.T) {
+	enc, repo, svc := newPaymentFixture(t)
+	seedExistingTxn(t, enc, repo, "order-123", "0xuserwallet", "0xtreasury", "12.5")
+
+	res, err := svc.Pay(context.Background(), "user@example.com", validPaymentRequest())
+	if err != nil {
+		t.Fatalf("Pay: %v", err)
+	}
+	if !res.Idempotent {
+		t.Error("replay of an identical reference should be idempotent")
+	}
+	if res.Response.Amount != "12.500000000" {
+		t.Errorf("amount = %q, want 12.500000000", res.Response.Amount)
+	}
+	// The balances must not move on an idempotent replay.
+	if got := balanceOf(t, enc, repo, "0xuserwallet"); got != "100.000000000" {
+		t.Errorf("sender balance moved on replay: %q", got)
+	}
+	if got := balanceOf(t, enc, repo, "0xtreasury"); got != "0.000000000" {
+		t.Errorf("recipient balance moved on replay: %q", got)
+	}
+	if len(repo.txns) != 0 {
+		t.Errorf("replay inserted %d new transactions, want 0", len(repo.txns))
+	}
+}
+
+func TestPayReferenceConflict(t *testing.T) {
+	enc, repo, svc := newPaymentFixture(t)
+	// Same reference already used, but for a different amount.
+	seedExistingTxn(t, enc, repo, "order-123", "0xuserwallet", "0xtreasury", "99")
+
+	_, err := svc.Pay(context.Background(), "user@example.com", validPaymentRequest())
+	if !errors.Is(err, ErrReferenceConflict) {
+		t.Fatalf("Pay error = %v, want ErrReferenceConflict", err)
+	}
+	if got := balanceOf(t, enc, repo, "0xuserwallet"); got != "100.000000000" {
+		t.Errorf("sender balance moved on conflict: %q", got)
+	}
+}
+
+func withRef(r model.PaymentRequest, ref string) model.PaymentRequest  { r.Reference = ref; return r }
+func withSource(r model.PaymentRequest, s string) model.PaymentRequest { r.Source = s; return r }
+func withAmount(r model.PaymentRequest, a string) model.PaymentRequest { r.Amount = a; return r }
+func withTo(r model.PaymentRequest, to string) model.PaymentRequest    { r.ToAddress = to; return r }
+
+func seedExistingTxn(t *testing.T, enc Encryptor, r *fakeRepo, ref, from, to, amount string) {
+	t.Helper()
+	units, err := money.ParseUnits(amount)
+	if err != nil {
+		t.Fatalf("parse %q: %v", amount, err)
+	}
+	c, err := enc.Encrypt(money.FormatUnits(units), amountAADForRef(ref))
+	if err != nil {
+		t.Fatalf("encrypt amount: %v", err)
+	}
+	r.byRef[ref] = &TxnRow{
+		Reference:   sql.NullString{String: ref, Valid: true},
+		FromAddress: from,
+		ToAddress:   to,
+		Amount:      c,
+		CreatedOn:   time.Now().UTC(),
 	}
 }
 

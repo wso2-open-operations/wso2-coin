@@ -23,11 +23,21 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/go-sql-driver/mysql"
 )
+
+// mysqlDuplicateEntry is the MySQL server error number for a unique-key violation.
+const mysqlDuplicateEntry = 1062
 
 // ErrNoMasterWallet is returned when a client has no active master wallet mapping.
 // The service maps it to a forbidden response.
 var ErrNoMasterWallet = errors.New("no master wallet mapping for client")
+
+// ErrDuplicateReference is returned when inserting a transaction whose reference
+// already exists (the uq_reference unique index). The service uses it to drive
+// idempotent replay and conflict detection.
+var ErrDuplicateReference = errors.New("duplicate transaction reference")
 
 // WalletRow is a persisted wallet balance.
 type WalletRow struct {
@@ -60,6 +70,7 @@ type TxnInsert struct {
 	ToAddress   string
 	Amount      string
 	Reference   string
+	Source      string
 }
 
 // SearchFilters constrains a transaction search. Every field is optional; the
@@ -85,6 +96,7 @@ type Queries interface {
 type Repository interface {
 	MasterWalletByClient(ctx context.Context, clientID string) (string, error)
 	WalletByAddress(ctx context.Context, address string) (*WalletRow, error)
+	WalletOwnedBy(ctx context.Context, address, email string) (bool, error)
 	ListWallets(ctx context.Context) ([]WalletSummaryRow, error)
 	ListWalletAddresses(ctx context.Context) ([]string, error)
 	SearchTransactions(ctx context.Context, f SearchFilters) ([]TxnRow, int, error)
@@ -125,6 +137,22 @@ func (r *mysqlRepository) WalletByAddress(ctx context.Context, address string) (
 		return nil, fmt.Errorf("query wallet: %w", err)
 	}
 	return &wr, nil
+}
+
+// WalletOwnedBy reports whether the wallet at address belongs to the given user
+// email. A missing or not-owned wallet both return false without distinction, so the
+// caller cannot enumerate wallets it does not own.
+func (r *mysqlRepository) WalletOwnedBy(ctx context.Context, address, email string) (bool, error) {
+	const q = `SELECT 1 FROM user_wallet WHERE wallet_address = ? AND user_email = ? LIMIT 1`
+	var one int
+	err := r.db.QueryRowContext(ctx, q, address, email).Scan(&one)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("query wallet ownership: %w", err)
+	}
+	return true, nil
 }
 
 func (r *mysqlRepository) ListWallets(ctx context.Context) ([]WalletSummaryRow, error) {
@@ -332,8 +360,12 @@ func (q *txQueries) UpdateBalance(ctx context.Context, address, encBalance strin
 }
 
 func (q *txQueries) InsertTransaction(ctx context.Context, t TxnInsert) error {
-	const stmt = "INSERT INTO `transaction` (from_address, to_address, amount, reference) VALUES (?, ?, ?, ?)"
-	if _, err := q.tx.ExecContext(ctx, stmt, t.FromAddress, t.ToAddress, t.Amount, t.Reference); err != nil {
+	const stmt = "INSERT INTO `transaction` (from_address, to_address, amount, reference, source) VALUES (?, ?, ?, ?, ?)"
+	if _, err := q.tx.ExecContext(ctx, stmt, t.FromAddress, t.ToAddress, t.Amount, t.Reference, t.Source); err != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == mysqlDuplicateEntry {
+			return ErrDuplicateReference
+		}
 		return fmt.Errorf("insert transaction: %w", err)
 	}
 	return nil

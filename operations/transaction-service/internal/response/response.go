@@ -41,6 +41,8 @@ const (
 	ErrMsgInvalidAmount     = "Invalid transfer amount."
 	ErrMsgInsufficientFunds = "Insufficient funds."
 	ErrMsgTooManyAddresses  = "Too many addresses in filter; at most 100 per field."
+	ErrMsgInvalidReference  = "Invalid reference."
+	ErrMsgInvalidSource     = "Invalid source."
 )
 
 type errorBody struct {

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/wso2/wso2-coin/operations/transaction-service/internal/middleware"
 	"github.com/wso2/wso2-coin/operations/transaction-service/internal/model"
@@ -36,12 +37,16 @@ const (
 
 // Handler serves the transaction HTTP API.
 type Handler struct {
-	svc *Service
+	svc          *Service
+	userVerifier *middleware.Verifier
+	userHeader   string
 }
 
-// NewHandler returns a transaction Handler.
-func NewHandler(svc *Service) *Handler {
-	return &Handler{svc: svc}
+// NewHandler returns a transaction Handler. userVerifier and userHeader drive the
+// payments endpoint's end-user token verification; when userVerifier is nil the
+// payments route is not registered (payments disabled).
+func NewHandler(svc *Service, userVerifier *middleware.Verifier, userHeader string) *Handler {
+	return &Handler{svc: svc, userVerifier: userVerifier, userHeader: userHeader}
 }
 
 // RegisterRoutes binds the transaction routes onto the mux. The literal
@@ -55,6 +60,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /wallets/{address}/balance", h.walletBalance)
 	mux.HandleFunc("POST /transactions/search", h.search)
 	mux.HandleFunc("GET /transactions/{reference}", h.transactionByReference)
+	if h.userVerifier != nil {
+		mux.HandleFunc("POST /payments", h.payments)
+	}
 }
 
 func (h *Handler) wallets(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +113,65 @@ func (h *Handler) transfer(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", "/transactions/"+res.Reference)
 	response.WriteJSON(w, http.StatusCreated, res)
+}
+
+// payments collects a coin payment from a user-owned wallet into a treasury wallet
+// on the user's behalf. The service token (already verified) identifies the calling
+// client for the audit log only; the end-user token authorizes the movement.
+func (h *Handler) payments(w http.ResponseWriter, r *http.Request) {
+	clientID, ok := caller(w, r)
+	if !ok {
+		return
+	}
+	email, ok := h.userEmail(w, r)
+	if !ok {
+		return
+	}
+	var req model.PaymentRequest
+	if err := response.DecodeJSON(w, r, &req); err != nil {
+		response.WriteDecodeError(w, err)
+		return
+	}
+	res, err := h.svc.Pay(r.Context(), email, req)
+	if err != nil {
+		writeServiceError(r.Context(), w, err)
+		return
+	}
+	// Audit line: the raw token, email and balances are deliberately never logged.
+	slog.InfoContext(r.Context(), "payment recorded",
+		"clientId", clientID,
+		"fromAddress", res.Response.FromAddress,
+		"toAddress", res.Response.ToAddress,
+		"amount", res.Response.Amount,
+		"reference", res.Response.Reference,
+		"source", req.Source)
+	if res.Idempotent {
+		response.WriteJSON(w, http.StatusOK, res.Response)
+		return
+	}
+	w.Header().Set("Location", "/transactions/"+res.Response.Reference)
+	response.WriteJSON(w, http.StatusCreated, res.Response)
+}
+
+// userEmail verifies the end-user token from the configured header and returns its
+// trimmed, lowercased email claim. A missing/invalid token or empty email is a 401.
+func (h *Handler) userEmail(w http.ResponseWriter, r *http.Request) (string, bool) {
+	token := strings.TrimSpace(r.Header.Get(h.userHeader))
+	if token == "" {
+		response.WriteError(w, http.StatusUnauthorized, response.ErrMsgUnauthorized)
+		return "", false
+	}
+	claims, err := h.userVerifier.Verify(token)
+	if err != nil {
+		response.WriteError(w, http.StatusUnauthorized, response.ErrMsgUnauthorized)
+		return "", false
+	}
+	email := strings.ToLower(strings.TrimSpace(claims.Email))
+	if email == "" {
+		response.WriteError(w, http.StatusUnauthorized, response.ErrMsgUnauthorized)
+		return "", false
+	}
+	return email, true
 }
 
 func (h *Handler) walletBalance(w http.ResponseWriter, r *http.Request) {
@@ -180,6 +247,12 @@ func writeServiceError(ctx context.Context, w http.ResponseWriter, err error) {
 		response.WriteError(w, http.StatusBadRequest, response.ErrMsgInvalidAmount)
 	case errors.Is(err, ErrInsufficientFunds):
 		response.WriteError(w, http.StatusBadRequest, response.ErrMsgInsufficientFunds)
+	case errors.Is(err, ErrInvalidReference):
+		response.WriteError(w, http.StatusBadRequest, response.ErrMsgInvalidReference)
+	case errors.Is(err, ErrInvalidSource):
+		response.WriteError(w, http.StatusBadRequest, response.ErrMsgInvalidSource)
+	case errors.Is(err, ErrReferenceConflict):
+		response.WriteError(w, http.StatusConflict, response.ErrMsgConflict)
 	default:
 		slog.ErrorContext(ctx, "request failed", "err", err)
 		response.WriteError(w, http.StatusInternalServerError, response.ErrMsgInternal)
