@@ -29,7 +29,7 @@ import (
 
 const (
 	encryptionKeySize = 32
-	defaultPort       = ":8081"
+	defaultPort       = ":8080"
 )
 
 // Config is the fully resolved, validated service configuration.
