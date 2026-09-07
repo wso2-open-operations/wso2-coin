@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"regexp"
 	"strings"
 	"time"
 
@@ -42,7 +43,27 @@ var (
 	ErrRecipientNotFound = errors.New("recipient wallet not found")
 	ErrSelfTransfer      = errors.New("cannot transfer to the same wallet")
 	ErrIntegrity         = errors.New("balance integrity check failed")
+	ErrInvalidReference  = errors.New("invalid reference")
+	ErrInvalidSource     = errors.New("invalid source")
+	ErrReferenceConflict = errors.New("reference already used with different details")
 )
+
+// Payment reference and source validation. referencePattern also rejects values
+// shaped like a service-generated reference (0x + 64 hex) so caller keys cannot
+// collide with them.
+var (
+	referencePattern    = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,65}$`)
+	generatedRefPattern = regexp.MustCompile(`^0x[0-9a-fA-F]{64}$`)
+	sourcePattern       = regexp.MustCompile(`^[A-Z][A-Z0-9_]{1,31}$`)
+)
+
+func validReference(s string) bool {
+	return referencePattern.MatchString(s) && !generatedRefPattern.MatchString(s)
+}
+
+func validSource(s string) bool {
+	return sourcePattern.MatchString(s)
+}
 
 // Encryptor authenticates and (de)encrypts stored values, binding them to an AAD.
 type Encryptor interface {
@@ -97,37 +118,7 @@ func (s *Service) Transfer(ctx context.Context, clientID string, req model.Trans
 	if err != nil {
 		return model.TransferResponse{}, err
 	}
-	encAmount, err := s.enc.Encrypt(money.FormatUnits(amount), amountAADForRef(ref))
-	if err != nil {
-		return model.TransferResponse{}, fmt.Errorf("encrypt amount: %w", err)
-	}
-
-	err = s.repo.Tx(ctx, func(q Queries) error {
-		balances, err := s.lockBalances(ctx, q, from, to.Address)
-		if err != nil {
-			return err
-		}
-		fromUnits, toUnits := balances[from], balances[to.Address]
-		if fromUnits.Cmp(amount) < 0 {
-			return ErrInsufficientFunds
-		}
-		encFrom, err := s.enc.Encrypt(money.FormatUnits(new(big.Int).Sub(fromUnits, amount)), balanceAAD(from))
-		if err != nil {
-			return fmt.Errorf("encrypt sender balance: %w", err)
-		}
-		encTo, err := s.enc.Encrypt(money.FormatUnits(new(big.Int).Add(toUnits, amount)), balanceAAD(to.Address))
-		if err != nil {
-			return fmt.Errorf("encrypt recipient balance: %w", err)
-		}
-		if err := q.UpdateBalance(ctx, from, encFrom); err != nil {
-			return err
-		}
-		if err := q.UpdateBalance(ctx, to.Address, encTo); err != nil {
-			return err
-		}
-		return q.InsertTransaction(ctx, TxnInsert{FromAddress: from, ToAddress: to.Address, Amount: encAmount, Reference: ref})
-	})
-	if err != nil {
+	if err := s.settle(ctx, from, to.Address, amount, ref, ""); err != nil {
 		return model.TransferResponse{}, err
 	}
 	return model.TransferResponse{
@@ -136,6 +127,140 @@ func (s *Service) Transfer(ctx context.Context, clientID string, req model.Trans
 		ToAddress:   to.Address,
 		Amount:      money.FormatUnits(amount),
 	}, nil
+}
+
+// PaymentResult is the outcome of a payment. Idempotent is true when the reference
+// already existed with matching details and the original transaction was replayed.
+type PaymentResult struct {
+	Response   model.PaymentResponse
+	Idempotent bool
+}
+
+// Pay collects a payment from the user-owned fromAddress into an existing recipient
+// wallet, atomically, keyed by the caller-supplied reference for idempotency. The
+// email is the verified owner of fromAddress.
+func (s *Service) Pay(ctx context.Context, email string, req model.PaymentRequest) (PaymentResult, error) {
+	if !validReference(req.Reference) {
+		return PaymentResult{}, ErrInvalidReference
+	}
+	if !validSource(req.Source) {
+		return PaymentResult{}, ErrInvalidSource
+	}
+	amount, err := money.ParseUnits(req.Amount)
+	if err != nil || amount.Sign() <= 0 {
+		return PaymentResult{}, ErrInvalidAmount
+	}
+	if strings.EqualFold(req.FromAddress, req.ToAddress) {
+		return PaymentResult{}, ErrSelfTransfer
+	}
+
+	owned, err := s.repo.WalletOwnedBy(ctx, req.FromAddress, email)
+	if err != nil {
+		return PaymentResult{}, err
+	}
+	if !owned {
+		// A not-owned and an unknown wallet are treated identically to avoid
+		// enumeration; the email is deliberately omitted from this log line.
+		slog.WarnContext(ctx, "denying payment: fromAddress is not owned by the authenticated user")
+		return PaymentResult{}, ErrForbidden
+	}
+
+	to, err := s.repo.WalletByAddress(ctx, req.ToAddress)
+	if err != nil {
+		return PaymentResult{}, err
+	}
+	if to == nil {
+		slog.WarnContext(ctx, "payment recipient wallet not found", "recipient", req.ToAddress)
+		return PaymentResult{}, ErrRecipientNotFound
+	}
+
+	err = s.settle(ctx, req.FromAddress, to.Address, amount, req.Reference, req.Source)
+	if err == nil {
+		return PaymentResult{Response: model.PaymentResponse{
+			Reference:   req.Reference,
+			FromAddress: req.FromAddress,
+			ToAddress:   to.Address,
+			Amount:      money.FormatUnits(amount),
+		}}, nil
+	}
+	if !errors.Is(err, ErrDuplicateReference) {
+		return PaymentResult{}, err
+	}
+	return s.replay(ctx, req.Reference, req.FromAddress, to.Address, amount)
+}
+
+// replay resolves a duplicate-reference insert: it returns the original transaction
+// as an idempotent success when from/to/amount match, or a conflict when they differ.
+func (s *Service) replay(ctx context.Context, reference, from, to string, amount *big.Int) (PaymentResult, error) {
+	existing, err := s.repo.TransactionByReference(ctx, reference)
+	if err != nil {
+		return PaymentResult{}, err
+	}
+	if existing == nil {
+		return PaymentResult{}, ErrReferenceConflict
+	}
+	plainAmount, err := s.enc.Decrypt(existing.Amount, amountAADForRow(*existing))
+	if err != nil {
+		return PaymentResult{}, ErrIntegrity
+	}
+	existingUnits, err := money.ParseUnits(plainAmount)
+	if err != nil {
+		return PaymentResult{}, ErrIntegrity
+	}
+	if !strings.EqualFold(existing.FromAddress, from) ||
+		!strings.EqualFold(existing.ToAddress, to) ||
+		existingUnits.Cmp(amount) != 0 {
+		return PaymentResult{}, ErrReferenceConflict
+	}
+	return PaymentResult{
+		Response: model.PaymentResponse{
+			Reference:   reference,
+			FromAddress: existing.FromAddress,
+			ToAddress:   existing.ToAddress,
+			Amount:      money.FormatUnits(amount),
+		},
+		Idempotent: true,
+	}, nil
+}
+
+// settle performs the atomic locked debit, credit and transaction insert for a
+// coin movement of amount from -> to, recorded under reference (and source, when set).
+func (s *Service) settle(ctx context.Context, from, to string, amount *big.Int, reference, source string) error {
+	encAmount, err := s.enc.Encrypt(money.FormatUnits(amount), amountAADForRef(reference))
+	if err != nil {
+		return fmt.Errorf("encrypt amount: %w", err)
+	}
+	return s.repo.Tx(ctx, func(q Queries) error {
+		balances, err := s.lockBalances(ctx, q, from, to)
+		if err != nil {
+			return err
+		}
+		fromUnits, toUnits := balances[from], balances[to]
+		if fromUnits.Cmp(amount) < 0 {
+			return ErrInsufficientFunds
+		}
+		encFrom, err := s.enc.Encrypt(money.FormatUnits(new(big.Int).Sub(fromUnits, amount)), balanceAAD(from))
+		if err != nil {
+			return fmt.Errorf("encrypt sender balance: %w", err)
+		}
+		encTo, err := s.enc.Encrypt(money.FormatUnits(new(big.Int).Add(toUnits, amount)), balanceAAD(to))
+		if err != nil {
+			return fmt.Errorf("encrypt recipient balance: %w", err)
+		}
+		if err := q.UpdateBalance(ctx, from, encFrom); err != nil {
+			return err
+		}
+		if err := q.UpdateBalance(ctx, to, encTo); err != nil {
+			return err
+		}
+		return q.InsertTransaction(ctx, TxnInsert{
+			FromAddress: from,
+			ToAddress:   to,
+			Amount:      encAmount,
+			Reference:   reference,
+			Source:      source,
+		})
+	})
 }
 
 // WalletBalance returns the decrypted balance of any wallet by address.

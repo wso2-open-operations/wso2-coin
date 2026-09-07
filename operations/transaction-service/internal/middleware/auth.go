@@ -59,9 +59,17 @@ func WithClientID(ctx context.Context, clientID string) context.Context {
 }
 
 // jwtClaims carries the standard registered claims; the caller is identified by the
-// subject (sub) claim, which is treated as the client id.
+// subject (sub) claim, which is treated as the client id. Email carries the
+// end-user email claim used by the payments flow (empty for service tokens).
 type jwtClaims struct {
 	jwt.RegisteredClaims
+	Email string `json:"email,omitempty"`
+}
+
+// UserClaims holds the verified claims extracted from an end-user token.
+type UserClaims struct {
+	Subject string
+	Email   string
 }
 
 // Verifier authenticates caller tokens. With a JWKS configured it validates the
@@ -98,6 +106,16 @@ func NewVerifier(ctx context.Context, cfg config.JWTConfig) (*Verifier, error) {
 
 // Verified reports whether tokens are signature-verified.
 func (v *Verifier) Verified() bool { return v.verified }
+
+// Verify parses and validates a token and returns its claims. With a JWKS
+// configured it checks the signature, expiry and (when set) issuer and audience.
+func (v *Verifier) Verify(token string) (UserClaims, error) {
+	claims, err := v.parse(token)
+	if err != nil {
+		return UserClaims{}, err
+	}
+	return UserClaims{Subject: claims.Subject, Email: claims.Email}, nil
+}
 
 func (v *Verifier) parse(token string) (*jwtClaims, error) {
 	claims := &jwtClaims{}

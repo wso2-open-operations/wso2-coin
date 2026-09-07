@@ -25,14 +25,33 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/wso2/wso2-coin/operations/transaction-service/internal/middleware"
 	"github.com/wso2/wso2-coin/operations/transaction-service/internal/model"
 )
+
+const testUserHeader = "X-User-Assertion"
 
 func newTestMux(t *testing.T, repo *fakeRepo) *http.ServeMux {
 	t.Helper()
 	mux := http.NewServeMux()
-	NewHandler(NewService(repo, newEnc(t))).RegisterRoutes(mux)
+	// A zero-value Verifier decodes the end-user token without signature checks,
+	// which is sufficient for exercising the handler wiring in tests.
+	NewHandler(NewService(repo, newEnc(t)), &middleware.Verifier{}, testUserHeader).RegisterRoutes(mux)
 	return mux
+}
+
+// userToken builds an unsigned JWT carrying the given email claim, for the
+// decode-only test verifier.
+func userToken(t *testing.T, email string) string {
+	t.Helper()
+	tok := jwt.NewWithClaims(jwt.SigningMethodNone, jwt.MapClaims{"sub": "user-1", "email": email})
+	signed, err := tok.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	if err != nil {
+		t.Fatalf("sign token: %v", err)
+	}
+	return signed
 }
 
 func TestHandlerListWalletsEmptyReturnsJSONArray(t *testing.T) {
@@ -78,6 +97,111 @@ func TestHandlerListWalletAddressesEmptyReturnsJSONArray(t *testing.T) {
 	}
 	if body := strings.TrimSpace(rec.Body.String()); body != "[]" {
 		t.Fatalf("body = %q, want [] (not null) for empty result", body)
+	}
+}
+
+func newPaymentRepo(t *testing.T) *fakeRepo {
+	t.Helper()
+	enc := newEnc(t)
+	repo := &fakeRepo{
+		owners: map[string]string{"0xuserwallet": "user@example.com"},
+		byRef:  map[string]*TxnRow{},
+	}
+	seedWallet(t, enc, repo, "0xuserwallet", "100")
+	seedWallet(t, enc, repo, "0xtreasury", "0")
+	return repo
+}
+
+func paymentRequest() model.PaymentRequest {
+	return model.PaymentRequest{
+		FromAddress: "0xuserwallet",
+		ToAddress:   "0xtreasury",
+		Amount:      "12.5",
+		Reference:   "order-123",
+		Source:      "STOREFRONT",
+	}
+}
+
+// doPayment issues a POST /payments with the service caller identity in context and
+// the given end-user token in the configured header.
+func doPayment(t *testing.T, repo *fakeRepo, userTok string, body model.PaymentRequest) *httptest.ResponseRecorder {
+	t.Helper()
+	payload, err := json.Marshal(body)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/payments", bytes.NewReader(payload))
+	req = req.WithContext(middleware.WithClientID(req.Context(), "client-1"))
+	if userTok != "" {
+		req.Header.Set(testUserHeader, userTok)
+	}
+	rec := httptest.NewRecorder()
+	newTestMux(t, repo).ServeHTTP(rec, req)
+	return rec
+}
+
+func TestHandlerPaymentCreated(t *testing.T) {
+	rec := doPayment(t, newPaymentRepo(t), userToken(t, "user@example.com"), paymentRequest())
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201; body = %s", rec.Code, rec.Body.String())
+	}
+	if loc := rec.Header().Get("Location"); loc != "/transactions/order-123" {
+		t.Errorf("Location = %q, want /transactions/order-123", loc)
+	}
+	var got model.PaymentResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	want := model.PaymentResponse{Reference: "order-123", FromAddress: "0xuserwallet", ToAddress: "0xtreasury", Amount: "12.500000000"}
+	if got != want {
+		t.Errorf("response = %+v, want %+v", got, want)
+	}
+}
+
+func TestHandlerPaymentMissingUserToken(t *testing.T) {
+	rec := doPayment(t, newPaymentRepo(t), "", paymentRequest())
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+}
+
+func TestHandlerPaymentNotOwned(t *testing.T) {
+	rec := doPayment(t, newPaymentRepo(t), userToken(t, "someone@else.com"), paymentRequest())
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403", rec.Code)
+	}
+}
+
+func TestHandlerPaymentInvalidReference(t *testing.T) {
+	body := paymentRequest()
+	body.Reference = "bad ref!"
+	rec := doPayment(t, newPaymentRepo(t), userToken(t, "user@example.com"), body)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+}
+
+func TestHandlerPaymentIdempotentReplay(t *testing.T) {
+	repo := newPaymentRepo(t)
+	seedExistingTxn(t, newEnc(t), repo, "order-123", "0xuserwallet", "0xtreasury", "12.5")
+
+	rec := doPayment(t, repo, userToken(t, "user@example.com"), paymentRequest())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (idempotent replay); body = %s", rec.Code, rec.Body.String())
+	}
+	if loc := rec.Header().Get("Location"); loc != "" {
+		t.Errorf("Location = %q, want empty on idempotent replay", loc)
+	}
+}
+
+func TestHandlerPaymentReferenceConflict(t *testing.T) {
+	repo := newPaymentRepo(t)
+	seedExistingTxn(t, newEnc(t), repo, "order-123", "0xuserwallet", "0xtreasury", "99")
+
+	rec := doPayment(t, repo, userToken(t, "user@example.com"), paymentRequest())
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want 409", rec.Code)
 	}
 }
 

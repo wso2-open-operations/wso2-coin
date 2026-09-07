@@ -44,6 +44,24 @@ type TransferResponse struct {
 	Amount      string `json:"amount"`
 }
 
+// PaymentRequest is the body of a payment collected from a user's own wallet into a
+// treasury wallet on the user's behalf. Every field is required.
+type PaymentRequest struct {
+	FromAddress string `json:"fromAddress"`
+	ToAddress   string `json:"toAddress"`
+	Amount      string `json:"amount"`
+	Reference   string `json:"reference"`
+	Source      string `json:"source"`
+}
+
+// PaymentResponse is returned after a payment is recorded (or replayed idempotently).
+type PaymentResponse struct {
+	Reference   string `json:"reference"`
+	FromAddress string `json:"fromAddress"`
+	ToAddress   string `json:"toAddress"`
+	Amount      string `json:"amount"`
+}
+
 // Transaction is one recorded transfer.
 type Transaction struct {
 	Reference   string `json:"reference"`
