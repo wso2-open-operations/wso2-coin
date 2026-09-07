@@ -31,6 +31,11 @@ import (
 	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/money"
 )
 
+// sourceWalletApp labels transactions originating from the wallet app. Every
+// transaction this service writes is a wallet-app transaction, so its provenance
+// is set server-side rather than supplied by callers.
+const sourceWalletApp = "WALLET_APP"
+
 // Domain errors returned by the service and mapped to HTTP statuses by the handler.
 var (
 	ErrNotFound          = errors.New("wallet not found")
@@ -171,7 +176,7 @@ func (s *Service) allocateFirstWallet(ctx context.Context, q Queries, address, e
 	if err := q.UpdateBalance(ctx, funding, encFunding); err != nil {
 		return err
 	}
-	return q.InsertTransaction(ctx, TxnInsert{FromAddress: funding, ToAddress: address, Amount: encAmount, Reference: ref})
+	return q.InsertTransaction(ctx, TxnInsert{FromAddress: funding, ToAddress: address, Amount: encAmount, Reference: ref, Source: sourceWalletApp})
 }
 
 // SetPrimary marks one of the caller's wallets as their default.
@@ -282,7 +287,7 @@ func (s *Service) Transfer(ctx context.Context, email string, req model.Transfer
 		if err := q.UpdateBalance(ctx, to.Address, encTo); err != nil {
 			return err
 		}
-		return q.InsertTransaction(ctx, TxnInsert{FromAddress: from.Address, ToAddress: to.Address, Amount: encAmount, Reference: ref})
+		return q.InsertTransaction(ctx, TxnInsert{FromAddress: from.Address, ToAddress: to.Address, Amount: encAmount, Reference: ref, Source: sourceWalletApp})
 	})
 	if err != nil {
 		return model.TransferResponse{}, err
