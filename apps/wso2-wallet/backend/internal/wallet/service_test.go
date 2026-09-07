@@ -200,6 +200,9 @@ func TestCreateWalletWithAllocation(t *testing.T) {
 	if !strings.HasPrefix(repo.txns[0].Reference, "0x") || len(repo.txns[0].Reference) != 66 {
 		t.Errorf("reference = %q, want 0x + 64 hex", repo.txns[0].Reference)
 	}
+	if repo.txns[0].Source != sourceWalletApp {
+		t.Errorf("source = %q, want %q", repo.txns[0].Source, sourceWalletApp)
+	}
 }
 
 func TestCreateWalletNoAllocationForExternalDomain(t *testing.T) {
@@ -273,6 +276,9 @@ func TestTransfer(t *testing.T) {
 	}
 	if len(repo.txns) != 1 || repo.txns[0].Reference != res.TransactionHash {
 		t.Error("transfer transaction not recorded with the returned reference")
+	}
+	if repo.txns[0].Source != sourceWalletApp {
+		t.Errorf("source = %q, want %q", repo.txns[0].Source, sourceWalletApp)
 	}
 }
 

@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS `transaction` (
     to_address         VARCHAR(255) NOT NULL,
     amount             VARCHAR(255) NOT NULL COMMENT 'Encrypted transferred amount',
     reference          VARCHAR(66) NULL COMMENT 'Unique transaction reference',
+    source             VARCHAR(32) NULL COMMENT 'Originating channel/app',
     created_on         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     tx_type            VARCHAR(20) NULL COMMENT 'Optional source metadata',
     tx_hash            VARCHAR(66) NULL COMMENT 'Optional source metadata',

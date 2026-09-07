@@ -50,6 +50,8 @@ type TxnInsert struct {
 	ToAddress   string
 	Amount      string
 	Reference   string
+	// Source labels the originating channel/app for the transaction.
+	Source string
 }
 
 // Queries is the set of reads and writes available inside a database transaction.
@@ -220,8 +222,8 @@ func (q *txQueries) InsertWallet(ctx context.Context, address, email, encBalance
 }
 
 func (q *txQueries) InsertTransaction(ctx context.Context, t TxnInsert) error {
-	const stmt = "INSERT INTO `transaction` (from_address, to_address, amount, reference) VALUES (?, ?, ?, ?)"
-	if _, err := q.tx.ExecContext(ctx, stmt, t.FromAddress, t.ToAddress, t.Amount, t.Reference); err != nil {
+	const stmt = "INSERT INTO `transaction` (from_address, to_address, amount, reference, source) VALUES (?, ?, ?, ?, ?)"
+	if _, err := q.tx.ExecContext(ctx, stmt, t.FromAddress, t.ToAddress, t.Amount, t.Reference, t.Source); err != nil {
 		return fmt.Errorf("insert transaction: %w", err)
 	}
 	return nil
