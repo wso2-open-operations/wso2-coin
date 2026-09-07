@@ -169,6 +169,8 @@ func (h *Handler) walletsMe(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(r.Context(), w, err)
 		return
 	}
+	// User-specific balances at a fixed URL must not be cached by any intermediary.
+	w.Header().Set("Cache-Control", "no-store")
 	response.WriteJSON(w, http.StatusOK, wallets)
 }
 
