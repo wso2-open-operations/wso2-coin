@@ -99,11 +99,11 @@ export default function TransactionBrowser() {
   );
 
   // Local filter state
-  const [senderAddress, setSenderAddress] = useState<string | null>(null);
-  const [senderAddressInput, setSenderAddressInput] = useState("");
-  const [receiverAddress, setReceiverAddress] = useState<string | null>(null);
-  const [receiverAddressInput, setReceiverAddressInput] = useState("");
-  const [transactionHash, setTransactionHash] = useState("");
+  const [fromAddress, setFromAddress] = useState<string | null>(null);
+  const [fromAddressInput, setFromAddressInput] = useState("");
+  const [toAddress, setToAddress] = useState<string | null>(null);
+  const [toAddressInput, setToAddressInput] = useState("");
+  const [reference, setReference] = useState("");
   const [startTime, setStartTime] = useState<Dayjs | null>(null);
   const [endTime, setEndTime] = useState<Dayjs | null>(null);
 
@@ -116,13 +116,13 @@ export default function TransactionBrowser() {
     dispatch(fetchWalletAddresses());
   }, [dispatch, limit]);
 
-  const effectiveSenderAddress = senderAddress || senderAddressInput || "";
-  const effectiveReceiverAddress = receiverAddress || receiverAddressInput || "";
+  const effectiveFromAddress = fromAddress || fromAddressInput || "";
+  const effectiveToAddress = toAddress || toAddressInput || "";
 
   const buildSearchRequest = (overrideOffset?: number) => ({
-    ...(effectiveSenderAddress && { senderAddress: effectiveSenderAddress }),
-    ...(effectiveReceiverAddress && { receiverAddress: effectiveReceiverAddress }),
-    ...(transactionHash && { transactionHash }),
+    ...(effectiveFromAddress && { fromAddress: effectiveFromAddress }),
+    ...(effectiveToAddress && { toAddress: effectiveToAddress }),
+    ...(reference && { reference }),
     ...(startTime && { startTime: startTime.startOf("day").toISOString() }),
     ...(endTime && { endTime: endTime.endOf("day").toISOString() }),
     limit,
@@ -130,18 +130,18 @@ export default function TransactionBrowser() {
   });
 
   const validate = (): boolean => {
-    const ethAddressRegex = /^0x[0-9a-fA-F]{40}$/;
-    const txHashRegex = /^0x[0-9a-fA-F]{64}$/;
+    const addressRegex = /^0x[0-9a-fA-F]{40}$/;
+    const referenceRegex = /^0x[0-9a-fA-F]{64}$/;
     const newErrors: Record<string, string> = {};
 
-    if (effectiveSenderAddress && !ethAddressRegex.test(effectiveSenderAddress)) {
-      newErrors.senderAddress = "Please enter a valid Ethereum address (0x followed by 40 hex characters)";
+    if (effectiveFromAddress && !addressRegex.test(effectiveFromAddress)) {
+      newErrors.fromAddress = "Please enter a valid address (0x followed by 40 hex characters)";
     }
-    if (effectiveReceiverAddress && !ethAddressRegex.test(effectiveReceiverAddress)) {
-      newErrors.receiverAddress = "Please enter a valid Ethereum address (0x followed by 40 hex characters)";
+    if (effectiveToAddress && !addressRegex.test(effectiveToAddress)) {
+      newErrors.toAddress = "Please enter a valid address (0x followed by 40 hex characters)";
     }
-    if (transactionHash && !txHashRegex.test(transactionHash)) {
-      newErrors.transactionHash = "Please enter a valid transaction hash (0x followed by 64 hex characters)";
+    if (reference && !referenceRegex.test(reference)) {
+      newErrors.reference = "Please enter a valid reference (0x followed by 64 hex characters)";
     }
     if (startTime && endTime && startTime.isAfter(endTime)) {
       newErrors.startTime = "Start date must be before end date";
@@ -159,11 +159,11 @@ export default function TransactionBrowser() {
 
   const handleClear = () => {
     setErrors({});
-    setSenderAddress(null);
-    setSenderAddressInput("");
-    setReceiverAddress(null);
-    setReceiverAddressInput("");
-    setTransactionHash("");
+    setFromAddress(null);
+    setFromAddressInput("");
+    setToAddress(null);
+    setToAddressInput("");
+    setReference("");
     setStartTime(null);
     setEndTime(null);
     dispatch(setOffset(0));
@@ -197,35 +197,25 @@ export default function TransactionBrowser() {
 
   const columns: GridColDef[] = [
     {
-      field: "blockNumber",
-      headerName: "Block #",
-      flex: 0.6,
-      minWidth: 100,
-      renderCell: (params) => {
-        const tx = params.row as Transaction;
-        return <Typography variant="body2">{tx.blockNumber.toLocaleString()}</Typography>;
-      },
-    },
-    {
-      field: "txHash",
-      headerName: "Transaction Hash",
+      field: "reference",
+      headerName: "Reference",
       flex: 1.3,
       minWidth: 180,
-      renderCell: (params) => <CopyableCell value={(params.row as Transaction).txHash} />,
+      renderCell: (params) => <CopyableCell value={(params.row as Transaction).reference} />,
     },
     {
-      field: "senderAddress",
+      field: "fromAddress",
       headerName: "From",
       flex: 1.4,
       minWidth: 200,
-      renderCell: (params) => <CopyableCell value={(params.row as Transaction).senderAddress} />,
+      renderCell: (params) => <CopyableCell value={(params.row as Transaction).fromAddress} />,
     },
     {
-      field: "receiverAddress",
+      field: "toAddress",
       headerName: "To",
       flex: 1.4,
       minWidth: 200,
-      renderCell: (params) => <CopyableCell value={(params.row as Transaction).receiverAddress} />,
+      renderCell: (params) => <CopyableCell value={(params.row as Transaction).toAddress} />,
     },
     {
       field: "amount",
@@ -279,12 +269,12 @@ export default function TransactionBrowser() {
               <Autocomplete
                 freeSolo
                 options={walletAddresses}
-                value={senderAddress}
-                onChange={(_, value) => { setSenderAddress(value); setErrors((prev) => ({ ...prev, senderAddress: "" })); }}
-                inputValue={senderAddressInput}
-                onInputChange={(_, value) => { setSenderAddressInput(value); setErrors((prev) => ({ ...prev, senderAddress: "" })); }}
+                value={fromAddress}
+                onChange={(_, value) => { setFromAddress(value); setErrors((prev) => ({ ...prev, fromAddress: "" })); }}
+                inputValue={fromAddressInput}
+                onInputChange={(_, value) => { setFromAddressInput(value); setErrors((prev) => ({ ...prev, fromAddress: "" })); }}
                 renderInput={(params) => (
-                  <TextField {...params} label="From Address" placeholder="0x..." size="small" fullWidth error={!!errors.senderAddress} helperText={errors.senderAddress} />
+                  <TextField {...params} label="From Address" placeholder="0x..." size="small" fullWidth error={!!errors.fromAddress} helperText={errors.fromAddress} />
                 )}
                 size="small"
               />
@@ -293,12 +283,12 @@ export default function TransactionBrowser() {
               <Autocomplete
                 freeSolo
                 options={walletAddresses}
-                value={receiverAddress}
-                onChange={(_, value) => { setReceiverAddress(value); setErrors((prev) => ({ ...prev, receiverAddress: "" })); }}
-                inputValue={receiverAddressInput}
-                onInputChange={(_, value) => { setReceiverAddressInput(value); setErrors((prev) => ({ ...prev, receiverAddress: "" })); }}
+                value={toAddress}
+                onChange={(_, value) => { setToAddress(value); setErrors((prev) => ({ ...prev, toAddress: "" })); }}
+                inputValue={toAddressInput}
+                onInputChange={(_, value) => { setToAddressInput(value); setErrors((prev) => ({ ...prev, toAddress: "" })); }}
                 renderInput={(params) => (
-                  <TextField {...params} label="To Address" placeholder="0x..." size="small" fullWidth error={!!errors.receiverAddress} helperText={errors.receiverAddress} />
+                  <TextField {...params} label="To Address" placeholder="0x..." size="small" fullWidth error={!!errors.toAddress} helperText={errors.toAddress} />
                 )}
                 size="small"
               />
@@ -306,13 +296,13 @@ export default function TransactionBrowser() {
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth
-                label="Transaction Hash"
+                label="Reference"
                 placeholder="0x..."
-                value={transactionHash}
-                onChange={(e) => { setTransactionHash(e.target.value); setErrors((prev) => ({ ...prev, transactionHash: "" })); }}
+                value={reference}
+                onChange={(e) => { setReference(e.target.value); setErrors((prev) => ({ ...prev, reference: "" })); }}
                 size="small"
-                error={!!errors.transactionHash}
-                helperText={errors.transactionHash}
+                error={!!errors.reference}
+                helperText={errors.reference}
               />
             </Grid>
             {/* Row 2: Date filters + buttons (right-aligned) */}
@@ -390,7 +380,7 @@ export default function TransactionBrowser() {
               <DataGrid
                 rows={transactions}
                 columns={columns}
-                getRowId={(row) => row.txHash}
+                getRowId={(row) => row.reference}
                 getRowHeight={() => "auto"}
                 autoHeight
                 hideFooter

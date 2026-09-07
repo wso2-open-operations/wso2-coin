@@ -42,7 +42,7 @@ const initialState: TransactionState = {
   errorMessage: null,
   transactions: [],
   hasMore: false,
-  limit: 5,
+  limit: 10,
   offset: 0,
   walletAddresses: [],
 };
@@ -141,7 +141,8 @@ export const transactionSlice = createSlice({
       .addCase(searchTransactions.fulfilled, (state, action) => {
         state.state = State.success;
         state.transactions = action.payload.transactions;
-        state.hasMore = action.payload.hasMore;
+        state.hasMore =
+          action.payload.offset + action.payload.transactions.length < action.payload.total;
         state.stateMessage = null;
       })
       .addCase(searchTransactions.rejected, (state, action) => {

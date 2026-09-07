@@ -21,7 +21,7 @@ configurable string transactionServiceEndpoint = ?;
 
 @display {
     label: "Transaction Service",
-    id: "digiops-currency/transaction-service"
+    id: "wso2-coin/transaction-service"
 }
 final http:Client transactionClient = check new (transactionServiceEndpoint, {
     auth: {...clientAuthConfig},

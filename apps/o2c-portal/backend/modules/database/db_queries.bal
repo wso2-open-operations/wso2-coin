@@ -104,9 +104,9 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
                     hasPartner = true;
                 }
             }
-            
+
             sql:ParameterizedQuery[] typeQueries = [];
-            
+
             if filters.email is string {
                 if hasSession && hasO2Bar {
                     typeQueries.push(`(JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${SESSION} OR (JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR} AND JSON_UNQUOTE(JSON_EXTRACT(info, '$.email')) = ${filters.email}))`);
@@ -123,15 +123,15 @@ isolated function fetchConferenceQrCodesQuery(ConferenceQrCodeFilters filters) r
                     typeQueries.push(`JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${O2BAR}`);
                 }
             }
-            
+
             if hasGeneral {
                 typeQueries.push(`JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${GENERAL}`);
             }
-            
+
             if hasPartner {
                 typeQueries.push(`JSON_UNQUOTE(JSON_EXTRACT(info, '$.eventType')) = ${PARTNER}`);
             }
-            
+
             if typeQueries.length() > 0 {
                 sql:ParameterizedQuery combined = `(`;
                 foreach int i in 0 ..< typeQueries.length() {
@@ -278,20 +278,4 @@ isolated function updateConferenceEventTypeQuery(string typeName, AddConferenceE
 isolated function deleteConferenceEventTypeQuery(string typeName) returns sql:ParameterizedQuery => `
         DELETE FROM conference_event_type
         WHERE type = ${typeName};
-    `;
-
-# Build query to fetch all wallets.
-#
-# + return - sql:ParameterizedQuery
-isolated function fetchAllWalletsQuery() returns sql:ParameterizedQuery => `
-        SELECT wallet_address, default_wallet, created_on
-        FROM user_wallet ORDER BY created_on DESC
-    `;
-
-# Build query to fetch distinct wallet addresses.
-#
-# + return - sql:ParameterizedQuery
-isolated function fetchDistinctAddressesQuery() returns sql:ParameterizedQuery => `
-        SELECT DISTINCT wallet_address
-        FROM user_wallet ORDER BY wallet_address
     `;
