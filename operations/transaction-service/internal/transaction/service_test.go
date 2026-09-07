@@ -603,6 +603,29 @@ func TestListUserWallets(t *testing.T) {
 	}
 }
 
+// TestListUserWalletsDecryptError verifies that a user_wallet row whose stored
+// balance fails to decrypt makes ListUserWallets fail with ErrIntegrity rather
+// than returning a partial or zeroed balance. The row's ciphertext is encrypted
+// under a different address's AAD, so decrypting it under the row's own address
+// fails the integrity check (the decryptBalance ErrIntegrity path).
+func TestListUserWalletsDecryptError(t *testing.T) {
+	enc := newEnc(t)
+	row := encWalletRow(t, enc, "0xother", "42.5", true)
+	row.Address = "0xtampered"
+
+	email := "user@example.com"
+	repo := &fakeRepo{byEmail: map[string][]WalletBalanceRow{email: {row}}}
+	svc := NewService(repo, enc)
+
+	got, err := svc.ListUserWallets(context.Background(), email)
+	if !errors.Is(err, ErrIntegrity) {
+		t.Fatalf("ListUserWallets error = %v, want ErrIntegrity", err)
+	}
+	if got != nil {
+		t.Errorf("got %+v on integrity failure, want nil (no partial results)", got)
+	}
+}
+
 func TestSearchTransactions(t *testing.T) {
 	enc := newEnc(t)
 	repo := &fakeRepo{}

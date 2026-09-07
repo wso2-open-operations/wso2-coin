@@ -264,6 +264,7 @@ components:
           description: Creation timestamp in RFC3339 format
     UserWallet:
       type: object
+      required: [walletAddress, balance, defaultWallet]
       properties:
         walletAddress:
           type: string
