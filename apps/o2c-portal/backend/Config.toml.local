@@ -5,14 +5,6 @@ password = ""
 database = "o2c_portal"
 port = 3306
 
-[o2c_portal.database.o2cDbConfig.connectionPool]
-maxOpenConnections = 10
-maxConnectionLifeTime = 100.0
-minIdleConnections = 5
-
-[o2c_portal.database.o2cDbConfig.options]
-connectTimeout = 10.0
-
 [o2c_portal.authorization.authorizedRoles]
 generalAdminRole = ""
 sessionAdminRole = ""
