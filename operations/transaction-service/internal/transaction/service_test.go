@@ -37,6 +37,8 @@ type fakeRepo struct {
 	searchTotal int
 	lastFilters SearchFilters
 	byRef       map[string]*TxnRow
+	summaries   []WalletSummaryRow
+	addresses   []string
 }
 
 func (r *fakeRepo) find(address string) *WalletRow {
@@ -63,6 +65,14 @@ func (r *fakeRepo) WalletByAddress(_ context.Context, address string) (*WalletRo
 	}
 	cp := *w
 	return &cp, nil
+}
+
+func (r *fakeRepo) ListWallets(_ context.Context) ([]WalletSummaryRow, error) {
+	return r.summaries, nil
+}
+
+func (r *fakeRepo) ListWalletAddresses(_ context.Context) ([]string, error) {
+	return r.addresses, nil
 }
 
 func (r *fakeRepo) SearchTransactions(_ context.Context, f SearchFilters) ([]TxnRow, int, error) {
@@ -252,6 +262,85 @@ func TestWalletBalance(t *testing.T) {
 
 	if _, err := svc.WalletBalance(context.Background(), "0xnope"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("WalletBalance for missing wallet error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestListWallets(t *testing.T) {
+	created := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	tests := []struct {
+		name string
+		rows []WalletSummaryRow
+		want []model.WalletSummary
+	}{
+		{
+			name: "empty",
+			rows: nil,
+			want: []model.WalletSummary{},
+		},
+		{
+			name: "maps rows and formats created_on as RFC3339",
+			rows: []WalletSummaryRow{
+				{Address: "0xaaa", DefaultWallet: true, CreatedOn: created},
+				{Address: "0xbbb", DefaultWallet: false, CreatedOn: created.Add(-time.Hour)},
+			},
+			want: []model.WalletSummary{
+				{WalletAddress: "0xaaa", DefaultWallet: true, CreatedOn: "2026-01-02T03:04:05Z"},
+				{WalletAddress: "0xbbb", DefaultWallet: false, CreatedOn: "2026-01-02T02:04:05Z"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := NewService(&fakeRepo{summaries: tt.rows}, newEnc(t))
+
+			got, err := svc.ListWallets(context.Background())
+			if err != nil {
+				t.Fatalf("ListWallets: %v", err)
+			}
+			if got == nil {
+				t.Fatal("ListWallets returned nil; want non-nil slice so the JSON is [] not null")
+			}
+			if len(got) != len(tt.want) {
+				t.Fatalf("got %d wallets, want %d", len(got), len(tt.want))
+			}
+			for i, w := range got {
+				if w != tt.want[i] {
+					t.Errorf("wallet[%d] = %+v, want %+v", i, w, tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestListWalletAddresses(t *testing.T) {
+	tests := []struct {
+		name string
+		rows []string
+		want []string
+	}{
+		{"empty returns non-nil slice", nil, []string{}},
+		{"passes addresses through", []string{"0xaaa", "0xbbb"}, []string{"0xaaa", "0xbbb"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := NewService(&fakeRepo{addresses: tt.rows}, newEnc(t))
+
+			got, err := svc.ListWalletAddresses(context.Background())
+			if err != nil {
+				t.Fatalf("ListWalletAddresses: %v", err)
+			}
+			if got == nil {
+				t.Fatal("got nil slice, want non-nil")
+			}
+			if len(got) != len(tt.want) {
+				t.Fatalf("got %d addresses, want %d", len(got), len(tt.want))
+			}
+			for i, a := range got {
+				if a != tt.want[i] {
+					t.Errorf("address[%d] = %q, want %q", i, a, tt.want[i])
+				}
+			}
+		})
 	}
 }
 

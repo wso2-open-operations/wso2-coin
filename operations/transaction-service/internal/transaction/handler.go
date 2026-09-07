@@ -30,6 +30,8 @@ import (
 const (
 	defaultLimit = 15
 	maxLimit     = 100
+	// maxSearchAddresses is the maximum number of addresses accepted per filter field.
+	maxSearchAddresses = 100
 )
 
 // Handler serves the transaction HTTP API.
@@ -42,14 +44,35 @@ func NewHandler(svc *Service) *Handler {
 	return &Handler{svc: svc}
 }
 
-// RegisterRoutes binds the transaction routes onto the mux. The literal master routes
-// are registered before the {address} pattern so they take precedence.
+// RegisterRoutes binds the transaction routes onto the mux. The literal
+// /wallets/master/* patterns are more specific than /wallets/{address}/..., so Go's
+// ServeMux always routes them there regardless of registration order.
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /wallets", h.wallets)
+	mux.HandleFunc("GET /wallets/addresses", h.walletAddresses)
 	mux.HandleFunc("GET /wallets/master/balance", h.masterBalance)
 	mux.HandleFunc("POST /wallets/master/transfer", h.transfer)
 	mux.HandleFunc("GET /wallets/{address}/balance", h.walletBalance)
 	mux.HandleFunc("POST /transactions/search", h.search)
 	mux.HandleFunc("GET /transactions/{reference}", h.transactionByReference)
+}
+
+func (h *Handler) wallets(w http.ResponseWriter, r *http.Request) {
+	wallets, err := h.svc.ListWallets(r.Context())
+	if err != nil {
+		writeServiceError(r.Context(), w, err)
+		return
+	}
+	response.WriteJSON(w, http.StatusOK, wallets)
+}
+
+func (h *Handler) walletAddresses(w http.ResponseWriter, r *http.Request) {
+	addresses, err := h.svc.ListWalletAddresses(r.Context())
+	if err != nil {
+		writeServiceError(r.Context(), w, err)
+		return
+	}
+	response.WriteJSON(w, http.StatusOK, addresses)
 }
 
 func (h *Handler) masterBalance(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +120,10 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 	var req model.TransactionSearchRequest
 	if err := response.DecodeJSON(w, r, &req); err != nil {
 		response.WriteDecodeError(w, err)
+		return
+	}
+	if len(req.FromAddresses) > maxSearchAddresses || len(req.ToAddresses) > maxSearchAddresses {
+		response.WriteError(w, http.StatusBadRequest, response.ErrMsgTooManyAddresses)
 		return
 	}
 	req.Limit = normalizeLimit(req.Limit)

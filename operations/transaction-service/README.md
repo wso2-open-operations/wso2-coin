@@ -46,6 +46,8 @@ go run ./cmd/server
 | Method | Path | Description | Client `sub` |
 |---|---|---|---|
 | `GET` | `/health` | Service liveness | — |
+| `GET` | `/wallets` | List all wallets (address, default flag, created) | — |
+| `GET` | `/wallets/addresses` | List all distinct wallet addresses | — |
 | `GET` | `/wallets/master/balance` | Caller's master wallet balance | required |
 | `POST` | `/wallets/master/transfer` | Transfer from the caller's master wallet | required |
 | `GET` | `/wallets/{address}/balance` | Any wallet's balance | — |

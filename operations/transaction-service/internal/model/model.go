@@ -23,6 +23,13 @@ type Balance struct {
 	Balance       string `json:"balance"`
 }
 
+// WalletSummary is a wallet's address and metadata as returned by the wallet listing.
+type WalletSummary struct {
+	WalletAddress string `json:"walletAddress"`
+	DefaultWallet bool   `json:"defaultWallet"`
+	CreatedOn     string `json:"createdOn"`
+}
+
 // TransferRequest is the body of a transfer from the caller's master wallet.
 type TransferRequest struct {
 	ToAddress string `json:"toAddress"`

@@ -143,6 +143,35 @@ func (s *Service) WalletBalance(ctx context.Context, address string) (model.Bala
 	return s.walletBalance(ctx, address)
 }
 
+// ListWallets returns every wallet's address and metadata, newest first.
+func (s *Service) ListWallets(ctx context.Context) ([]model.WalletSummary, error) {
+	rows, err := s.repo.ListWallets(ctx)
+	if err != nil {
+		return nil, err
+	}
+	wallets := make([]model.WalletSummary, 0, len(rows))
+	for _, row := range rows {
+		wallets = append(wallets, model.WalletSummary{
+			WalletAddress: row.Address,
+			DefaultWallet: row.DefaultWallet,
+			CreatedOn:     row.CreatedOn.UTC().Format(time.RFC3339),
+		})
+	}
+	return wallets, nil
+}
+
+// ListWalletAddresses returns every distinct wallet address, ordered by address.
+func (s *Service) ListWalletAddresses(ctx context.Context) ([]string, error) {
+	addresses, err := s.repo.ListWalletAddresses(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if addresses == nil {
+		return []string{}, nil
+	}
+	return addresses, nil
+}
+
 // SearchTransactions returns a filtered, paginated page of transactions, newest first.
 func (s *Service) SearchTransactions(ctx context.Context, req model.TransactionSearchRequest) (model.TransactionPage, error) {
 	rows, total, err := s.repo.SearchTransactions(ctx, SearchFilters{

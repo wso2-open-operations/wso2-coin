@@ -60,16 +60,20 @@ type DBConfig struct {
 	User                  string
 	Password              string
 	Name                  string
+	TLSMode               string
 	MaxOpenConns          int
 	MaxIdleConns          int
 	ConnMaxLifetimeSecond int
 	ConnectTimeoutSecond  int
 }
 
-// DSN returns the MySQL data source name.
+// DSN returns the MySQL data source name. TLSMode maps to go-sql-driver's tls
+// parameter: "true" verifies the server certificate and hostname (recommended for
+// managed databases), "preferred" uses TLS opportunistically without verification,
+// "skip-verify" encrypts without verification, "false" disables TLS.
 func (d DBConfig) DSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&timeout=%ds&tls=preferred",
-		d.User, d.Password, d.Host, d.Port, d.Name, d.ConnectTimeoutSecond)
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&timeout=%ds&tls=%s",
+		d.User, d.Password, d.Host, d.Port, d.Name, d.ConnectTimeoutSecond, d.TLSMode)
 }
 
 // Load reads configuration from the environment and fails on missing required values.
@@ -105,6 +109,7 @@ func Load() (Config, error) {
 			User:                  dbUser,
 			Password:              os.Getenv("DB_PASSWORD"),
 			Name:                  dbName,
+			TLSMode:               envOrDefault("DB_TLS", "preferred"),
 			MaxOpenConns:          envIntOrDefault("DB_MAX_OPEN_CONNECTIONS", 25),
 			MaxIdleConns:          envIntOrDefault("DB_MAX_IDLE_CONNECTIONS", 25),
 			ConnMaxLifetimeSecond: envIntOrDefault("DB_CONN_MAX_LIFETIME_SECONDS", 300),

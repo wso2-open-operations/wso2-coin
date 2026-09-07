@@ -47,6 +47,13 @@ type TxnRow struct {
 	CreatedOn   time.Time
 }
 
+// WalletSummaryRow is a row of the wallet listing.
+type WalletSummaryRow struct {
+	Address       string
+	DefaultWallet bool
+	CreatedOn     time.Time
+}
+
 // TxnInsert is a new transaction to persist.
 type TxnInsert struct {
 	FromAddress string
@@ -78,6 +85,8 @@ type Queries interface {
 type Repository interface {
 	MasterWalletByClient(ctx context.Context, clientID string) (string, error)
 	WalletByAddress(ctx context.Context, address string) (*WalletRow, error)
+	ListWallets(ctx context.Context) ([]WalletSummaryRow, error)
+	ListWalletAddresses(ctx context.Context) ([]string, error)
 	SearchTransactions(ctx context.Context, f SearchFilters) ([]TxnRow, int, error)
 	TransactionByReference(ctx context.Context, reference string) (*TxnRow, error)
 	Tx(ctx context.Context, fn func(Queries) error) error
@@ -116,6 +125,54 @@ func (r *mysqlRepository) WalletByAddress(ctx context.Context, address string) (
 		return nil, fmt.Errorf("query wallet: %w", err)
 	}
 	return &wr, nil
+}
+
+func (r *mysqlRepository) ListWallets(ctx context.Context) ([]WalletSummaryRow, error) {
+	const q = `SELECT wallet_address, default_wallet, created_on FROM user_wallet ORDER BY created_on DESC`
+	rows, err := r.db.QueryContext(ctx, q)
+	if err != nil {
+		return nil, fmt.Errorf("query wallets: %w", err)
+	}
+	defer rows.Close()
+
+	var wallets []WalletSummaryRow
+	for rows.Next() {
+		var wr WalletSummaryRow
+		var defaultWallet sql.NullBool
+		var createdOn sql.NullTime
+		if err := rows.Scan(&wr.Address, &defaultWallet, &createdOn); err != nil {
+			return nil, fmt.Errorf("scan wallet: %w", err)
+		}
+		wr.DefaultWallet = defaultWallet.Bool
+		wr.CreatedOn = createdOn.Time
+		wallets = append(wallets, wr)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate wallets: %w", err)
+	}
+	return wallets, nil
+}
+
+func (r *mysqlRepository) ListWalletAddresses(ctx context.Context) ([]string, error) {
+	const q = `SELECT DISTINCT wallet_address FROM user_wallet ORDER BY wallet_address`
+	rows, err := r.db.QueryContext(ctx, q)
+	if err != nil {
+		return nil, fmt.Errorf("query wallet addresses: %w", err)
+	}
+	defer rows.Close()
+
+	var addresses []string
+	for rows.Next() {
+		var address string
+		if err := rows.Scan(&address); err != nil {
+			return nil, fmt.Errorf("scan wallet address: %w", err)
+		}
+		addresses = append(addresses, address)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate wallet addresses: %w", err)
+	}
+	return addresses, nil
 }
 
 const txnColumns = "tx_hash, reference, from_address, to_address, amount, tx_log_index, tx_block_timestamp, created_on"

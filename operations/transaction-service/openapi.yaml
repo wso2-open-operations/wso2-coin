@@ -15,6 +15,34 @@ paths:
       responses:
         "200":
           description: Service is up
+  /wallets:
+    get:
+      summary: List all wallets
+      responses:
+        "200":
+          description: Wallet summaries, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WalletSummary"
+        "401":
+          $ref: "#/components/responses/Error"
+  /wallets/addresses:
+    get:
+      summary: List all wallet addresses
+      responses:
+        "200":
+          description: Wallet addresses, ordered by address
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "401":
+          $ref: "#/components/responses/Error"
   /wallets/master/balance:
     get:
       summary: Get the caller's master wallet balance
@@ -25,6 +53,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Balance"
+        "401":
+          $ref: "#/components/responses/Error"
         "403":
           $ref: "#/components/responses/Error"
   /wallets/master/transfer:
@@ -50,7 +80,11 @@ paths:
                 $ref: "#/components/schemas/TransferResponse"
         "400":
           $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
         "403":
+          $ref: "#/components/responses/Error"
+        "413":
           $ref: "#/components/responses/Error"
   /wallets/{address}/balance:
     get:
@@ -64,6 +98,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Balance"
+        "401":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
   /transactions/search:
@@ -82,6 +118,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TransactionPage"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "413":
+          $ref: "#/components/responses/Error"
   /transactions/{reference}:
     get:
       summary: Get a single transaction
@@ -94,6 +136,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Transaction"
+        "401":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
 components:
@@ -132,6 +176,16 @@ components:
         balance:
           type: string
           description: Decimal balance as a string
+    WalletSummary:
+      type: object
+      properties:
+        walletAddress:
+          type: string
+        defaultWallet:
+          type: boolean
+        createdOn:
+          type: string
+          description: Creation timestamp in RFC3339 format
     TransferRequest:
       type: object
       required: [toAddress, amount]
@@ -155,7 +209,6 @@ components:
           description: Decimal amount as a string
     TransactionSearchRequest:
       type: object
-      required: [limit, offset]
       properties:
         fromAddresses:
           type: array

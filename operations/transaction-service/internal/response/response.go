@@ -40,6 +40,7 @@ const (
 	ErrMsgSelfTransfer      = "Cannot transfer to the same wallet."
 	ErrMsgInvalidAmount     = "Invalid transfer amount."
 	ErrMsgInsufficientFunds = "Insufficient funds."
+	ErrMsgTooManyAddresses  = "Too many addresses in filter; at most 100 per field."
 )
 
 type errorBody struct {
