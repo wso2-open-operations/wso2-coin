@@ -285,6 +285,28 @@ func (s *Service) ListWallets(ctx context.Context) ([]model.WalletSummary, error
 	return wallets, nil
 }
 
+// ListUserWallets returns the wallets owned by the given user email with their
+// decrypted balances, the default wallet first. It always returns a non-nil slice.
+func (s *Service) ListUserWallets(ctx context.Context, email string) ([]model.UserWallet, error) {
+	rows, err := s.repo.WalletsByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	wallets := make([]model.UserWallet, 0, len(rows))
+	for _, row := range rows {
+		plain, err := s.decryptBalance(&WalletRow{Address: row.Address, Balance: row.Balance})
+		if err != nil {
+			return nil, err
+		}
+		wallets = append(wallets, model.UserWallet{
+			WalletAddress: row.Address,
+			Balance:       plain,
+			DefaultWallet: row.DefaultWallet,
+		})
+	}
+	return wallets, nil
+}
+
 // ListWalletAddresses returns every distinct wallet address, ordered by address.
 func (s *Service) ListWalletAddresses(ctx context.Context) ([]string, error) {
 	addresses, err := s.repo.ListWalletAddresses(ctx)

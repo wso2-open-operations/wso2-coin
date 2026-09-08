@@ -64,6 +64,14 @@ type WalletSummaryRow struct {
 	CreatedOn     time.Time
 }
 
+// WalletBalanceRow is a wallet owned by a user, with its stored (encrypted) balance
+// and default flag.
+type WalletBalanceRow struct {
+	Address       string
+	Balance       sql.NullString
+	DefaultWallet bool
+}
+
 // TxnInsert is a new transaction to persist.
 type TxnInsert struct {
 	FromAddress string
@@ -97,6 +105,7 @@ type Repository interface {
 	MasterWalletByClient(ctx context.Context, clientID string) (string, error)
 	WalletByAddress(ctx context.Context, address string) (*WalletRow, error)
 	WalletOwnedBy(ctx context.Context, address, email string) (bool, error)
+	WalletsByEmail(ctx context.Context, email string) ([]WalletBalanceRow, error)
 	ListWallets(ctx context.Context) ([]WalletSummaryRow, error)
 	ListWalletAddresses(ctx context.Context) ([]string, error)
 	SearchTransactions(ctx context.Context, f SearchFilters) ([]TxnRow, int, error)
@@ -153,6 +162,32 @@ func (r *mysqlRepository) WalletOwnedBy(ctx context.Context, address, email stri
 		return false, fmt.Errorf("query wallet ownership: %w", err)
 	}
 	return true, nil
+}
+
+// WalletsByEmail returns every wallet owned by the given user email with its stored
+// balance, ordering the default wallet first and then by address for a stable result.
+func (r *mysqlRepository) WalletsByEmail(ctx context.Context, email string) ([]WalletBalanceRow, error) {
+	const q = `SELECT wallet_address, total_balance, default_wallet FROM user_wallet WHERE user_email = ? ORDER BY default_wallet DESC, wallet_address`
+	rows, err := r.db.QueryContext(ctx, q, email)
+	if err != nil {
+		return nil, fmt.Errorf("query user wallets: %w", err)
+	}
+	defer rows.Close()
+
+	var wallets []WalletBalanceRow
+	for rows.Next() {
+		var wr WalletBalanceRow
+		var defaultWallet sql.NullBool
+		if err := rows.Scan(&wr.Address, &wr.Balance, &defaultWallet); err != nil {
+			return nil, fmt.Errorf("scan user wallet: %w", err)
+		}
+		wr.DefaultWallet = defaultWallet.Bool
+		wallets = append(wallets, wr)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate user wallets: %w", err)
+	}
+	return wallets, nil
 }
 
 func (r *mysqlRepository) ListWallets(ctx context.Context) ([]WalletSummaryRow, error) {

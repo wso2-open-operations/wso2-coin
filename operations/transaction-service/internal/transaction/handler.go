@@ -62,6 +62,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /transactions/{reference}", h.transactionByReference)
 	if h.userVerifier != nil {
 		mux.HandleFunc("POST /payments", h.payments)
+		// /wallets/me has two literal segments, so it does not collide with
+		// /wallets/addresses, /wallets/{address}/balance or the /wallets/master/* routes.
+		mux.HandleFunc("GET /wallets/me", h.walletsMe)
 	}
 }
 
@@ -151,6 +154,24 @@ func (h *Handler) payments(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", "/transactions/"+res.Response.Reference)
 	response.WriteJSON(w, http.StatusCreated, res.Response)
+}
+
+// walletsMe returns the caller's own wallets with balances, identified by the verified
+// end-user token. The service token authenticates the calling client; the end-user
+// token selects whose wallets are listed. Used by the People App to pick a wallet.
+func (h *Handler) walletsMe(w http.ResponseWriter, r *http.Request) {
+	email, ok := h.userEmail(w, r)
+	if !ok {
+		return
+	}
+	wallets, err := h.svc.ListUserWallets(r.Context(), email)
+	if err != nil {
+		writeServiceError(r.Context(), w, err)
+		return
+	}
+	// User-specific balances at a fixed URL must not be cached by any intermediary.
+	w.Header().Set("Cache-Control", "no-store")
+	response.WriteJSON(w, http.StatusOK, wallets)
 }
 
 // userEmail verifies the end-user token from the configured header and returns its

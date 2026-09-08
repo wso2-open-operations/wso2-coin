@@ -43,6 +43,29 @@ paths:
                   type: string
         "401":
           $ref: "#/components/responses/Error"
+  /wallets/me:
+    get:
+      summary: List the caller's own wallets with balances
+      description: >-
+        Returns the wallets owned by the end user identified by the verified end-user
+        token (userAssertion), with decrypted balances and the default wallet first.
+        Requires both the service token (jwtAssertion) and a verified end-user token
+        (userAssertion). Used by the People App to let a user pick which wallet to pay
+        from.
+      security:
+        - jwtAssertion: []
+          userAssertion: []
+      responses:
+        "200":
+          description: The caller's wallets, default wallet first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserWallet"
+        "401":
+          $ref: "#/components/responses/Error"
   /wallets/master/balance:
     get:
       summary: Get the caller's master wallet balance
@@ -239,6 +262,17 @@ components:
         createdOn:
           type: string
           description: Creation timestamp in RFC3339 format
+    UserWallet:
+      type: object
+      required: [walletAddress, balance, defaultWallet]
+      properties:
+        walletAddress:
+          type: string
+        balance:
+          type: string
+          description: Decimal balance as a string
+        defaultWallet:
+          type: boolean
     TransferRequest:
       type: object
       required: [toAddress, amount]

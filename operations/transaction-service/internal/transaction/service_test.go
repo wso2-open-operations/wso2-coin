@@ -40,6 +40,7 @@ type fakeRepo struct {
 	byRef       map[string]*TxnRow
 	summaries   []WalletSummaryRow
 	addresses   []string
+	byEmail     map[string][]WalletBalanceRow
 }
 
 func (r *fakeRepo) find(address string) *WalletRow {
@@ -71,6 +72,10 @@ func (r *fakeRepo) WalletByAddress(_ context.Context, address string) (*WalletRo
 func (r *fakeRepo) WalletOwnedBy(_ context.Context, address, email string) (bool, error) {
 	owner, ok := r.owners[address]
 	return ok && strings.EqualFold(owner, email), nil
+}
+
+func (r *fakeRepo) WalletsByEmail(_ context.Context, email string) ([]WalletBalanceRow, error) {
+	return r.byEmail[email], nil
 }
 
 func (r *fakeRepo) ListWallets(_ context.Context) ([]WalletSummaryRow, error) {
@@ -525,6 +530,99 @@ func TestListWalletAddresses(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// encWalletRow builds a WalletBalanceRow whose balance is encrypted under the
+// address's balance AAD, mirroring how a real row is stored.
+func encWalletRow(t *testing.T, enc Encryptor, address, amount string, defaultWallet bool) WalletBalanceRow {
+	t.Helper()
+	units, err := money.ParseUnits(amount)
+	if err != nil {
+		t.Fatalf("parse %q: %v", amount, err)
+	}
+	c, err := enc.Encrypt(money.FormatUnits(units), balanceAAD(address))
+	if err != nil {
+		t.Fatalf("encrypt: %v", err)
+	}
+	return WalletBalanceRow{
+		Address:       address,
+		Balance:       sql.NullString{String: c, Valid: true},
+		DefaultWallet: defaultWallet,
+	}
+}
+
+func TestListUserWallets(t *testing.T) {
+	enc := newEnc(t)
+	tests := []struct {
+		name  string
+		email string
+		rows  []WalletBalanceRow
+		want  []model.UserWallet
+	}{
+		{
+			name:  "no wallets returns empty non-nil slice",
+			email: "nobody@example.com",
+			rows:  nil,
+			want:  []model.UserWallet{},
+		},
+		{
+			name:  "maps rows and decrypts balances in repository order",
+			email: "user@example.com",
+			rows: []WalletBalanceRow{
+				encWalletRow(t, enc, "0xdefault", "42.5", true),
+				encWalletRow(t, enc, "0xother", "0", false),
+			},
+			want: []model.UserWallet{
+				{WalletAddress: "0xdefault", Balance: "42.500000000", DefaultWallet: true},
+				{WalletAddress: "0xother", Balance: "0.000000000", DefaultWallet: false},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &fakeRepo{byEmail: map[string][]WalletBalanceRow{tt.email: tt.rows}}
+			svc := NewService(repo, enc)
+
+			got, err := svc.ListUserWallets(context.Background(), tt.email)
+			if err != nil {
+				t.Fatalf("ListUserWallets: %v", err)
+			}
+			if got == nil {
+				t.Fatal("ListUserWallets returned nil; want non-nil slice so the JSON is [] not null")
+			}
+			if len(got) != len(tt.want) {
+				t.Fatalf("got %d wallets, want %d", len(got), len(tt.want))
+			}
+			for i, w := range got {
+				if w != tt.want[i] {
+					t.Errorf("wallet[%d] = %+v, want %+v", i, w, tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+// TestListUserWalletsDecryptError verifies that a user_wallet row whose stored
+// balance fails to decrypt makes ListUserWallets fail with ErrIntegrity rather
+// than returning a partial or zeroed balance. The row's ciphertext is encrypted
+// under a different address's AAD, so decrypting it under the row's own address
+// fails the integrity check (the decryptBalance ErrIntegrity path).
+func TestListUserWalletsDecryptError(t *testing.T) {
+	enc := newEnc(t)
+	row := encWalletRow(t, enc, "0xother", "42.5", true)
+	row.Address = "0xtampered"
+
+	email := "user@example.com"
+	repo := &fakeRepo{byEmail: map[string][]WalletBalanceRow{email: {row}}}
+	svc := NewService(repo, enc)
+
+	got, err := svc.ListUserWallets(context.Background(), email)
+	if !errors.Is(err, ErrIntegrity) {
+		t.Fatalf("ListUserWallets error = %v, want ErrIntegrity", err)
+	}
+	if got != nil {
+		t.Errorf("got %+v on integrity failure, want nil (no partial results)", got)
 	}
 }
 
