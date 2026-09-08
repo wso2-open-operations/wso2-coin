@@ -84,15 +84,19 @@ func run() error {
 		slog.WarnContext(ctx, "JWT signature verification disabled (JWT_JWKS_URL not set); tokens are decoded but not verified")
 	}
 
-	// The payments endpoint verifies a second, end-user token. It is enabled only
-	// when USER_JWT_JWKS_URL is configured; there is no decode-only path for it.
+	// The payments endpoint verifies a second, end-user token. It is enabled when
+	// USER_JWT_JWKS_URL is configured (signature-verified) or USER_JWT_ALLOW_INSECURE
+	// is set (decode-only, local development behind a trusted gateway).
 	var userVerifier *middleware.Verifier
-	if cfg.UserJWT.JWKSURL != "" {
+	if cfg.UserJWT.JWKSURL != "" || cfg.UserJWT.AllowInsecure {
 		userVerifier, err = middleware.NewVerifier(ctx, cfg.UserJWT)
 		if err != nil {
 			return fmt.Errorf("init user jwt verifier: %w", err)
 		}
 		slog.InfoContext(ctx, "payments endpoint enabled")
+		if !userVerifier.Verified() {
+			slog.WarnContext(ctx, "user JWT signature verification disabled (USER_JWT_ALLOW_INSECURE=true); payment tokens are decoded but not verified")
+		}
 	} else {
 		slog.InfoContext(ctx, "payments endpoint disabled (USER_JWT_JWKS_URL not set)")
 	}

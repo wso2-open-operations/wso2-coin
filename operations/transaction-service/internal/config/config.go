@@ -105,13 +105,17 @@ func Load() (Config, error) {
 			Audience:      os.Getenv("JWT_AUDIENCE"),
 			AllowInsecure: envBool("JWT_ALLOW_INSECURE", false),
 		},
-		// End-user token verification for the payments endpoint. There is no
-		// decode-only path: when payments is enabled the JWKS URL is required, so
-		// AllowInsecure is left false.
+		// End-user token verification for the payments endpoint. Each USER_JWT_* value
+		// falls back to its JWT_* counterpart, so when the end-user token shares the
+		// service token's issuer (e.g. a gateway-injected assertion) only the JWT_*
+		// config is needed; set USER_JWT_* only to override for a differently-issued
+		// user token. USER_JWT_ALLOW_INSECURE (or JWT_ALLOW_INSECURE) enables a
+		// decode-only path for local development behind a trusted gateway.
 		UserJWT: JWTConfig{
-			JWKSURL:  os.Getenv("USER_JWT_JWKS_URL"),
-			Issuer:   os.Getenv("USER_JWT_ISSUER"),
-			Audience: os.Getenv("USER_JWT_AUDIENCE"),
+			JWKSURL:       envOrDefault("USER_JWT_JWKS_URL", os.Getenv("JWT_JWKS_URL")),
+			Issuer:        envOrDefault("USER_JWT_ISSUER", os.Getenv("JWT_ISSUER")),
+			Audience:      envOrDefault("USER_JWT_AUDIENCE", os.Getenv("JWT_AUDIENCE")),
+			AllowInsecure: envBool("USER_JWT_ALLOW_INSECURE", envBool("JWT_ALLOW_INSECURE", false)),
 		},
 		UserAssertionHeader: envOrDefault("USER_ASSERTION_HEADER", "X-User-Assertion"),
 		DB: DBConfig{

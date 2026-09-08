@@ -35,6 +35,10 @@ go run ./cmd/server
 | `JWT_ISSUER` | no | — | Expected token issuer (`iss`), checked when set |
 | `JWT_AUDIENCE` | no | — | Expected token audience (`aud`), checked when set |
 | `JWT_ALLOW_INSECURE` | no | `false` | Allow startup without a JWKS (decode-only); local development only |
+| `USER_JWT_JWKS_URL` | no | `JWT_JWKS_URL` | JWKS for the end-user token (`X-User-Assertion`); defaults to `JWT_JWKS_URL`. Enables `POST /payments` and `GET /wallets/me` |
+| `USER_JWT_ISSUER` | no | `JWT_ISSUER` | Expected end-user token issuer (`iss`), checked when set |
+| `USER_JWT_AUDIENCE` | no | `JWT_AUDIENCE` | Expected end-user token audience (`aud`), checked when set |
+| `USER_JWT_ALLOW_INSECURE` | no | `JWT_ALLOW_INSECURE` | Decode the end-user token without verifying its signature; local development only |
 | `DB_HOST` / `DB_PORT` | no | `localhost` / `3306` | MySQL host/port |
 | `DB_USER` | yes | — | MySQL user |
 | `DB_PASSWORD` | no | — | MySQL password |
