@@ -48,17 +48,16 @@ var (
 	ErrReferenceConflict = errors.New("reference already used with different details")
 )
 
-// Payment reference and source validation. referencePattern also rejects values
-// shaped like a service-generated reference (0x + 64 hex) so caller keys cannot
-// collide with them.
+// Payment reference and source validation. The reference is a caller-supplied
+// idempotency key; the unique index on `reference` guarantees uniqueness, so callers
+// may also use the 0x+64hex shape used by service-generated references.
 var (
-	referencePattern    = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,65}$`)
-	generatedRefPattern = regexp.MustCompile(`^0x[0-9a-fA-F]{64}$`)
-	sourcePattern       = regexp.MustCompile(`^[A-Z][A-Z0-9_]{1,31}$`)
+	referencePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,65}$`)
+	sourcePattern    = regexp.MustCompile(`^[A-Z][A-Z0-9_]{1,31}$`)
 )
 
 func validReference(s string) bool {
-	return referencePattern.MatchString(s) && !generatedRefPattern.MatchString(s)
+	return referencePattern.MatchString(s)
 }
 
 func validSource(s string) bool {
