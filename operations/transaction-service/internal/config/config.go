@@ -105,13 +105,14 @@ func Load() (Config, error) {
 			Audience:      os.Getenv("JWT_AUDIENCE"),
 			AllowInsecure: envBool("JWT_ALLOW_INSECURE", false),
 		},
-		// End-user token verification for the payments endpoint. There is no
-		// decode-only path: when payments is enabled the JWKS URL is required, so
-		// AllowInsecure is left false.
+		// End-user token verification for the payments endpoint. When JWKS URL is
+		// set the token is signature-verified; USER_JWT_ALLOW_INSECURE=true enables a
+		// decode-only path for local development behind a trusted gateway.
 		UserJWT: JWTConfig{
-			JWKSURL:  os.Getenv("USER_JWT_JWKS_URL"),
-			Issuer:   os.Getenv("USER_JWT_ISSUER"),
-			Audience: os.Getenv("USER_JWT_AUDIENCE"),
+			JWKSURL:       os.Getenv("USER_JWT_JWKS_URL"),
+			Issuer:        os.Getenv("USER_JWT_ISSUER"),
+			Audience:      os.Getenv("USER_JWT_AUDIENCE"),
+			AllowInsecure: envBool("USER_JWT_ALLOW_INSECURE", false),
 		},
 		UserAssertionHeader: envOrDefault("USER_ASSERTION_HEADER", "X-User-Assertion"),
 		DB: DBConfig{
