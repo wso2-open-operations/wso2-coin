@@ -327,7 +327,6 @@ func TestPayErrors(t *testing.T) {
 		wantErr error
 	}{
 		{"invalid reference chars", "user@example.com", withRef(req(), "bad ref!"), ErrInvalidReference},
-		{"generated-shaped reference", "user@example.com", withRef(req(), "0x"+strings.Repeat("a", 64)), ErrInvalidReference},
 		{"reference too long", "user@example.com", withRef(req(), "a"+strings.Repeat("b", 66)), ErrInvalidReference},
 		{"invalid source lowercase", "user@example.com", withSource(req(), "storefront"), ErrInvalidSource},
 		{"invalid source too short", "user@example.com", withSource(req(), "A"), ErrInvalidSource},
@@ -355,6 +354,19 @@ func TestPayErrors(t *testing.T) {
 				t.Errorf("recorded %d transactions on failure, want 0", len(repo.txns))
 			}
 		})
+	}
+}
+
+func TestPayAcceptsHexReference(t *testing.T) {
+	_, _, svc := newPaymentFixture(t)
+	ref := "0x" + strings.Repeat("a", 64)
+
+	res, err := svc.Pay(context.Background(), "user@example.com", withRef(validPaymentRequest(), ref))
+	if err != nil {
+		t.Fatalf("Pay with 0x+64hex reference = %v, want nil", err)
+	}
+	if res.Response.Reference != ref {
+		t.Errorf("reference = %q, want %q", res.Response.Reference, ref)
 	}
 }
 
