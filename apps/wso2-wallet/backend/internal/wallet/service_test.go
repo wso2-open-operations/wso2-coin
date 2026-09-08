@@ -30,8 +30,9 @@ import (
 )
 
 type fakeRepo struct {
-	wallets []*WalletRow
-	txns    []TxnInsert
+	wallets      []*WalletRow
+	txns         []TxnInsert
+	initialCoins map[string]string
 }
 
 func (r *fakeRepo) find(address string) *WalletRow {
@@ -117,11 +118,15 @@ func (q *fakeQueries) UpdateBalance(_ context.Context, address, encBalance strin
 	return nil
 }
 
-func (q *fakeQueries) InsertWallet(_ context.Context, address, email, encBalance string, isDefault bool) error {
+func (q *fakeQueries) InsertWallet(_ context.Context, address, email, encBalance, initialCoins string, isDefault bool) error {
 	q.r.wallets = append(q.r.wallets, &WalletRow{
 		Address: address, Email: email, DefaultWallet: isDefault,
 		Balance: sql.NullString{String: encBalance, Valid: true}, CreatedOn: time.Now(),
 	})
+	if q.r.initialCoins == nil {
+		q.r.initialCoins = map[string]string{}
+	}
+	q.r.initialCoins[address] = initialCoins
 	return nil
 }
 
@@ -191,6 +196,9 @@ func TestCreateWalletWithAllocation(t *testing.T) {
 	if got := balanceOf(t, enc, repo, "0xfund"); got != "90.000000000" {
 		t.Errorf("funding balance = %q, want 90.000000000", got)
 	}
+	if got := repo.initialCoins[wallet.Address]; got != "10.000000000" {
+		t.Errorf("initial_coins_allocated = %q, want 10.000000000", got)
+	}
 	if len(repo.txns) != 1 {
 		t.Fatalf("recorded %d transactions, want 1", len(repo.txns))
 	}
@@ -217,6 +225,9 @@ func TestCreateWalletNoAllocationForExternalDomain(t *testing.T) {
 	}
 	if got := balanceOf(t, enc, repo, wallet.Address); got != "0.000000000" {
 		t.Errorf("new wallet balance = %q, want 0.000000000", got)
+	}
+	if got := repo.initialCoins[wallet.Address]; got != "0.000000000" {
+		t.Errorf("initial_coins_allocated = %q, want 0.000000000", got)
 	}
 	if len(repo.txns) != 0 {
 		t.Errorf("recorded %d transactions, want 0", len(repo.txns))
