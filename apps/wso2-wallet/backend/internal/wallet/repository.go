@@ -59,7 +59,7 @@ type Queries interface {
 	LockBalance(ctx context.Context, address string) (string, error)
 	CountWalletsByEmail(ctx context.Context, email string) (int, error)
 	UpdateBalance(ctx context.Context, address, encBalance string) error
-	InsertWallet(ctx context.Context, address, email, encBalance string, isDefault bool) error
+	InsertWallet(ctx context.Context, address, email, encBalance, initialCoins string, isDefault bool) error
 	InsertTransaction(ctx context.Context, t TxnInsert) error
 }
 
@@ -212,10 +212,10 @@ func (q *txQueries) UpdateBalance(ctx context.Context, address, encBalance strin
 	return nil
 }
 
-func (q *txQueries) InsertWallet(ctx context.Context, address, email, encBalance string, isDefault bool) error {
+func (q *txQueries) InsertWallet(ctx context.Context, address, email, encBalance, initialCoins string, isDefault bool) error {
 	if _, err := q.tx.ExecContext(ctx,
-		"INSERT INTO user_wallet (wallet_address, user_email, default_wallet, total_balance) VALUES (?, ?, ?, ?)",
-		address, email, isDefault, encBalance); err != nil {
+		"INSERT INTO user_wallet (wallet_address, user_email, default_wallet, initial_coins_allocated, total_balance) VALUES (?, ?, ?, ?, ?)",
+		address, email, isDefault, initialCoins, encBalance); err != nil {
 		return fmt.Errorf("insert wallet: %w", err)
 	}
 	return nil

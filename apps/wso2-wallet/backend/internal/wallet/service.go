@@ -121,11 +121,12 @@ func (s *Service) CreateWallet(ctx context.Context, email string) (model.Wallet,
 		if isDefault && s.allocationApplies(email) {
 			return s.allocateFirstWallet(ctx, q, address, email, fundingUnits)
 		}
-		encZero, err := s.enc.Encrypt(money.FormatUnits(big.NewInt(0)), balanceAAD(address))
+		zero := money.FormatUnits(big.NewInt(0))
+		encZero, err := s.enc.Encrypt(zero, balanceAAD(address))
 		if err != nil {
 			return err
 		}
-		return q.InsertWallet(ctx, address, email, encZero, isDefault)
+		return q.InsertWallet(ctx, address, email, encZero, zero, isDefault)
 	})
 	if err != nil {
 		return model.Wallet{}, err
@@ -170,7 +171,7 @@ func (s *Service) allocateFirstWallet(ctx context.Context, q Queries, address, e
 	if err != nil {
 		return err
 	}
-	if err := q.InsertWallet(ctx, address, email, encInitial, true); err != nil {
+	if err := q.InsertWallet(ctx, address, email, encInitial, money.FormatUnits(amount), true); err != nil {
 		return err
 	}
 	if err := q.UpdateBalance(ctx, funding, encFunding); err != nil {
