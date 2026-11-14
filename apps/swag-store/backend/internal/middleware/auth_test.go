@@ -109,6 +109,40 @@ func TestAuthAcceptsValidToken(t *testing.T) {
 	}
 }
 
+// Asgardeo's sub is the same user id as userid. A token without userid (the
+// One WSO2 access token, for one) is identified by its sub.
+func TestAuthUserIDFallsBackToSub(t *testing.T) {
+	r, user, _ := authRouter(testAuthConfig())
+	c := goodClaims()
+	delete(c, "userid")
+	c["sub"] = "0f6c2d4e-1b2a-4c3d-9e8f-7a6b5c4d3e2f"
+	req := httptest.NewRequest(http.MethodGet, "/users/me", nil)
+	req.Header.Set("x-jwt-assertion", sign(t, testKey, c))
+	if rec := serve(r, req); rec.Code != http.StatusOK {
+		t.Fatalf("sub only: status = %d", rec.Code)
+	}
+	if user.UserID != "0f6c2d4e-1b2a-4c3d-9e8f-7a6b5c4d3e2f" {
+		t.Fatalf("user id = %q, want the sub", user.UserID)
+	}
+
+	both := goodClaims()
+	both["sub"] = "some-other-subject"
+	req = httptest.NewRequest(http.MethodGet, "/users/me", nil)
+	req.Header.Set("x-jwt-assertion", sign(t, testKey, both))
+	if rec := serve(r, req); rec.Code != http.StatusOK || user.UserID != "u-1" {
+		t.Fatalf("userid and sub: status = %d, user id = %q, want userid to win", rec.Code, user.UserID)
+	}
+
+	blank := goodClaims()
+	blank["userid"] = "  "
+	blank["sub"] = "0f6c2d4e-1b2a-4c3d-9e8f-7a6b5c4d3e2f"
+	req = httptest.NewRequest(http.MethodGet, "/users/me", nil)
+	req.Header.Set("x-jwt-assertion", sign(t, testKey, blank))
+	if rec := serve(r, req); rec.Code != http.StatusOK || user.UserID != "0f6c2d4e-1b2a-4c3d-9e8f-7a6b5c4d3e2f" {
+		t.Fatalf("blank userid: status = %d, user id = %q", rec.Code, user.UserID)
+	}
+}
+
 func TestAuthGroupsClaimAsString(t *testing.T) {
 	r, user, _ := authRouter(testAuthConfig())
 	c := goodClaims()
@@ -128,17 +162,17 @@ func TestAuthRejects(t *testing.T) {
 	with := func(key string, v any) jwt.MapClaims { c := goodClaims(); c[key] = v; return c }
 
 	cases := map[string]string{
-		"missing token":   "",
-		"bad signature":   sign(t, otherKey, goodClaims()),
-		"wrong issuer":    sign(t, testKey, with("iss", "https://other.example")),
-		"wrong audience":  sign(t, testKey, with("aud", []string{"other"})),
-		"expired":         sign(t, testKey, with("exp", time.Now().Add(-time.Hour).Unix())),
-		"no expiry":       sign(t, testKey, without("exp")),
-		"missing email":   sign(t, testKey, without("email")),
-		"missing userid":  sign(t, testKey, without("userid")),
-		"bad groups type": sign(t, testKey, with("groups", 7)),
-		"garbage":         "not.a.token",
-		"alg none":        noneToken(t),
+		"missing token":    "",
+		"bad signature":    sign(t, otherKey, goodClaims()),
+		"wrong issuer":     sign(t, testKey, with("iss", "https://other.example")),
+		"wrong audience":   sign(t, testKey, with("aud", []string{"other"})),
+		"expired":          sign(t, testKey, with("exp", time.Now().Add(-time.Hour).Unix())),
+		"no expiry":        sign(t, testKey, without("exp")),
+		"missing email":    sign(t, testKey, without("email")),
+		"no userid or sub": sign(t, testKey, without("userid")),
+		"bad groups type":  sign(t, testKey, with("groups", 7)),
+		"garbage":          "not.a.token",
+		"alg none":         noneToken(t),
 	}
 	r, _, _ := authRouter(testAuthConfig())
 	var bodies []string

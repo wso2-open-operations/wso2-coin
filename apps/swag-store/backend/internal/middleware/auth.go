@@ -157,12 +157,18 @@ func parseToken(token string, cfg AuthConfig, keyFunc jwt.Keyfunc) (*reqctx.User
 	if email == "" {
 		return nil, errors.New("token missing email claim")
 	}
-	if strings.TrimSpace(c.UserID) == "" {
-		return nil, errors.New("token missing userid claim")
+	// userid is Asgardeo's user id. Tokens without it (the One WSO2 access
+	// token, for one) carry the same id in sub, so sub is the fallback.
+	userID := strings.TrimSpace(c.UserID)
+	if userID == "" {
+		userID = strings.TrimSpace(c.Subject)
+	}
+	if userID == "" {
+		return nil, errors.New("token missing userid and sub claims")
 	}
 	return &reqctx.User{
 		Email:     email,
-		UserID:    c.UserID,
+		UserID:    userID,
 		FirstName: c.FirstName,
 		LastName:  c.LastName,
 		Groups:    []string(c.Groups),

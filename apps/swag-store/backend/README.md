@@ -62,7 +62,7 @@ go run ./cmd/server   # or: make build && ./server
 curl -H "x-jwt-assertion: $JWT" http://localhost:8080/users/me
 ```
 
-The token needs `email`, `userid` and (for admin) `groups` claims. With
+The token needs `email`, `userid` (or, without it, `sub`) and (for admin) `groups` claims. With
 `AUTH_TOKEN_VALIDATOR_ENABLED=false` any JWT shape is decoded without a signature check; startup refuses
 that unless every upstream is loopback.
 
@@ -161,7 +161,7 @@ Every base URL must be `https` (loopback `http` is allowed). Malformed values st
 
 ## Open items (confirm with the platform teams)
 
-- The Choreo assertion for One WSO2 carries `email`, `userid` and `groups`.
+- The Choreo assertion for One WSO2 carries `email`, `userid` and `groups`. Without `userid`, the store uses `sub`; confirm it is the Asgardeo user id there too.
 - The transaction-service gateway passes `X-User-Assertion`, and its `USER_JWT_*` config accepts the store's assertion.
 - The shared app's client id is mapped to the treasury wallet in `client_master_wallet`.
 - The Choreo Go buildpack offers Go 1.27 and builds `./cmd/server`.
