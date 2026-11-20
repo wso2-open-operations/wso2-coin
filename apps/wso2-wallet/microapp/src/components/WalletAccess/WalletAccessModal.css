@@ -1,0 +1,402 @@
+/*
+ * Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/* The side padding (cancelled by the negative margin) leaves room for focus
+   outlines, which the scroll container would otherwise clip. */
+.wallet-access {
+  margin: 0 -6px;
+  padding: 12px 6px 4px;
+  text-align: left;
+  max-height: 72vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.wallet-access-block + .wallet-access-block {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #E6E9F0;
+}
+
+.wallet-access-heading {
+  display: block;
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0B1633;
+}
+
+.wallet-access-sublabel {
+  margin: 14px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5A6072;
+  letter-spacing: 0.2px;
+}
+
+.wallet-access-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+/* Inputs */
+.wallet-access-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  background: #ffffff;
+  border: 1.5px solid #D9DEE8;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-family: inherit;
+  /* 16px stops iOS from zooming the page when the field is focused. */
+  font-size: 16px;
+  color: #0B1633;
+}
+
+.wallet-access-row > .wallet-access-input {
+  flex: 1;
+}
+
+/* The app-wide :focus-visible outline (index.css) is the focus ring; adding a
+   coloured border here as well would draw two rings. */
+
+.wallet-access-input:disabled {
+  background: #F4F6FA;
+  color: #8A90A0;
+}
+
+/* Buttons */
+.wallet-access-btn {
+  flex-shrink: 0;
+  min-width: 76px;
+  height: 44px;
+  padding: 0 16px;
+  background: #ffffff;
+  border: 1.5px solid #FF4600;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #C43300;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wallet-access-btn.is-primary {
+  background: var(--orange-primary, #FF4600);
+  border-color: var(--orange-primary, #FF4600);
+  color: #0B1633;
+}
+
+.wallet-access-btn.is-block {
+  width: 100%;
+  height: 44px;
+  margin-top: 14px;
+  border-radius: 14px;
+}
+
+.wallet-access-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.wallet-access-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.wallet-access-link {
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #C43300;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.wallet-access-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #5A6072;
+}
+
+.wallet-access-hint.is-error {
+  color: #DC2626;
+}
+
+/* People list */
+.wallet-access-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wallet-access-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.wallet-access-person.is-member {
+  align-items: flex-start;
+  border-top: 1px solid #E6E9F0;
+}
+
+.wallet-access-avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #F4F6FA;
+  color: #5A6072;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.wallet-access-avatar.is-owner {
+  background: #F4F6FA;
+  color: #C43300;
+}
+
+.wallet-access-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wallet-access-email {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0B1633;
+  overflow-wrap: anywhere;
+}
+
+.wallet-access-owner-tag {
+  flex-shrink: 0;
+  background: #F4F6FA;
+  border: 1px solid #D9DEE8;
+  color: #C43300;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.wallet-access-remove {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  background: #ffffff;
+  border: 1.5px solid #D9DEE8;
+  border-radius: 10px;
+  color: #DC2626;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wallet-access-remove:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Directory matches under the search field */
+.wallet-access-suggestions {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1.5px solid #D9DEE8;
+  border-radius: 12px;
+}
+
+.wallet-access-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wallet-access-suggestion:active,
+.wallet-access-suggestion:hover {
+  background: #F4F6FA;
+}
+
+.wallet-access-who.is-compact {
+  gap: 1px;
+}
+
+.wallet-access-suggestion-email {
+  font-size: 12px;
+  color: #5A6072;
+  overflow-wrap: anywhere;
+}
+
+img.wallet-access-avatar {
+  object-fit: cover;
+}
+
+/* Two-way switch on a person's row */
+.wallet-access-toggle {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 3px;
+  background: #F4F6FA;
+  border-radius: 10px;
+}
+
+.wallet-access-toggle-option {
+  height: 30px;
+  padding: 0 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5A6072;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wallet-access-toggle-option.is-selected {
+  background: #ffffff;
+  color: #0B1633;
+  box-shadow: 0 1px 2px rgba(11, 22, 51, 0.12);
+}
+
+.wallet-access-toggle-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Access level cards in the add form */
+.wallet-access-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wallet-access-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1.5px solid #D9DEE8;
+  border-radius: 14px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wallet-access-card.is-selected {
+  background: #F4F6FA;
+  border-color: var(--orange-primary, #FF4600);
+}
+
+.wallet-access-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.wallet-access-card-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #F4F6FA;
+  color: #5A6072;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.wallet-access-card.is-selected .wallet-access-card-icon {
+  background: #ffffff;
+  color: #C43300;
+}
+
+.wallet-access-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wallet-access-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0B1633;
+}
+
+.wallet-access-card-info {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #5A6072;
+}
+
+.wallet-access-card-check {
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 18px;
+  color: #C43300;
+}
+
+/* Keyboard focus stays visible on every control. */
+.wallet-access-btn:focus-visible,
+.wallet-access-link:focus-visible,
+.wallet-access-remove:focus-visible,
+.wallet-access-card:focus-visible,
+.wallet-access-suggestion:focus-visible,
+.wallet-access-toggle-option:focus-visible {
+  outline: 2px solid var(--orange-primary, #FF4600);
+  outline-offset: 2px;
+}

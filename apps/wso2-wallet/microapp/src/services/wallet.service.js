@@ -52,10 +52,20 @@ const request = async (path, { method = "GET", body } = {}) => {
   return response.json();
 };
 
+export const WALLET_ROLE = {
+  OWNER: "OWNER",
+  TRANSACT: "TRANSACT",
+  READ: "READ",
+};
+
 const toWallet = (w) => ({
   walletAddress: w.address,
   defaultWallet: w.defaultWallet,
   createdOn: w.createdOn,
+  name: w.name || "",
+  // Older backends send no role; every wallet they return is the caller's own.
+  role: w.role || WALLET_ROLE.OWNER,
+  shared: !!w.shared,
 });
 
 export const getUserWalletAddresses = async () => {
@@ -72,6 +82,49 @@ export const getWalletBalanceByWalletAddress = async (walletAddress) => {
   const { balance } = await request(`/wallets/${walletAddress}/balance`);
   return balance;
 };
+
+// Name of a wallet as shown to someone sending to it; "" when it has none or the
+// lookup fails, so a missing name never blocks a transfer.
+export const getWalletName = async (walletAddress) => {
+  try {
+    const info = await request(`/wallets/${walletAddress}/info`);
+    return info?.name || "";
+  } catch (_) {
+    return "";
+  }
+};
+
+export const renameWallet = (walletAddress, name) =>
+  request(`/wallets/${walletAddress}/name`, { method: "POST", body: { name } });
+
+export const getWalletAccess = async (walletAddress) =>
+  (await request(`/wallets/${walletAddress}/access`)) || [];
+
+export const grantWalletAccess = (walletAddress, email, accessLevel) =>
+  request(`/wallets/${walletAddress}/access`, {
+    method: "POST",
+    body: { email, accessLevel },
+  });
+
+export const revokeWalletAccess = (walletAddress, email) =>
+  request(`/wallets/${walletAddress}/access/revoke`, {
+    method: "POST",
+    body: { email },
+  });
+
+// People in the organization matching a name or email, for the share dialog. Returns
+// [] when the search is unavailable, so the owner can still type an email.
+export const searchEmployees = async (query) => {
+  try {
+    const params = new URLSearchParams({ q: query });
+    return (await request(`/employees?${params.toString()}`)) || [];
+  } catch (_) {
+    return [];
+  }
+};
+
+export const leaveWallet = (walletAddress) =>
+  request(`/wallets/${walletAddress}/access/leave`, { method: "POST" });
 
 export const getWalletHealth = (walletAddress) => request(`/wallets/${walletAddress}/health`);
 
@@ -127,6 +180,7 @@ export const getTransactionHistory = async (
       timestamp: blockTimestamp ? formatTimestamp(new Date(blockTimestamp).toISOString()) : "Unknown time",
       direction: t.direction === "sent" ? "send" : "receive",
       runningBalance: null,
+      initiatedBy: t.initiatedBy || "",
     };
   });
   return {
@@ -145,9 +199,11 @@ export const fetchAppConfigs = async () => {
     return {
       isMaintenanceMode: !!config.maintenanceMode,
       maintenanceMessage: config.maintenanceMessage || "",
+      // Whether this user may share wallets (they belong to the organization).
+      canShareWallets: !!config.walletSharingEnabled,
     };
   } catch (_) {
     // Fail safe: never block the app if the config endpoint is unreachable.
-    return { isMaintenanceMode: false, maintenanceMessage: "" };
+    return { isMaintenanceMode: false, maintenanceMessage: "", canShareWallets: false };
   }
 };

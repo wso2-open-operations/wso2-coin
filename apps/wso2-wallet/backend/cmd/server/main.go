@@ -40,6 +40,7 @@ import (
 	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/config"
 	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/crypto"
 	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/middleware"
+	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/people"
 	"github.com/wso2/wso2-coin/apps/wso2-wallet/backend/internal/wallet"
 )
 
@@ -94,14 +95,29 @@ func run() error {
 		Amount:        cfg.InitialCoins.Amount,
 		FundingWallet: cfg.InitialCoins.FundingWallet,
 		EmailDomain:   cfg.InitialCoins.EmailDomain,
-	})
+	}, wallet.Sharing{EmailDomain: cfg.CompanyEmailDomain})
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 	wallet.NewHandler(svc).RegisterRoutes(mux)
-	appconfig.NewHandler(cfg.Maintenance.Mode, cfg.Maintenance.Message).RegisterRoutes(mux)
+	appconfig.NewHandler(cfg.Maintenance.Mode, cfg.Maintenance.Message, cfg.CompanyEmailDomain).RegisterRoutes(mux)
+
+	var directory *people.Directory
+	if cfg.People != nil {
+		directory = people.NewDirectory(people.NewClient(people.ClientConfig{
+			Endpoint:     cfg.People.Endpoint,
+			TokenURL:     cfg.People.TokenURL,
+			ClientID:     cfg.People.ClientID,
+			ClientSecret: cfg.People.ClientSecret,
+			Scopes:       cfg.People.Scopes,
+			Filter:       cfg.People.Filter,
+		}), cfg.CompanyEmailDomain)
+	} else {
+		slog.InfoContext(ctx, "employee search disabled (PEOPLE_API_URL not set); people are added by email")
+	}
+	people.NewHandler(directory).RegisterRoutes(mux)
 
 	root := middleware.SecurityHeaders(
 		middleware.CORS(cfg.CORSAllowedOrigin)(

@@ -27,7 +27,7 @@ import Wso2MainImg from "../../assets/images/pulse-orange.png";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./ConfirmSendAssets.css";
 import { getLocalDataAsync, saveLocalDataAsync } from "../../helpers/storage";
-import { transferToken } from "../../services/wallet.service";
+import { getWalletName, transferToken } from "../../services/wallet.service";
 import { getEllipsisTxt } from "../../helpers/formatter";
 import {
   ERROR,
@@ -54,6 +54,8 @@ function ConfirmSendAssets() {
   const [fromAddress, setFromAddress] = useState("");
   const [sendAmount, setSendAmount] = useState("");
   const [senderAddress, setSenderAddress] = useState("");
+  // Name of the recipient wallet, when it is a named shared wallet.
+  const [recipientName, setRecipientName] = useState("");
   const [isTransferLoading, setIsTransferLoading] = useState(false);
   const [paymentFlowData, setPaymentFlowData] = useState(null);
   // Synchronous guard against double submission (state updates lag a rapid re-tap).
@@ -97,6 +99,17 @@ function ConfirmSendAssets() {
   useEffect(() => {
     fetchLocalTxDetails();
   }, []);
+
+  useEffect(() => {
+    if (!senderAddress) return undefined;
+    let cancelled = false;
+    getWalletName(senderAddress).then((name) => {
+      if (!cancelled) setRecipientName(name);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [senderAddress]);
 
   const resetInputFields = async () => {
     try {
@@ -260,10 +273,13 @@ function ConfirmSendAssets() {
             </div>
           </div>
           <div className="confirm-arrow-sep">
-            <ArrowRightOutlined style={{ fontSize: 12, color: "#9CA3AF" }} />
+            <ArrowRightOutlined style={{ fontSize: 12, color: "#8A90A0" }} />
           </div>
           <div className="confirm-addr-blk confirm-addr-blk-right">
             <div className="confirm-addr-lbl">To</div>
+            {recipientName && (
+              <div className="confirm-addr-name">{recipientName}</div>
+            )}
             <div className="confirm-addr-val">
               {senderAddress ? getEllipsisTxt(senderAddress, 6) : "—"}
             </div>
@@ -283,7 +299,7 @@ function ConfirmSendAssets() {
       </div>
 
       <div className="confirm-warn">
-        <WarningFilled style={{ color: "#F97316", fontSize: 16, flexShrink: 0 }} />
+        <WarningFilled style={{ color: "#FF4600", fontSize: 16, flexShrink: 0 }} />
         <span className="confirm-warn-text">
           Crypto transactions are irreversible. Double-check the recipient
           address before confirming.
