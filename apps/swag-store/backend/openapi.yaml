@@ -1610,7 +1610,7 @@ components:
       additionalProperties: false
     PlaceOrderInput:
       type: "object"
-      description: "A CheckoutInput whose expectedTotal is required, so a price that rose after the quote is always caught"
+      description: "A CheckoutInput whose expectedTotal is required, so a price that rose after the quote is always caught. There is no payee field: the store always pays its pinned treasury"
       properties:
         pickupOfficeId:
           type: "string"
@@ -1626,7 +1626,6 @@ components:
         - "walletAddress"
         - "expectedTotal"
       additionalProperties: false
-      description: "There is no payee field: the store always pays its pinned treasury"
     Problem:
       type: "object"
       properties:

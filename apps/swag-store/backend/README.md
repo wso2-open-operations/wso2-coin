@@ -171,7 +171,7 @@ Every base URL must be `https` (loopback `http` is allowed). Malformed values st
 - The Choreo assertion for One WSO2 carries `email`, `userid` and `groups`. Without `userid`, the store uses `sub`; confirm it is the Asgardeo user id there too.
 - The transaction-service gateway passes `X-User-Assertion`, and its `USER_JWT_*` config accepts the store's assertion.
 - The shared app's client id is mapped to the treasury wallet in `client_master_wallet`.
-- The Choreo Go buildpack offers Go 1.27 and builds `./cmd/server`.
+- Choreo builds the backend with the Go buildpack and the build variable `GOOGLE_BUILDABLE=./cmd/server` (without it the buildpack builds `.`, which has no Go files).
 - email-service answers `GET /health` (used by `/health/dependencies`).
 - Launch catalog sizes, restock policies and the office list in `cmd/seed` (design Q11).
 - Choreo components can use a managed identity for Blob (else an app registration), and can reach
